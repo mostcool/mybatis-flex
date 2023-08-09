@@ -18,6 +18,7 @@ package com.mybatisflex.core.dialect;
 
 import com.mybatisflex.core.FlexGlobalConfig;
 import com.mybatisflex.core.dialect.impl.CommonsDialectImpl;
+import com.mybatisflex.core.dialect.impl.DmDialect;
 import com.mybatisflex.core.dialect.impl.OracleDialect;
 import com.mybatisflex.core.util.ObjectUtil;
 import org.apache.ibatis.util.MapUtil;
@@ -102,13 +103,15 @@ public class DialectFactory {
             case GBASE:
             case OSCAR:
             case XUGU:
-            case CLICK_HOUSE:
             case OCEAN_BASE:
             case CUBRID:
             case GOLDILOCKS:
             case CSIIDB:
                 return new CommonsDialectImpl(KeywordWrap.BACK_QUOTE, LimitOffsetProcessor.MYSQL);
+            case CLICK_HOUSE:
+                return new CommonsDialectImpl(KeywordWrap.NONE, LimitOffsetProcessor.MYSQL);
             case DM:
+                return new DmDialect();
             case ORACLE:
                 return new OracleDialect();
             case GAUSS:
@@ -132,13 +135,13 @@ public class DialectFactory {
                 return new OracleDialect(LimitOffsetProcessor.DERBY);
             case FIREBIRD:
             case DB2:
-                return new CommonsDialectImpl(KeywordWrap.DOUBLE_QUOTATION, LimitOffsetProcessor.DERBY);
+                return new CommonsDialectImpl(KeywordWrap.NONE, LimitOffsetProcessor.DERBY);
             case SQLSERVER:
                 return new CommonsDialectImpl(KeywordWrap.SQUARE_BRACKETS, LimitOffsetProcessor.SQLSERVER);
             case SQLSERVER_2005:
                 return new CommonsDialectImpl(KeywordWrap.SQUARE_BRACKETS, LimitOffsetProcessor.SQLSERVER_2005);
             case INFORMIX:
-                return new CommonsDialectImpl(KeywordWrap.DOUBLE_QUOTATION, LimitOffsetProcessor.INFORMIX);
+                return new CommonsDialectImpl(KeywordWrap.NONE, LimitOffsetProcessor.INFORMIX);
             case SINODB:
                 return new CommonsDialectImpl(KeywordWrap.DOUBLE_QUOTATION, LimitOffsetProcessor.SINODB);
             case SYBASE:

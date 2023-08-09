@@ -3,6 +3,34 @@
 
 # MyBatis-Flex： 一个优雅的 MyBatis 增强框架
 
+<p align="center">
+    <a target="_blank" href="https://search.maven.org/search?q=mybatis-flex%20mybatis-flex">
+        <img src="https://img.shields.io/maven-central/v/com.mybatis-flex/parent?label=Maven%20Central" alt="Maven" />
+    </a>
+    <a target="_blank" href="https://www.apache.org/licenses/LICENSE-2.0.txt">
+		<img src="https://img.shields.io/:license-Apache2-blue.svg" alt="Apache 2" />
+	</a>
+    <a target="_blank" href="https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html">
+		<img src="https://img.shields.io/badge/JDK-8-green.svg" alt="jdk-8" />
+	</a>
+    <a target="_blank" href="https://www.oracle.com/java/technologies/javase/jdk11-archive-downloads.html">
+		<img src="https://img.shields.io/badge/JDK-11-green.svg" alt="jdk-11" />
+	</a>
+    <a target="_blank" href="https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html">
+		<img src="https://img.shields.io/badge/JDK-17-green.svg" alt="jdk-17" />
+	</a>
+    <br />
+        <img src="https://img.shields.io/badge/SpringBoot-v2.x-blue">
+        <img src="https://img.shields.io/badge/SpringBoot-v3.x-blue">
+        <a target="_blank" href='https://gitee.com/noear/solon'><img src="https://img.shields.io/badge/Solon-v2.x-blue"></a>
+    <br />
+    <a target="_blank" href='https://gitee.com/mybatis-flex/mybatis-flex'>
+		<img src='https://gitee.com/mybatis-flex/mybatis-flex/badge/star.svg' alt='Gitee star'/>
+	</a>
+    <a target="_blank" href='https://github.com/mybatis-flex/mybatis-flex'>
+		<img src="https://img.shields.io/github/stars/mybatis-flex/mybatis-flex.svg?logo=github" alt="Github star"/>
+	</a>
+</p>
 
 ## 特征
 
@@ -22,7 +50,7 @@
 
 ## QQ 群
 
-群号： 850176767
+群号： 131665923
 
 ![](./docs/assets/images/qq_group.png)
 
@@ -97,7 +125,7 @@ QueryWrapper query = QueryWrapper.create()
     .and(ACCOUNT.USER_NAME.like("张").or(ACCOUNT.USER_NAME.like("李")));
 
 // 执行 SQL：
-// ELECT * FROM tb_account
+// SELECT * FROM tb_account
 // WHERE tb_account.id >=  100
 // AND (tb_account.user_name LIKE '%张%' OR tb_account.user_name LIKE '%李%' )
 List<Account> accounts = accountMapper.selectListByQuery(query);
@@ -116,7 +144,7 @@ QueryWrapper query=QueryWrapper.create()
     .orderBy(ACCOUNT.ID.desc());
 
 // 执行 SQL：
-// ELECT * FROM tb_account
+// SELECT * FROM tb_account
 // WHERE id >=  100
 // AND (user_name LIKE '%张%' OR user_name LIKE '%李%' )
 // ORDER BY `id` DESC
@@ -612,7 +640,7 @@ public class Account {
 
 ## 还有问题？
 
-加入 QQ 交流群： 850176767
+加入 QQ 交流群： 131665923
 
 ![](./docs/assets/images/qq_group.png)
 

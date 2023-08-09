@@ -2,6 +2,35 @@
 
 # MyBatis-Flex is an elegant Mybatis Enhancement Framework.
 
+<p align="center">
+    <a target="_blank" href="https://search.maven.org/search?q=mybatis-flex%20mybatis-flex">
+        <img src="https://img.shields.io/maven-central/v/com.mybatis-flex/parent?label=Maven%20Central" alt="Maven" />
+    </a>
+    <a target="_blank" href="https://www.apache.org/licenses/LICENSE-2.0.txt">
+		<img src="https://img.shields.io/:license-Apache2-blue.svg" alt="Apache 2" />
+	</a>
+    <a target="_blank" href="https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html">
+		<img src="https://img.shields.io/badge/JDK-8-green.svg" alt="jdk-8" />
+	</a>
+    <a target="_blank" href="https://www.oracle.com/java/technologies/javase/jdk11-archive-downloads.html">
+		<img src="https://img.shields.io/badge/JDK-11-green.svg" alt="jdk-11" />
+	</a>
+    <a target="_blank" href="https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html">
+		<img src="https://img.shields.io/badge/JDK-17-green.svg" alt="jdk-17" />
+	</a>
+    <br />
+        <img src="https://img.shields.io/badge/SpringBoot-v2.x-blue">
+        <img src="https://img.shields.io/badge/SpringBoot-v3.x-blue">
+        <a target="_blank" href='https://github.com/noear/solon'><img src="https://img.shields.io/badge/Solon-v2.x-blue"></a>
+    <br />
+    <a target="_blank" href='https://gitee.com/mybatis-flex/mybatis-flex'>
+		<img src='https://gitee.com/mybatis-flex/mybatis-flex/badge/star.svg' alt='Gitee star'/>
+	</a>
+    <a target="_blank" href='https://github.com/mybatis-flex/mybatis-flex'>
+		<img src="https://img.shields.io/github/stars/mybatis-flex/mybatis-flex.svg?logo=github" alt="Github star"/>
+	</a>
+</p>
+
 ## Features
 
 - 1、MyBatis-Flex is very lightweight, and it only depends on Mybatis and no other third-party dependencies
@@ -78,7 +107,7 @@ QueryWrapper query = QueryWrapper.create()
         .and(ACCOUNT.USER_NAME.like("zhang").or(ACCOUNT.USER_NAME.like("li")));
 
 // execute SQL：
-// ELECT * FROM tb_account
+// SELECT * FROM tb_account
 // WHERE tb_account.id >=  100
 // AND (tb_account.user_name LIKE '%zhang%' OR tb_account.user_name LIKE '%li%' )
 List<Account> accounts = mapper.selectListByQuery(query);
@@ -96,7 +125,7 @@ QueryWrapper query = QueryWrapper.create()
         .orderBy(ACCOUNT.ID.desc());
 
 // execute SQL：
-// ELECT * FROM tb_account
+// SELECT * FROM tb_account
 // WHERE tb_account.id >=  100
 // AND (tb_account.user_name LIKE '%zhang%' OR tb_account.user_name LIKE '%li%' )
 // ORDER BY tb_account.id DESC
@@ -112,7 +141,7 @@ Page<Account> accountPage = mapper.paginate(5, 10, query);
 QueryWrapper query=new QueryWrapper();
 query.select().from(ACCOUNT)
 
-// SQL: 
+// SQL:
 // SELECT * FROM tb_account
 ```
 
@@ -122,8 +151,8 @@ query.select().from(ACCOUNT)
 QueryWrapper query=new QueryWrapper();
 query.select(ACCOUNT.ID,ACCOUNT.USER_NAME).from(ACCOUNT)
 
-// SQL: 
-// SELECT tb_account.id, tb_account.user_name 
+// SQL:
+// SELECT tb_account.id, tb_account.user_name
 // FROM tb_account
 ```
 
@@ -137,9 +166,9 @@ QueryWrapper query = new QueryWrapper()
     .from(ACCOUNT.as("a"), ARTICLE.as("b"))
     .where(ACCOUNT.ID.eq(ARTICLE.ACCOUNT_ID));
 
-// SQL: 
-// SELECT a.id, a.user_name, b.id AS articleId, b.title 
-// FROM tb_account AS a, tb_article AS b 
+// SQL:
+// SELECT a.id, a.user_name, b.id AS articleId, b.title
+// FROM tb_account AS a, tb_article AS b
 // WHERE a.id = b.account_id
 ```
 
@@ -154,10 +183,10 @@ QueryWrapper query = new QueryWrapper()
             avg(ACCOUNT.SEX).as("sex_avg")
         ).from(ACCOUNT);
 
-// SQL: 
-// SELECT tb_account.id, tb_account.user_name, 
-// MAX(tb_account.birthday), 
-// AVG(tb_account.sex) AS sex_avg 
+// SQL:
+// SELECT tb_account.id, tb_account.user_name,
+// MAX(tb_account.birthday),
+// AVG(tb_account.sex) AS sex_avg
 // FROM tb_account
 ```
 
@@ -170,10 +199,10 @@ QueryWrapper queryWrapper=QueryWrapper.create()
     .where(ACCOUNT.ID.ge(100))
     .and(ACCOUNT.USER_NAME.like("michael"));
 
-// SQL: 
-// SELECT * FROM tb_account 
-// WHERE tb_account.id >=  ?  
-// AND tb_account.user_name LIKE  ? 
+// SQL:
+// SELECT * FROM tb_account
+// WHERE tb_account.id >=  ?
+// AND tb_account.user_name LIKE  ?
 ```
 
 ### exists, not exists
@@ -189,11 +218,11 @@ QueryWrapper queryWrapper=QueryWrapper.create()
         )
     );
 
-// SQL: 
-// SELECT * FROM tb_account 
-// WHERE tb_account.id >=  ?  
+// SQL:
+// SELECT * FROM tb_account
+// WHERE tb_account.id >=  ?
 // AND EXIST (
-//  SELECT 1 FROM tb_article WHERE tb_article.id >=  ? 
+//  SELECT 1 FROM tb_article WHERE tb_article.id >=  ?
 // )
 ```
 
@@ -207,10 +236,10 @@ QueryWrapper queryWrapper=QueryWrapper.create()
     .and(ACCOUNT.SEX.eq(1).or(ACCOUNT.SEX.eq(2)))
     .or(ACCOUNT.AGE.in(18,19,20).or(ACCOUNT.USER_NAME.like("michael")));
 
-// SQL: 
-// SELECT * FROM tb_account 
-// WHERE tb_account.id >=  ?  
-// AND (tb_account.sex =  ?  OR tb_account.sex =  ? ) 
+// SQL:
+// SELECT * FROM tb_account
+// WHERE tb_account.id >=  ?
+// AND (tb_account.sex =  ?  OR tb_account.sex =  ? )
 // OR (tb_account.age IN (?,?,?) OR tb_account.user_name LIKE  ? )
 ```
 
@@ -222,8 +251,8 @@ QueryWrapper queryWrapper=QueryWrapper.create()
     .from(ACCOUNT)
     .groupBy(ACCOUNT.USER_NAME);
 
-// SQL: 
-// SELECT * FROM tb_account 
+// SQL:
+// SELECT * FROM tb_account
 // GROUP BY tb_account.user_name
 ```
 
@@ -236,9 +265,9 @@ QueryWrapper queryWrapper=QueryWrapper.create()
     .groupBy(ACCOUNT.USER_NAME)
     .having(ACCOUNT.AGE.between(18,25));
 
-// SQL: 
-// SELECT * FROM tb_account 
-// GROUP BY tb_account.user_name 
+// SQL:
+// SELECT * FROM tb_account
+// GROUP BY tb_account.user_name
 // HAVING tb_account.age BETWEEN  ? AND ?
 ```
 
@@ -251,7 +280,7 @@ QueryWrapper queryWrapper=QueryWrapper.create()
         .from(ACCOUNT)
         .orderBy(ACCOUNT.AGE.asc(), ACCOUNT.USER_NAME.desc().nullsLast());
 
-// SQL: 
+// SQL:
 // SELECT * FROM tb_account
 // ORDER BY age ASC, user_name DESC NULLS LAST
 ```
@@ -265,10 +294,10 @@ QueryWrapper queryWrapper = QueryWrapper.create()
     .leftJoin(ARTICLE).on(ACCOUNT.ID.eq(ARTICLE.ACCOUNT_ID))
     .where(ACCOUNT.AGE.ge(10));
 
-// SQL: 
-// SELECT * FROM tb_account 
-// LEFT JOIN tb_article 
-// ON tb_account.id = tb_article.account_id 
+// SQL:
+// SELECT * FROM tb_account
+// LEFT JOIN tb_article
+// ON tb_account.id = tb_article.account_id
 // WHERE tb_account.age >=  ?
 ```
 
@@ -283,30 +312,30 @@ QueryWrapper queryWrapper = QueryWrapper.create()
     .limit(10)
     .offset(20);
 
-// MySql: 
+// MySql:
 // SELECT * FROM `tb_account` ORDER BY `id` DESC LIMIT 20, 10
 
-// PostgreSQL: 
+// PostgreSQL:
 // SELECT * FROM "tb_account" ORDER BY "id" DESC LIMIT 20 OFFSET 10
 
-// Informix: 
+// Informix:
 // SELECT SKIP 20 FIRST 10 * FROM "tb_account" ORDER BY "id" DESC
 
-// Oracle: 
-// SELECT * FROM (SELECT TEMP_DATAS.*, 
+// Oracle:
+// SELECT * FROM (SELECT TEMP_DATAS.*,
 //  ROWNUM RN FROM (
-//          SELECT * FROM "tb_account" ORDER BY "id" DESC) 
-//      TEMP_DATAS WHERE  ROWNUM <=30) 
+//          SELECT * FROM "tb_account" ORDER BY "id" DESC)
+//      TEMP_DATAS WHERE  ROWNUM <=30)
 //  WHERE RN >20
 
-// Db2: 
-// SELECT * FROM "tb_account" ORDER BY "id" DESC 
+// Db2:
+// SELECT * FROM "tb_account" ORDER BY "id" DESC
 // OFFSET 20 ROWS FETCH NEXT 10 ROWS ONLY
 
-// Sybase: 
+// Sybase:
 // SELECT TOP 10 START AT 21 * FROM "tb_account" ORDER BY "id" DESC
 
-// Firebird: 
+// Firebird:
 // SELECT * FROM "tb_account" ORDER BY "id" DESC ROWS 20 TO 30
 ```
 

@@ -44,9 +44,18 @@ public abstract class QueryModel<T extends QueryModel<T>> {
 
     protected QueryWrapper queryWrapper() {
         if (queryWrapper == null) {
-            queryWrapper = QueryWrapper.create();
+            TableInfo tableInfo = TableInfoFactory.ofEntityClass(getClass());
+            QueryTable queryTable = new QueryTable();
+            queryTable.setSchema(tableInfo.getSchema());
+            queryTable.setName(tableInfo.getTableName());
+            queryWrapper = QueryWrapper.create().from(queryTable);
         }
         return queryWrapper;
+    }
+
+    public T as(String alias) {
+        queryWrapper().as(alias);
+        return (T) this;
     }
 
     public T select() {
@@ -356,17 +365,17 @@ public abstract class QueryModel<T extends QueryModel<T>> {
         return new OrderByBuilder<>((T) this, column);
     }
 
-    public T limit(Integer rows) {
+    public T limit(Number rows) {
         queryWrapper().limit(rows);
         return (T) this;
     }
 
-    public T offset(Integer offset) {
+    public T offset(Number offset) {
         queryWrapper().offset(offset);
         return (T) this;
     }
 
-    public T limit(Integer offset, Integer rows) {
+    public T limit(Number offset, Number rows) {
         queryWrapper().limit(offset, rows);
         return (T) this;
     }

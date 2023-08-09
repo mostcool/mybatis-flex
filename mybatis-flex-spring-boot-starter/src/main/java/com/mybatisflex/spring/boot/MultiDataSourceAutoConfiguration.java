@@ -19,10 +19,12 @@ import com.mybatisflex.core.datasource.DataSourceBuilder;
 import com.mybatisflex.core.datasource.DataSourceDecipher;
 import com.mybatisflex.core.datasource.DataSourceManager;
 import com.mybatisflex.core.datasource.FlexDataSource;
+import com.mybatisflex.spring.boot.MybatisFlexProperties.SeataConfig;
 import com.mybatisflex.spring.datasource.DataSourceAdvice;
+import io.seata.rm.datasource.DataSourceProxy;
+import io.seata.rm.datasource.xa.DataSourceProxyXA;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionFactoryBean;
-import org.springframework.aop.Advisor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
@@ -54,6 +56,8 @@ public class MultiDataSourceAutoConfiguration {
 
     private final Map<String, Map<String, String>> dataSourceProperties;
 
+    private final SeataConfig seataConfig;
+
     //数据源解密器
     protected final DataSourceDecipher dataSourceDecipher;
 
@@ -63,6 +67,7 @@ public class MultiDataSourceAutoConfiguration {
     ) {
         dataSourceProperties = properties.getDatasource();
         dataSourceDecipher = dataSourceDecipherProvider.getIfAvailable();
+        seataConfig = properties.getSeataConfig();
     }
 
     @Bean
@@ -76,11 +81,22 @@ public class MultiDataSourceAutoConfiguration {
             DataSourceManager.setDecipher(dataSourceDecipher);
 
             for (Map.Entry<String, Map<String, String>> entry : dataSourceProperties.entrySet()) {
+
                 DataSource dataSource = new DataSourceBuilder(entry.getValue()).build();
+                DataSourceManager.decryptDataSource(dataSource);
+
+                if (seataConfig != null && seataConfig.isEnable()) {
+                    if (seataConfig.getSeataMode() == MybatisFlexProperties.SeataMode.XA) {
+                        dataSource = new DataSourceProxyXA(dataSource);
+                    } else {
+                        dataSource = new DataSourceProxy(dataSource);
+                    }
+                }
+
                 if (flexDataSource == null) {
-                    flexDataSource = new FlexDataSource(entry.getKey(), dataSource);
+                    flexDataSource = new FlexDataSource(entry.getKey(), dataSource, false);
                 } else {
-                    flexDataSource.addDataSource(entry.getKey(), dataSource);
+                    flexDataSource.addDataSource(entry.getKey(), dataSource, false);
                 }
             }
         }
@@ -95,7 +111,7 @@ public class MultiDataSourceAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    public Advisor dataSourceAdvice() {
+    public DataSourceAdvice dataSourceAdvice() {
         return new DataSourceAdvice();
     }
 

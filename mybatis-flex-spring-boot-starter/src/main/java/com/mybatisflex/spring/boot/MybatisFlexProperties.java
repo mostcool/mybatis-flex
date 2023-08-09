@@ -41,6 +41,7 @@ import java.util.stream.Stream;
 /**
  * Mybatis-Flex 的配置属性。
  * 参考：https://github.com/mybatis/spring-boot-starter/blob/master/mybatis-spring-boot-autoconfigure/src/main/java/org/mybatis/spring/boot/autoconfigure/MybatisProperties.java
+ *
  * @author Eddú Meléndez
  * @author Kazuki Shimizu
  * @author micahel
@@ -121,6 +122,19 @@ public class MybatisFlexProperties {
      * not used.
      */
     private CoreConfiguration configuration;
+
+    /**
+     * A Configuration object for seata
+     */
+    private SeataConfig seataConfig;
+
+    public SeataConfig getSeataConfig() {
+        return seataConfig;
+    }
+
+    public void setSeataConfig(SeataConfig seataConfig) {
+        this.seataConfig = seataConfig;
+    }
 
     public Map<String, Map<String, String>> getDatasource() {
         return datasource;
@@ -887,6 +901,52 @@ public class MybatisFlexProperties {
         public void setSecretKey(String secretKey) {
             this.secretKey = secretKey;
         }
+
+    }
+
+    /**
+     * Seata 配置
+     *
+     * @author life
+     */
+    public static class SeataConfig {
+
+        /**
+         * 是否开启
+         */
+        private boolean enable = false;
+
+        /**
+         * 事务模式支持，只支持XA或者AT
+         */
+        private SeataMode seataMode = SeataMode.AT;
+
+        public boolean isEnable() {
+            return enable;
+        }
+
+        public void setEnable(boolean enable) {
+            this.enable = enable;
+        }
+
+        public SeataMode getSeataMode() {
+            return seataMode;
+        }
+
+        public void setSeataMode(SeataMode seataMode) {
+            this.seataMode = seataMode;
+        }
+
+    }
+
+    /**
+     * @author life
+     */
+    public enum SeataMode {
+
+        XA,
+
+        AT
 
     }
 

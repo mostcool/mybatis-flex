@@ -12,12 +12,12 @@
 <dependency>
     <groupId>com.mybatis-flex</groupId>
     <artifactId>mybatis-flex-core</artifactId>
-    <version>1.5.4</version>
+    <version>1.5.6</version>
 </dependency>
 <dependency>
     <groupId>com.mybatis-flex</groupId>
     <artifactId>mybatis-flex-processor</artifactId>
-    <version>1.5.4</version>
+    <version>1.5.6</version>
     <scope>provided</scope>
 </dependency>
 ```
@@ -28,12 +28,12 @@
 <dependency>
     <groupId>com.mybatis-flex</groupId>
     <artifactId>mybatis-flex-spring</artifactId>
-    <version>1.5.4</version>
+    <version>1.5.6</version>
 </dependency>
 <dependency>
     <groupId>com.mybatis-flex</groupId>
     <artifactId>mybatis-flex-processor</artifactId>
-    <version>1.5.4</version>
+    <version>1.5.6</version>
     <scope>provided</scope>
 </dependency>
 ``````
@@ -44,12 +44,12 @@
 <dependency>
     <groupId>com.mybatis-flex</groupId>
     <artifactId>mybatis-flex-spring-boot-starter</artifactId>
-    <version>1.5.4</version>
+    <version>1.5.6</version>
 </dependency>
 <dependency>
     <groupId>com.mybatis-flex</groupId>
     <artifactId>mybatis-flex-processor</artifactId>
-    <version>1.5.4</version>
+    <version>1.5.6</version>
     <scope>provided</scope>
 </dependency>
 ```
@@ -59,6 +59,8 @@
    `mybatis-flex-processor`提供APT服务，可以配置到annotationProcessorPaths，配置后，无需在依赖中声明`mybatis-flex-processor`依赖。
 
    参考：[APT 设置-和 Lombok、Mapstruct 整合](../others/apt.md)
+
+> 在Kotlin中使用时，请参考[在Kotlin中使用注解处理器](../kotlin/kapt.md)
 
 ```xml
 <plugin>
@@ -70,10 +72,9 @@
             <path>
                 <groupId>com.mybatis-flex</groupId>
                 <artifactId>mybatis-flex-processor</artifactId>
-                <version>1.5.4</version>
+                <version>1.5.6</version>
             </path>
         </annotationProcessorPaths>
     </configuration>
 </plugin>
 ```
-

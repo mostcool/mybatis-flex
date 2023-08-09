@@ -16,13 +16,15 @@
 
 package com.mybatisflex.core.activerecord;
 
+import com.mybatisflex.core.BaseMapper;
+import com.mybatisflex.core.activerecord.query.FieldsQuery;
 import com.mybatisflex.core.activerecord.query.QueryModel;
-import com.mybatisflex.core.paginate.Page;
+import com.mybatisflex.core.activerecord.query.RelationsQuery;
+import com.mybatisflex.core.query.MapperQueryChain;
+import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.util.SqlUtil;
 
 import java.io.Serializable;
-import java.util.List;
-import java.util.Optional;
 
 /**
  * Active Record 模型。
@@ -34,7 +36,7 @@ import java.util.Optional;
 @SuppressWarnings({"unused", "unchecked"})
 public abstract class Model<T extends Model<T>>
     extends QueryModel<T>
-    implements MapperModel<T>, Serializable {
+    implements MapperModel<T>, MapperQueryChain<T>, Serializable {
 
     /**
      * 根据实体类构建的条件删除数据。
@@ -64,96 +66,24 @@ public abstract class Model<T extends Model<T>>
         return SqlUtil.toBool(baseMapper().updateByQuery((T) this, ignoreNulls, queryWrapper()));
     }
 
-    /**
-     * 根据实体类构建的条件查询数据数量。
-     *
-     * @return 数据数量
-     */
-    public long count() {
-        return baseMapper().selectCountByQuery(queryWrapper());
+    @Override
+    public BaseMapper<T> baseMapper() {
+        return MapperModel.super.baseMapper();
     }
 
-    /**
-     * 根据实体类构建的条件判断数据是否存在。
-     *
-     * @return {@code true} 数据存在，{@code false} 数据不存在
-     */
-    public boolean exists() {
-        return SqlUtil.toBool(count());
+    @Override
+    public QueryWrapper toQueryWrapper() {
+        return queryWrapper();
     }
 
-    /**
-     * 根据实体类构建的条件获取一条数据。
-     *
-     * @return 数据
-     */
-    public T one() {
-        return baseMapper().selectOneByQuery(queryWrapper());
+    @Override
+    public FieldsQuery<T> withFields() {
+        return new FieldsQuery<>(this);
     }
 
-    /**
-     * 根据实体类构建的条件获取一条数据，并查询 {@code @Relation} 注解关联的内容。
-     *
-     * @return 数据
-     */
-    public T oneWithRelations() {
-        return baseMapper().selectOneWithRelationsByQuery(queryWrapper().limit(1));
-    }
-
-    /**
-     * 根据实体类构建的条件获取一条数据，并封装为 {@link Optional} 返回。
-     *
-     * @return 数据
-     */
-    public Optional<T> oneOpt() {
-        return Optional.ofNullable(one());
-    }
-
-    /**
-     * 根据实体类构建的条件获取一条数据，并查询 {@code @Relation} 注解关联的内容，封装为 {@link Optional} 返回。
-     *
-     * @return 数据
-     */
-    public Optional<T> oneWithRelationsOpt() {
-        return Optional.ofNullable(oneWithRelations());
-    }
-
-    /**
-     * 根据实体类构建的条件获取多条数据。
-     *
-     * @return 数据列表
-     */
-    public List<T> list() {
-        return baseMapper().selectListByQuery(queryWrapper());
-    }
-
-    /**
-     * 根据实体类构建的条件获取多条数据，并查询 {@code @Relation} 注解关联的内容。
-     *
-     * @return 数据列表
-     */
-    public List<T> listWithRelations() {
-        return baseMapper().selectListWithRelationsByQuery(queryWrapper());
-    }
-
-    /**
-     * 根据实体类构建的条件获取分页数据。
-     *
-     * @param page 分页对象
-     * @return 分页数据
-     */
-    public Page<T> page(Page<T> page) {
-        return baseMapper().paginate(page, queryWrapper());
-    }
-
-    /**
-     * 根据实体类构建的条件获取分页数据，并查询 {@code @Relation} 注解关联的内容。
-     *
-     * @param page 分页对象
-     * @return 分页数据
-     */
-    public Page<T> pageWithRelations(Page<T> page) {
-        return baseMapper().paginateWithRelations(page, queryWrapper());
+    @Override
+    public RelationsQuery<T> withRelations() {
+        return new RelationsQuery<>(this);
     }
 
 }

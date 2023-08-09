@@ -26,6 +26,7 @@ import com.mybatisflex.test.mapper.MyAccountMapper;
 import com.mybatisflex.test.model.Account;
 import com.mybatisflex.test.model.AccountDto;
 import com.mybatisflex.test.service.AccountService;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -47,17 +48,34 @@ public class AccountController {
     @Resource
     AccountService accountService;
 
+    @Resource
+    JdbcTemplate jdbcTemplate;
+
 
     @PostMapping("/account/add")
-    String add(@RequestBody Account account) {
+    @Transactional
+    public String add(@RequestBody Account account) {
+        jdbcTemplate.queryForObject("select count(*) from tb_account",Integer.class);
+        DataSourceKey.use("ds2");
+        jdbcTemplate.update("INSERT INTO `flex_test`.`tb_account` ( `user_name`, `age`, `birthday`, `gender`, `is_delete`) VALUES ( '王五', 18, '2023-07-04 15:00:26', NULL, 000);");
+        DataSourceKey.use("ds3333");
+        accountMapper.insert(account);
+        DataSourceKey.use("ds2");
         accountMapper.insert(account);
         return "add ok!";
     }
 
 
     @GetMapping("/account/byName/{name}")
-    AccountDto selectName(@PathVariable("name") String name) {
-        return myAccountMapper.selectByName(name);
+    Page<AccountDto> selectName(@PathVariable("name") String name) {
+//        return myAccountMapper.selectByName(name);
+
+        QueryWrapper qw = QueryWrapper.create()
+            .where(Account::getAge).eq(18)
+            .and(Account::getId).ge(0);
+
+        Page<AccountDto> accountPage = myAccountMapper.xmlPaginate("selectByName", Page.of(1, 10), qw);
+        return accountPage;
     }
 
 
@@ -104,7 +122,6 @@ public class AccountController {
     Page<Account> paginate(@RequestParam(defaultValue = "1") int pageNumber, @RequestParam(defaultValue = "10") int pageSize) {
         return accountMapper.paginate(pageNumber, pageSize, QueryWrapper.create());
     }
-
 
 
     @GetMapping("/ds")

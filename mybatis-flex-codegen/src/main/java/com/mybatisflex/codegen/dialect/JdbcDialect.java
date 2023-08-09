@@ -25,6 +25,8 @@ import java.util.Map;
 
 /**
  * 默认方言抽象类。
+ *
+ * @author michael
  */
 public abstract class JdbcDialect implements IDialect {
 
@@ -42,8 +44,11 @@ public abstract class JdbcDialect implements IDialect {
                 Column column = new Column();
                 column.setName(columnMetaData.getColumnName(i));
 
+                column.setRawType(columnMetaData.getColumnTypeName(i));
+                column.setRawLength(columnMetaData.getColumnDisplaySize(i));
+
                 String jdbcType = columnMetaData.getColumnClassName(i);
-                column.setPropertyType(JdbcTypeMapping.getType(jdbcType));
+                column.setPropertyType(JdbcTypeMapping.getType(jdbcType, column.getRawLength()));
 
                 column.setAutoIncrement(columnMetaData.isAutoIncrement(i));
 
