@@ -214,23 +214,6 @@ public interface RowMapper {
     int updateEntity(@Param(FlexConsts.ENTITY) Object entity);
 
 
-    /**
-     * 执行类似 update table set field=field+1 where ... 的场景
-     *
-     * @param fieldName    字段名
-     * @param value        值（ >=0 加，小于 0 减）
-     * @param queryWrapper 条件
-     * @see RowSqlProvider#updateNumberAddByQuery(Map)
-     */
-    @UpdateProvider(type = RowSqlProvider.class, method = "updateNumberAddByQuery")
-    int updateNumberAddByQuery(@Param(FlexConsts.SCHEMA_NAME) String schema, @Param(FlexConsts.TABLE_NAME) String tableName, @Param(FlexConsts.FIELD_NAME) String fieldName
-        , @Param(FlexConsts.VALUE) Number value, @Param(FlexConsts.QUERY) QueryWrapper queryWrapper);
-
-
-    default int updateNumberAddByQuery(String tableName, String fieldName, Number value, QueryWrapper queryWrapper) {
-        return updateNumberAddByQuery(null, tableName, fieldName, value, queryWrapper);
-    }
-
 
     ///////select /////
 
@@ -344,6 +327,12 @@ public interface RowMapper {
     Object selectObject(@Param(FlexConsts.SQL) String sql, @Param(FlexConsts.SQL_ARGS) Object... args);
 
 
+    @SelectProvider(value = RowSqlProvider.class, method = RowSqlProvider.METHOD_RAW_SQL)
+    Map selectFirstAndSecondColumnsAsMap(@Param(FlexConsts.SQL) String sql, @Param(FlexConsts.SQL_ARGS) Object... args);
+
+    @SelectProvider(type = RowSqlProvider.class, method = "selectListByQuery")
+    Map selectFirstAndSecondColumnsAsMapByQuery(@Param(FlexConsts.SCHEMA_NAME) String schema
+        , @Param(FlexConsts.TABLE_NAME) String tableName, @Param(FlexConsts.QUERY) QueryWrapper queryWrapper);
     /**
      * 通过 sql 查询多行数据，sql 执行的结果应该只有 1 列
      *
@@ -451,7 +440,7 @@ public interface RowMapper {
                 page.setTotalRow(selectCountByQuery(schema, tableName, countQueryWrapper));
             }
 
-            if (page.isEmpty()) {
+            if (!page.hasRecords()) {
                 return page;
             }
 
@@ -469,5 +458,6 @@ public interface RowMapper {
         }
 
     }
+
 
 }

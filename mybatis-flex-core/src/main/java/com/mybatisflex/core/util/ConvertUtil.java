@@ -15,6 +15,7 @@
  */
 package com.mybatisflex.core.util;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDate;
@@ -43,6 +44,9 @@ public class ConvertUtil {
             return null;
         }
         if (value.getClass().isAssignableFrom(targetClass)) {
+            return value;
+        }
+        if (targetClass == Serializable.class && ArrayUtil.contains(value.getClass().getInterfaces(), Serializable.class)) {
             return value;
         }
         if (targetClass == String.class) {
@@ -125,6 +129,28 @@ public class ConvertUtil {
             return '\u0000';
         } else {
             throw new IllegalArgumentException("Can not get primitive default value for type: " + paraClass);
+        }
+    }
+
+    public static Class<?> primitiveToBoxed(Class<?> paraClass) {
+        if (paraClass == Integer.TYPE) {
+            return Integer.class;
+        } else if (paraClass == Long.TYPE) {
+            return Long.class;
+        } else if (paraClass == Double.TYPE) {
+            return Double.class;
+        } else if (paraClass == Float.TYPE) {
+            return Float.class;
+        } else if (paraClass == Boolean.TYPE) {
+            return Boolean.class;
+        } else if (paraClass == Short.TYPE) {
+            return Short.class;
+        } else if (paraClass == Byte.TYPE) {
+            return Byte.class;
+        } else if (paraClass == Character.TYPE) {
+            return Character.class;
+        } else {
+            throw new IllegalArgumentException("Can not convert primitive class for type: " + paraClass);
         }
     }
 

@@ -295,8 +295,8 @@ public class Column {
         }
 
         //@ColumnMask 注解
-        if (columnConfig.getMask() != null) {
-            annotations.append("@ColumnMask(\"").append(columnConfig.getMask()).append("\")");
+        if (columnConfig.getMaskType() != null) {
+            annotations.append("@ColumnMask(\"").append(columnConfig.getMaskType()).append("\")");
         }
 
         return annotations.toString();
@@ -324,7 +324,7 @@ public class Column {
             if (columnConfig.getPropertyType() != null) {
                 addImportClass(importClasses, columnConfig.getPropertyType());
             }
-            if (columnConfig.getMask() != null) {
+            if (columnConfig.getMaskType() != null) {
                 addImportClass(importClasses, ColumnMask.class.getName());
             }
 
@@ -357,8 +357,15 @@ public class Column {
      * importClass为类的全限定名
      */
     private static void addImportClass(Set<String> importClasses, String importClass) {
+        importClass = importClass.trim();
+
+        //java.util.List<String> >>>>> java.util.List
+        if (importClass.contains("<") && importClass.endsWith(">")) {
+            importClass = importClass.substring(0, importClass.indexOf("<"));
+        }
+
         // 不包含“.”则认为是原始类型，不需要import
-        // lang包不需要显式导入
+        // lang 包不需要显式导入
         if (importClass.contains(".") && !importClass.startsWith("java.lang.")) {
             importClasses.add(importClass);
         }

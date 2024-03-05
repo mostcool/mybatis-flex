@@ -17,6 +17,8 @@ package com.mybatisflex.codegen.config;
 
 import com.mybatisflex.core.BaseMapper;
 
+import java.io.Serializable;
+
 /**
  * 生成 Mapper 的配置。
  *
@@ -24,7 +26,13 @@ import com.mybatisflex.core.BaseMapper;
  * @since 2023-05-15
  */
 @SuppressWarnings("unused")
-public class MapperConfig {
+public class MapperConfig implements Serializable {
+
+    private static final long serialVersionUID = 1937442008907641534L;
+    /**
+     * 代码生成目录，当未配置时，使用 PackageConfig 的配置
+     */
+    private String sourceDir;
 
     /**
      * Mapper 类的前缀。
@@ -57,6 +65,14 @@ public class MapperConfig {
 
     public String buildSuperClassName() {
         return superClass.getSimpleName();
+    }
+
+    public String getSourceDir() {
+        return sourceDir;
+    }
+
+    public void setSourceDir(String sourceDir) {
+        this.sourceDir = sourceDir;
     }
 
     /**

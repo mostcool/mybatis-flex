@@ -26,6 +26,7 @@ import com.mybatisflex.core.row.RowMapper;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
 import com.mybatisflex.core.util.ArrayUtil;
+import com.mybatisflex.core.util.ClassUtil;
 
 import java.util.*;
 
@@ -65,8 +66,11 @@ public class RowSqlProvider {
         String tableName = ProviderUtil.getTableName(params);
         String schema = ProviderUtil.getSchemaName(params);
         Row row = ProviderUtil.getRow(params);
-        ProviderUtil.setSqlArgs(params, RowCPI.obtainModifyValues(row));
-        return DialectFactory.getDialect().forInsertRow(schema, tableName, row);
+
+        // 先生成 SQL，再设置参数
+        String sql = DialectFactory.getDialect().forInsertRow(schema, tableName, row);
+        ProviderUtil.setSqlArgs(params, row.obtainInsertValues());
+        return sql;
     }
 
     /**
@@ -86,17 +90,18 @@ public class RowSqlProvider {
 
         // 让所有 row 的列顺序和值的数量与第条数据保持一致
         // 这个必须 new 一个 LinkedHashSet，因为 keepModifyAttrs 会清除 row 所有的 modifyAttrs
-        Set<String> modifyAttrs = new LinkedHashSet<>(RowCPI.getModifyAttrs(rows.get(0)));
-        rows.forEach(row -> row.keep(modifyAttrs));
+        Set<String> modifyAttrs = new LinkedHashSet<>(RowCPI.getInsertAttrs(rows.get(0)));
+
+        //sql: INSERT INTO `tb_table`(`name`, `sex`) VALUES (?, ?),(?, ?),(?, ?)
+        String sql = DialectFactory.getDialect().forInsertBatchWithFirstRowColumns(schema, tableName, rows);
 
         Object[] values = new Object[]{};
         for (Row row : rows) {
-            values = ArrayUtil.concat(values, RowCPI.obtainModifyValues(row));
+            values = ArrayUtil.concat(values, row.obtainInsertValues(modifyAttrs));
         }
         ProviderUtil.setSqlArgs(params, values);
 
-        //sql: INSERT INTO `tb_table`(`name`, `sex`) VALUES (?, ?),(?, ?),(?, ?)
-        return DialectFactory.getDialect().forInsertBatchWithFirstRowColumns(schema, tableName, rows);
+        return sql;
     }
 
     /**
@@ -115,9 +120,9 @@ public class RowSqlProvider {
         String tableName = ProviderUtil.getTableName(params);
         String[] primaryKeys = ProviderUtil.getPrimaryKeys(params);
 
+        String sql = DialectFactory.getDialect().forDeleteById(schema, tableName, primaryKeys);
         ProviderUtil.setSqlArgs(params, primaryValues);
-
-        return DialectFactory.getDialect().forDeleteById(schema, tableName, primaryKeys);
+        return sql;
     }
 
     /**
@@ -133,8 +138,9 @@ public class RowSqlProvider {
         String[] primaryKeys = ProviderUtil.getPrimaryKeys(params);
         Object[] primaryValues = ProviderUtil.getPrimaryValues(params);
 
+        String sql = DialectFactory.getDialect().forDeleteBatchByIds(schema, tableName, primaryKeys, primaryValues);
         ProviderUtil.setSqlArgs(params, primaryValues);
-        return DialectFactory.getDialect().forDeleteBatchByIds(schema, tableName, primaryKeys, primaryValues);
+        return sql;
     }
 
     /**
@@ -152,7 +158,6 @@ public class RowSqlProvider {
 
         //优先构建 sql，再构建参数
         String sql = DialectFactory.getDialect().forDeleteByQuery(queryWrapper);
-
         Object[] valueArray = CPI.getValueArray(queryWrapper);
         ProviderUtil.setSqlArgs(params, valueArray);
 
@@ -170,8 +175,9 @@ public class RowSqlProvider {
         String schema = ProviderUtil.getSchemaName(params);
         String tableName = ProviderUtil.getTableName(params);
         Row row = ProviderUtil.getRow(params);
-        ProviderUtil.setSqlArgs(params, RowCPI.obtainAllModifyValues(row));
-        return DialectFactory.getDialect().forUpdateById(schema, tableName, row);
+        String sql = DialectFactory.getDialect().forUpdateById(schema, tableName, row);
+        ProviderUtil.setSqlArgs(params, RowCPI.obtainUpdateValues(row));
+        return sql;
     }
 
     /**
@@ -216,12 +222,14 @@ public class RowSqlProvider {
         String schema = ProviderUtil.getSchemaName(params);
         String tableName = ProviderUtil.getTableName(params);
 
+        String sql = DialectFactory.getDialect().forUpdateBatchById(schema, tableName, rows);
+
         Object[] values = FlexConsts.EMPTY_ARRAY;
         for (Row row : rows) {
-            values = ArrayUtil.concat(values, RowCPI.obtainAllModifyValues(row));
+            values = ArrayUtil.concat(values, RowCPI.obtainUpdateValues(row));
         }
         ProviderUtil.setSqlArgs(params, values);
-        return DialectFactory.getDialect().forUpdateBatchById(schema, tableName, rows);
+        return sql;
     }
 
     /**
@@ -234,47 +242,26 @@ public class RowSqlProvider {
     public static String updateEntity(Map params) {
         Object entity = ProviderUtil.getEntity(params);
 
-        FlexAssert.notNull(entity, "entity can not be null");
+        FlexAssert.notNull(entity, "entity can not be null for execute update");
 
         // 该 Mapper 是通用 Mapper  无法通过 ProviderContext 获取，直接使用 TableInfoFactory
-        TableInfo tableInfo = TableInfoFactory.ofEntityClass(entity.getClass());
 
+        TableInfo tableInfo = TableInfoFactory.ofEntityClass(ClassUtil.getUsefulClass(entity.getClass()));
         // 执行 onUpdate 监听器
         tableInfo.invokeOnUpdateListener(entity);
+
+        String sql = DialectFactory.getDialect().forUpdateEntity(tableInfo, entity, false);
 
         Object[] updateValues = tableInfo.buildUpdateSqlArgs(entity, false, false);
         Object[] primaryValues = tableInfo.buildPkSqlArgs(entity);
         Object[] tenantIdArgs = tableInfo.buildTenantIdArgs();
 
-        FlexAssert.assertAreNotNull(primaryValues, "The value of primary key must not be null, entity[%s]", entity);
+        FlexAssert.assertAreNotNull(primaryValues, "The value of primary key must not be null for execute update an entity, entity[%s]", entity);
 
         ProviderUtil.setSqlArgs(params, ArrayUtil.concat(updateValues, primaryValues, tenantIdArgs));
-
-        return DialectFactory.getDialect().forUpdateEntity(tableInfo, entity, false);
-    }
-
-    /**
-     * 执行类似 update table set field=field+1 where ... 的场景
-     *
-     * @param params 方法参数
-     * @return SQL 语句
-     * @see RowMapper#updateNumberAddByQuery(String, String, String, Number, QueryWrapper)
-     */
-    public static String updateNumberAddByQuery(Map params) {
-        QueryWrapper queryWrapper = ProviderUtil.getQueryWrapper(params);
-        String schema = ProviderUtil.getSchemaName(params);
-        String tableName = ProviderUtil.getTableName(params);
-        String fieldName = ProviderUtil.getFieldName(params);
-        Number value = (Number) ProviderUtil.getValue(params);
-
-        //优先构建 sql，再构建参数
-        String sql = DialectFactory.getDialect().forUpdateNumberAddByQuery(schema
-            , tableName, fieldName, value, queryWrapper);
-
-        Object[] queryParams = CPI.getValueArray(queryWrapper);
-        ProviderUtil.setSqlArgs(params, queryParams);
         return sql;
     }
+
 
     /**
      * selectOneById 的 SQL 构建。
@@ -289,9 +276,10 @@ public class RowSqlProvider {
         String[] primaryKeys = ProviderUtil.getPrimaryKeys(params);
         Object[] primaryValues = ProviderUtil.getPrimaryValues(params);
 
+        String sql = DialectFactory.getDialect().forSelectOneById(schema, tableName, primaryKeys, primaryValues);
         ProviderUtil.setSqlArgs(params, primaryValues);
 
-        return DialectFactory.getDialect().forSelectOneById(schema, tableName, primaryKeys, primaryValues);
+        return sql;
     }
 
     /**

@@ -49,8 +49,8 @@ public class OperatorQueryCondition extends QueryCondition {
             String childSql = childCondition.toSql(queryTables, dialect);
             if (StringUtil.isNotBlank(childSql)) {
                 QueryCondition prevEffectiveCondition = getPrevEffectiveCondition();
-                if (prevEffectiveCondition != null) {
-                    sql.append(prevEffectiveCondition.connector);
+                if (prevEffectiveCondition != null && this.connector != null) {
+                    sql.append(this.connector);
                 }
                 sql.append(operator)
                     .append(SqlConsts.BRACKET_LEFT)
@@ -68,7 +68,7 @@ public class OperatorQueryCondition extends QueryCondition {
 
     @Override
     public Object getValue() {
-        return WrapperUtil.getValues(childCondition);
+        return checkEffective() ? WrapperUtil.getValues(childCondition) : null;
     }
 
     @Override

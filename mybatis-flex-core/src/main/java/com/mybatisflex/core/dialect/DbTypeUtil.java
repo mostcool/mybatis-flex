@@ -24,7 +24,6 @@ import org.apache.ibatis.datasource.unpooled.UnpooledDataSource;
 import javax.sql.DataSource;
 import java.lang.reflect.Method;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.regex.Pattern;
 
 /**
@@ -66,19 +65,10 @@ public class DbTypeUtil {
             }
         }
 
-        Connection connection = null;
-        try {
-            connection = dataSource.getConnection();
+        try (Connection connection = dataSource.getConnection()) {
             return connection.getMetaData().getURL();
         } catch (Exception e) {
             throw FlexExceptions.wrap(e, LocalizedFormats.DATASOURCE_JDBC_URL);
-        } finally {
-            if (connection != null) {
-                try {
-                    connection.close();
-                } catch (SQLException e) { //ignore
-                }
-            }
         }
     }
 
@@ -167,6 +157,10 @@ public class DbTypeUtil {
             return DbType.UXDB;
         } else if (jdbcUrl.contains(":greenplum:")) {
             return DbType.GREENPLUM;
+        } else if (jdbcUrl.contains(":lealone:")) {
+            return DbType.LEALONE;
+        }  else if (jdbcUrl.contains(":hive2:")) {
+            return DbType.HIVE;
         } else {
             return DbType.OTHER;
         }

@@ -25,6 +25,7 @@ import com.mybatisflex.core.row.RowMapper;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
 import com.mybatisflex.core.util.StringUtil;
+import org.apache.ibatis.reflection.ExceptionUtil;
 
 import javax.sql.DataSource;
 import java.lang.reflect.InvocationHandler;
@@ -33,6 +34,7 @@ import java.lang.reflect.Method;
 
 /**
  * @author michael
+ * @author norkts
  */
 public class MapperInvocationHandler implements InvocationHandler {
 
@@ -41,7 +43,11 @@ public class MapperInvocationHandler implements InvocationHandler {
 
     public MapperInvocationHandler(Object mapper, DataSource dataSource) {
         this.mapper = mapper;
-        this.dataSource = (FlexDataSource) dataSource;
+        if (dataSource instanceof FlexDataSource) {
+            this.dataSource = (FlexDataSource) dataSource;
+        } else {
+            this.dataSource = null;
+        }
     }
 
 
@@ -62,21 +68,41 @@ public class MapperInvocationHandler implements InvocationHandler {
                 }
             }
 
+            //最终通过数据源 自定义分片 策略去获取
+            String shardingDataSourceKey = DataSourceKey.getByShardingStrategy(dataSourceKey, proxy, method, args);
+            if (shardingDataSourceKey != null && !shardingDataSourceKey.equals(dataSourceKey)) {
+                DataSourceKey.use(shardingDataSourceKey);
+                needClearDsKey = true;
+            }
+
             //优先获取用户自己配置的 dbType
             DbType dbType = DialectFactory.getHintDbType();
+
             if (dbType == null) {
-                if (dataSourceKey != null) {
+                if (shardingDataSourceKey != null && dataSource != null) {
+                    //使用最终分片获取数据源类型
+                    dbType = dataSource.getDbType(shardingDataSourceKey);
+                }
+
+                if (dbType == null && dataSourceKey != null && dataSource != null) {
                     dbType = dataSource.getDbType(dataSourceKey);
                 }
+
+                //设置了dbTypeGlobal，那么就使用全局的dbTypeGlobal
+                if (dbType == null) {
+                    dbType = DialectFactory.getGlobalDbType();
+                }
+
                 if (dbType == null) {
                     dbType = FlexGlobalConfig.getDefaultConfig().getDbType();
                 }
+
                 DialectFactory.setHintDbType(dbType);
                 needClearDbType = true;
             }
             return method.invoke(mapper, args);
-        } catch (InvocationTargetException e) {
-            throw e.getCause();
+        } catch (Throwable e) {
+            throw ExceptionUtil.unwrapThrowable(e);
         } finally {
             if (needClearDbType) {
                 DialectFactory.clearHintDbType();

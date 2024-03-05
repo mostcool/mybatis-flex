@@ -12,12 +12,12 @@
 <dependency>
     <groupId>com.mybatis-flex</groupId>
     <artifactId>mybatis-flex-core</artifactId>
-    <version>1.5.6</version>
+    <version>1.8.1</version>
 </dependency>
 <dependency>
     <groupId>com.mybatis-flex</groupId>
     <artifactId>mybatis-flex-processor</artifactId>
-    <version>1.5.6</version>
+    <version>1.8.1</version>
     <scope>provided</scope>
 </dependency>
 ```
@@ -28,39 +28,55 @@
 <dependency>
     <groupId>com.mybatis-flex</groupId>
     <artifactId>mybatis-flex-spring</artifactId>
-    <version>1.5.6</version>
+    <version>1.8.1</version>
 </dependency>
 <dependency>
     <groupId>com.mybatis-flex</groupId>
     <artifactId>mybatis-flex-processor</artifactId>
-    <version>1.5.6</version>
+    <version>1.8.1</version>
     <scope>provided</scope>
 </dependency>
 ``````
 
-3、用到了 Spring Boot 的场景
+3、用到了 SpringBoot v2.x  的场景
 
-```xml
+```xml 3
 <dependency>
     <groupId>com.mybatis-flex</groupId>
     <artifactId>mybatis-flex-spring-boot-starter</artifactId>
-    <version>1.5.6</version>
+    <version>1.8.1</version>
 </dependency>
 <dependency>
     <groupId>com.mybatis-flex</groupId>
     <artifactId>mybatis-flex-processor</artifactId>
-    <version>1.5.6</version>
+    <version>1.8.1</version>
     <scope>provided</scope>
 </dependency>
 ```
 
-4. 配置 annotationProcessor
+4、用到了 SpringBoot v3.x  的场景
+
+```xml 3
+<dependency>
+    <groupId>com.mybatis-flex</groupId>
+    <artifactId>mybatis-flex-spring-boot3-starter</artifactId>
+    <version>1.8.1</version>
+</dependency>
+<dependency>
+    <groupId>com.mybatis-flex</groupId>
+    <artifactId>mybatis-flex-processor</artifactId>
+    <version>1.8.1</version>
+    <scope>provided</scope>
+</dependency>
+```
+
+5、配置 annotationProcessor
 
    `mybatis-flex-processor`提供APT服务，可以配置到annotationProcessorPaths，配置后，无需在依赖中声明`mybatis-flex-processor`依赖。
 
    参考：[APT 设置-和 Lombok、Mapstruct 整合](../others/apt.md)
 
-> 在Kotlin中使用时，请参考[在Kotlin中使用注解处理器](../kotlin/kapt.md)
+> 在Kotlin中使用时，请参考[在Kotlin中使用注解处理器](../others/kapt.md)
 
 ```xml
 <plugin>
@@ -72,9 +88,42 @@
             <path>
                 <groupId>com.mybatis-flex</groupId>
                 <artifactId>mybatis-flex-processor</artifactId>
-                <version>1.5.6</version>
+                <version>1.8.1</version>
             </path>
         </annotationProcessorPaths>
     </configuration>
 </plugin>
+```
+
+6、配置依赖管理
+
+MyBatis-Flex 提供了 `mybatis-flex-dependencies` 模块进行依赖管理，只需要在 `<dependencyManagement>` 标签下进行配置就可以了。
+
+```xml
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>com.mybatis-flex</groupId>
+            <artifactId>mybatis-flex-dependencies</artifactId>
+            <version>${mybatis-flex.version}</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+```
+
+在使用时就可以不指定 `<version>` 标签了，例如：
+
+```xml
+<dependencies>
+    <dependency>
+        <groupId>com.mybatis-flex</groupId>
+        <artifactId>mybatis-flex-spring-boot-starter</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>com.mybatis-flex</groupId>
+        <artifactId>mybatis-flex-codegen</artifactId>
+    </dependency>
+</dependencies>
 ```

@@ -18,6 +18,8 @@ package com.mybatisflex.codegen.config;
 
 import com.mybatisflex.core.service.IService;
 
+import java.io.Serializable;
+
 /**
  * 生成 Service 的配置。
  *
@@ -25,7 +27,13 @@ import com.mybatisflex.core.service.IService;
  * @since 2023-05-15
  */
 @SuppressWarnings("unused")
-public class ServiceConfig {
+public class ServiceConfig implements Serializable {
+
+    private static final long serialVersionUID = -2152473328300910220L;
+    /**
+     * 代码生成目录，当未配置时，使用 PackageConfig 的配置
+     */
+    private String sourceDir;
 
     /**
      * Service 类的前缀。
@@ -53,6 +61,14 @@ public class ServiceConfig {
 
     public String buildSuperClassName() {
         return superClass.getSimpleName();
+    }
+
+    public String getSourceDir() {
+        return sourceDir;
+    }
+
+    public void setSourceDir(String sourceDir) {
+        this.sourceDir = sourceDir;
     }
 
     /**

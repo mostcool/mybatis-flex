@@ -15,7 +15,10 @@
  */
 package com.mybatisflex.codegen.config;
 
+import com.mybatisflex.codegen.entity.Table;
+
 import java.io.Serializable;
+import java.util.function.Function;
 
 /**
  * 生成 Entity 的配置。
@@ -24,7 +27,13 @@ import java.io.Serializable;
  * @since 2023-05-15
  */
 @SuppressWarnings("unused")
-public class EntityConfig {
+public class EntityConfig implements Serializable {
+
+    private static final long serialVersionUID = -6790274333595436008L;
+    /**
+     * 代码生成目录，当未配置时，使用 PackageConfig 的配置
+     */
+    private String sourceDir;
 
     /**
      * Entity 类的前缀。
@@ -40,6 +49,9 @@ public class EntityConfig {
      * Entity 类的父类，可以自定义一些 BaseEntity 类。
      */
     private Class<?> superClass;
+
+
+    private Function<Table, Class<?>> superClassFactory;
 
     /**
      * 是否覆盖之前生成的文件。
@@ -75,6 +87,38 @@ public class EntityConfig {
      * 实体类数据源。
      */
     private String dataSource;
+
+    /**
+     * 项目jdk版本
+     */
+    private int jdkVersion;
+
+
+    /**
+     * 当开启这个配置后，Entity 会生成两个类，比如 Account 表会生成 Account.java 以及 AccountBase.java
+     * 这样的好处是，自动生成的 getter setter 字段等都在 Base 类里，而开发者可以在 Account.java 中添加自己的业务代码
+     * 此时，当有数据库表结构发生变化，需要再次生成代码时，不会覆盖掉 Account.java 中的业务代码（只会覆盖 AccountBase 中的 Getter Setter）
+     */
+    private boolean withBaseClassEnable = false;
+
+    /**
+     * Base 类的后缀
+     */
+    private String withBaseClassSuffix = "Base";
+
+    /**
+     * Base 类所在的包，默认情况下是在 entity 包下，添加一个 base 文件夹。
+     */
+    private String withBasePackage;
+
+
+    public String getSourceDir() {
+        return sourceDir;
+    }
+
+    public void setSourceDir(String sourceDir) {
+        this.sourceDir = sourceDir;
+    }
 
     /**
      * 获取类前缀。
@@ -119,6 +163,22 @@ public class EntityConfig {
     public EntityConfig setSuperClass(Class<?> superClass) {
         this.superClass = superClass;
         return this;
+    }
+
+
+    public Class<?> getSuperClass(Table table) {
+        if (superClassFactory != null) {
+            return superClassFactory.apply(table);
+        }
+        return superClass;
+    }
+
+    public Function<Table, Class<?>> getSuperClassFactory() {
+        return superClassFactory;
+    }
+
+    public void setSuperClassFactory(Function<Table, Class<?>> superClassFactory) {
+        this.superClassFactory = superClassFactory;
     }
 
     /**
@@ -226,6 +286,46 @@ public class EntityConfig {
     public EntityConfig setDataSource(String dataSource) {
         this.dataSource = dataSource;
         return this;
+    }
+
+    /**
+     * 获取项目jdk版本
+     */
+    public int getJdkVersion() {
+        return jdkVersion;
+    }
+
+    /**
+     * 设置项目jdk版本
+     */
+    public EntityConfig setJdkVersion(int jdkVersion) {
+        this.jdkVersion = jdkVersion;
+        return this;
+    }
+
+    public boolean isWithBaseClassEnable() {
+        return withBaseClassEnable;
+    }
+
+    public void setWithBaseClassEnable(boolean withBaseClassEnable) {
+        this.withBaseClassEnable = withBaseClassEnable;
+    }
+
+    public String getWithBaseClassSuffix() {
+        return withBaseClassSuffix;
+    }
+
+    public void setWithBaseClassSuffix(String withBaseClassSuffix) {
+        this.withBaseClassSuffix = withBaseClassSuffix;
+    }
+
+
+    public String getWithBasePackage() {
+        return withBasePackage;
+    }
+
+    public void setWithBasePackage(String withBasePackage) {
+        this.withBasePackage = withBasePackage;
     }
 
     public enum SwaggerVersion {

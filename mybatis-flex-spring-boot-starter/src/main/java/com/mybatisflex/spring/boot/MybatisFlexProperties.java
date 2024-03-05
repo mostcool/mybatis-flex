@@ -1,17 +1,17 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
- *  <p>
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *  <p>
- *  http://www.apache.org/licenses/LICENSE-2.0
- *  <p>
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ *    Copyright 2015-2022 the original author or authors.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *       https://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
  */
 package com.mybatisflex.spring.boot;
 
@@ -778,21 +778,36 @@ public class MybatisFlexProperties {
         private Object normalValueOfLogicDelete = FlexConsts.LOGIC_DELETE_NORMAL;
 
         /**
-         * 逻辑删除数据删除标记值，
+         * 逻辑删除数据删除标记值。
          */
         private Object deletedValueOfLogicDelete = FlexConsts.LOGIC_DELETE_DELETED;
 
 
         /**
-         * 默认的分页查询时的每页数据量
+         * 默认的分页查询时的每页数据量。
          */
         private int defaultPageSize = 10;
 
 
         /**
-         * 默认的 Relation 注解查询深度
+         * 默认的 Relation 注解查询深度。
          */
         private int defaultRelationQueryDepth = 2;
+
+        /**
+         * 默认的逻辑删除字段。
+         */
+        private String logicDeleteColumn;
+
+        /**
+         * 默认的多租户字段。
+         */
+        private String tenantColumn;
+
+        /**
+         * 默认的乐观锁字段。
+         */
+        private String versionColumn;
 
 
         public boolean isPrintBanner() {
@@ -843,6 +858,30 @@ public class MybatisFlexProperties {
             this.defaultRelationQueryDepth = defaultRelationQueryDepth;
         }
 
+        public String getLogicDeleteColumn() {
+            return logicDeleteColumn;
+        }
+
+        public void setLogicDeleteColumn(String logicDeleteColumn) {
+            this.logicDeleteColumn = logicDeleteColumn;
+        }
+
+        public String getTenantColumn() {
+            return tenantColumn;
+        }
+
+        public void setTenantColumn(String tenantColumn) {
+            this.tenantColumn = tenantColumn;
+        }
+
+        public String getVersionColumn() {
+            return versionColumn;
+        }
+
+        public void setVersionColumn(String versionColumn) {
+            this.versionColumn = versionColumn;
+        }
+
         void applyTo(FlexGlobalConfig target) {
             PropertyMapper mapper = PropertyMapper.get().alwaysApplyingWhenNonNull();
             mapper.from(isPrintBanner()).to(target::setPrintBanner);
@@ -851,6 +890,9 @@ public class MybatisFlexProperties {
             mapper.from(getDeletedValueOfLogicDelete()).to(target::setDeletedValueOfLogicDelete);
             mapper.from(getDefaultPageSize()).to(target::setDefaultPageSize);
             mapper.from(getDefaultRelationQueryDepth()).to(target::setDefaultRelationQueryDepth);
+            mapper.from(getLogicDeleteColumn()).to(target::setLogicDeleteColumn);
+            mapper.from(getVersionColumn()).to(target::setVersionColumn);
+            mapper.from(getTenantColumn()).to(target::setTenantColumn);
         }
 
     }

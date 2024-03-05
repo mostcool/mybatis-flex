@@ -16,15 +16,17 @@
 package com.mybatisflex.core.dialect;
 
 
+import java.util.EnumMap;
+import java.util.Map;
+
+import com.mybatisflex.core.exception.MybatisFlexException;
+import org.apache.ibatis.util.MapUtil;
 import com.mybatisflex.core.FlexGlobalConfig;
 import com.mybatisflex.core.dialect.impl.CommonsDialectImpl;
+import com.mybatisflex.core.dialect.impl.DB2105Dialect;
 import com.mybatisflex.core.dialect.impl.DmDialect;
 import com.mybatisflex.core.dialect.impl.OracleDialect;
 import com.mybatisflex.core.util.ObjectUtil;
-import org.apache.ibatis.util.MapUtil;
-
-import java.util.EnumMap;
-import java.util.Map;
 
 /**
  * 方言工厂类，用于创建方言
@@ -45,6 +47,7 @@ public class DialectFactory {
      * 通过设置当前线程的数据库类型，以达到在代码执行时随时切换方言的功能
      */
     private static final ThreadLocal<DbType> dbTypeThreadLocal = new ThreadLocal<>();
+    private static  DbType dbTypeGlobal  = null ;
 
 
     /**
@@ -75,6 +78,19 @@ public class DialectFactory {
         return dbTypeThreadLocal.get();
     }
 
+    public static DbType getGlobalDbType() {
+        return dbTypeGlobal;
+    }
+
+    public static void setGlobalDbType(DbType dbType) {
+        if(dbTypeGlobal == null&&dbType!=null){
+            dbTypeGlobal = dbType ;
+        }else if(dbTypeGlobal != null){
+            throw new MybatisFlexException("dbTypeGlobal is only set once");
+        }else if(dbType==null){
+            throw new MybatisFlexException("dbType can not be null");
+        }
+    }
 
     /**
      * 清除当前线程的 dbType
@@ -107,8 +123,11 @@ public class DialectFactory {
             case CUBRID:
             case GOLDILOCKS:
             case CSIIDB:
+            case HIVE:
+            case DORIS:
                 return new CommonsDialectImpl(KeywordWrap.BACK_QUOTE, LimitOffsetProcessor.MYSQL);
             case CLICK_HOUSE:
+            case GBASE_8S:
                 return new CommonsDialectImpl(KeywordWrap.NONE, LimitOffsetProcessor.MYSQL);
             case DM:
                 return new DmDialect();
@@ -128,6 +147,7 @@ public class DialectFactory {
             case REDSHIFT:
             case OPENGAUSS:
             case UXDB:
+            case LEALONE:
                 return new CommonsDialectImpl(KeywordWrap.DOUBLE_QUOTATION, LimitOffsetProcessor.POSTGRESQL);
             case TDENGINE:
                 return new CommonsDialectImpl(KeywordWrap.BACK_QUOTE, LimitOffsetProcessor.POSTGRESQL);
@@ -136,6 +156,8 @@ public class DialectFactory {
             case FIREBIRD:
             case DB2:
                 return new CommonsDialectImpl(KeywordWrap.NONE, LimitOffsetProcessor.DERBY);
+            case DB2_1005:
+                return new DB2105Dialect(KeywordWrap.NONE, DB2105Dialect.DB2105LimitOffsetProcessor.DB2105);
             case SQLSERVER:
                 return new CommonsDialectImpl(KeywordWrap.SQUARE_BRACKETS, LimitOffsetProcessor.SQLSERVER);
             case SQLSERVER_2005:

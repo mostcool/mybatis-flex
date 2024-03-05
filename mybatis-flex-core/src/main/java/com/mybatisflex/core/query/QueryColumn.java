@@ -17,6 +17,7 @@ package com.mybatisflex.core.query;
 
 
 import com.mybatisflex.core.constant.SqlConsts;
+import com.mybatisflex.core.constant.SqlOperator;
 import com.mybatisflex.core.dialect.IDialect;
 import com.mybatisflex.core.exception.FlexExceptions;
 import com.mybatisflex.core.table.TableDef;
@@ -24,12 +25,14 @@ import com.mybatisflex.core.util.*;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.function.BiPredicate;
+import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
 /**
  * 查询列，描述的是一张表的字段
  */
-public class QueryColumn implements CloneSupport<QueryColumn> {
+public class QueryColumn implements CloneSupport<QueryColumn>, Conditional<QueryCondition> {
 
     protected QueryTable table;
     protected String name;
@@ -134,443 +137,790 @@ public class QueryColumn implements CloneSupport<QueryColumn> {
 
     // query methods ///////
 
-    /**
-     * equals
-     *
-     * @param value
-     */
+    @Override
     public QueryCondition eq(Object value) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
             return QueryCondition.createEmpty();
         }
-        return QueryCondition.create(this, SqlConsts.EQUALS, value);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.EQUALS, value));
     }
 
-
-    public <T> QueryCondition eq(Object value, Predicate<T> fn) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
+    @Override
+    public QueryCondition eq(Object value, boolean isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
             return QueryCondition.createEmpty();
         }
-        return QueryCondition.create(this, SqlConsts.EQUALS, value).when(fn);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.EQUALS, value).when(isEffective));
     }
 
+    @Override
+    public QueryCondition eq(Object value, BooleanSupplier isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.EQUALS, value).when(isEffective)));
+    }
 
-    /**
-     * not equals !=
-     *
-     * @param value
-     */
+    @Override
+    public <T> QueryCondition eq(T value, Predicate<T> isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.EQUALS, value).when(isEffective.test(value)));
+    }
+
+    @Override
     public QueryCondition ne(Object value) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
             return QueryCondition.createEmpty();
         }
-        return QueryCondition.create(this, SqlConsts.NOT_EQUALS, value);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_EQUALS, value));
     }
 
-    public <T> QueryCondition ne(Object value, Predicate<T> fn) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
+    @Override
+    public QueryCondition ne(Object value, boolean isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
             return QueryCondition.createEmpty();
         }
-        return QueryCondition.create(this, SqlConsts.NOT_EQUALS, value).when(fn);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_EQUALS, value).when(isEffective));
     }
 
-
-    /**
-     * like %%
-     *
-     * @param value
-     */
-    public QueryCondition like(Object value) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
+    @Override
+    public QueryCondition ne(Object value, BooleanSupplier isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
             return QueryCondition.createEmpty();
         }
-        return QueryCondition.create(this, SqlConsts.LIKE, "%" + value + "%");
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_EQUALS, value).when(isEffective));
     }
 
-    public <T> QueryCondition like(Object value, Predicate<T> fn) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
+    @Override
+    public <T> QueryCondition ne(T value, Predicate<T> isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
             return QueryCondition.createEmpty();
         }
-        return QueryCondition.create(this, SqlConsts.LIKE, "%" + value + "%").when(fn);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_EQUALS, value).when(isEffective.test(value)));
     }
 
-
-    public QueryCondition likeLeft(Object value) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
-            return QueryCondition.createEmpty();
-        }
-        return QueryCondition.create(this, SqlConsts.LIKE, value + "%");
-    }
-
-    public <T> QueryCondition likeLeft(Object value, Predicate<T> fn) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
-            return QueryCondition.createEmpty();
-        }
-        return QueryCondition.create(this, SqlConsts.LIKE, value + "%").when(fn);
-    }
-
-
-    public QueryCondition likeRight(Object value) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
-            return QueryCondition.createEmpty();
-        }
-        return QueryCondition.create(this, SqlConsts.LIKE, "%" + value);
-    }
-
-    public <T> QueryCondition likeRight(Object value, Predicate<T> fn) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
-            return QueryCondition.createEmpty();
-        }
-        return QueryCondition.create(this, SqlConsts.LIKE, "%" + value).when(fn);
-    }
-
-
-    public QueryCondition likeRaw(Object value) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
-            return QueryCondition.createEmpty();
-        }
-        return QueryCondition.create(this, SqlConsts.LIKE, value);
-    }
-
-    public <T> QueryCondition likeRaw(Object value, Predicate<T> fn) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
-            return QueryCondition.createEmpty();
-        }
-        return QueryCondition.create(this, SqlConsts.LIKE, value).when(fn);
-    }
-
-
-    /**
-     * not like %%
-     *
-     * @param value
-     */
-    public QueryCondition notLike(Object value) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
-            return QueryCondition.createEmpty();
-        }
-        return QueryCondition.create(this, SqlConsts.NOT_LIKE, "%" + value + "%");
-    }
-
-    public <T> QueryCondition notLike(Object value, Predicate<T> fn) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
-            return QueryCondition.createEmpty();
-        }
-        return QueryCondition.create(this, SqlConsts.NOT_LIKE, "%" + value + "%").when(fn);
-    }
-
-
-    public QueryCondition notLikeLeft(Object value) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
-            return QueryCondition.createEmpty();
-        }
-        return QueryCondition.create(this, SqlConsts.NOT_LIKE, value + "%");
-    }
-
-    public <T> QueryCondition notLikeLeft(Object value, Predicate<T> fn) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
-            return QueryCondition.createEmpty();
-        }
-        return QueryCondition.create(this, SqlConsts.NOT_LIKE, value + "%").when(fn);
-    }
-
-
-    public QueryCondition notLikeRight(Object value) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
-            return QueryCondition.createEmpty();
-        }
-        return QueryCondition.create(this, SqlConsts.NOT_LIKE, "%" + value);
-    }
-
-    public <T> QueryCondition notLikeRight(Object value, Predicate<T> fn) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
-            return QueryCondition.createEmpty();
-        }
-        return QueryCondition.create(this, SqlConsts.NOT_LIKE, "%" + value).when(fn);
-    }
-
-
-    /**
-     * 大于 greater than
-     *
-     * @param value
-     */
+    @Override
     public QueryCondition gt(Object value) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
             return QueryCondition.createEmpty();
         }
-        return QueryCondition.create(this, SqlConsts.GT, value);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.GT, value));
     }
 
-    public <T> QueryCondition gt(Object value, Predicate<T> fn) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
+    @Override
+    public QueryCondition gt(Object value, boolean isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
             return QueryCondition.createEmpty();
         }
-        return QueryCondition.create(this, SqlConsts.GT, value).when(fn);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.GT, value).when(isEffective));
     }
 
-    /**
-     * 大于等于 greater or equal
-     *
-     * @param value
-     */
+    @Override
+    public QueryCondition gt(Object value, BooleanSupplier isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.GT, value).when(isEffective));
+    }
+
+    @Override
+    public <T> QueryCondition gt(T value, Predicate<T> isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.GT, value).when(isEffective.test(value)));
+    }
+
+    @Override
     public QueryCondition ge(Object value) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
             return QueryCondition.createEmpty();
         }
-        return QueryCondition.create(this, SqlConsts.GE, value);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.GE, value));
     }
 
-    public <T> QueryCondition ge(Object value, Predicate<T> fn) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
+    @Override
+    public QueryCondition ge(Object value, boolean isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
             return QueryCondition.createEmpty();
         }
-        return QueryCondition.create(this, SqlConsts.GE, value).when(fn);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.GE, value).when(isEffective));
     }
 
-    /**
-     * 小于 less than
-     *
-     * @param value
-     */
+    @Override
+    public QueryCondition ge(Object value, BooleanSupplier isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.GE, value).when(isEffective));
+    }
+
+    @Override
+    public <T> QueryCondition ge(T value, Predicate<T> isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.GE, value).when(isEffective.test(value)));
+    }
+
+    @Override
     public QueryCondition lt(Object value) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
             return QueryCondition.createEmpty();
         }
-        return QueryCondition.create(this, SqlConsts.LT, value);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LT, value));
     }
 
-    public <T> QueryCondition lt(Object value, Predicate<T> fn) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
+    @Override
+    public QueryCondition lt(Object value, boolean isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
             return QueryCondition.createEmpty();
         }
-        return QueryCondition.create(this, SqlConsts.LT, value).when(fn);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LT, value).when(isEffective));
     }
 
-    /**
-     * 小于等于 less or equal
-     *
-     * @param value
-     */
+    @Override
+    public QueryCondition lt(Object value, BooleanSupplier isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LT, value).when(isEffective));
+    }
+
+    @Override
+    public <T> QueryCondition lt(T value, Predicate<T> isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LT, value).when(isEffective.test(value)));
+    }
+
+    @Override
     public QueryCondition le(Object value) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
             return QueryCondition.createEmpty();
         }
-        return QueryCondition.create(this, SqlConsts.LE, value);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LE, value));
     }
 
-    public <T> QueryCondition le(Object value, Predicate<T> fn) {
-        if (value == null || QueryColumnBehavior.shouldIgnoreValue(value)) {
+    @Override
+    public QueryCondition le(Object value, boolean isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
             return QueryCondition.createEmpty();
         }
-        return QueryCondition.create(this, SqlConsts.LE, value).when(fn);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LE, value).when(isEffective));
     }
 
-
-    /**
-     * IS NULL
-     *
-     * @return QueryCondition
-     */
-    public QueryCondition isNull() {
-        return QueryCondition.create(this, SqlConsts.IS_NULL, null);
-    }
-
-    public <T> QueryCondition isNull(Predicate<T> fn) {
-        return QueryCondition.create(this, SqlConsts.IS_NULL, null).when(fn);
-    }
-
-
-    /**
-     * IS NOT NULL
-     *
-     * @return QueryCondition
-     */
-    public QueryCondition isNotNull() {
-        return QueryCondition.create(this, SqlConsts.IS_NOT_NULL, null);
-    }
-
-    public <T> QueryCondition isNotNull(Predicate<T> fn) {
-        return QueryCondition.create(this, SqlConsts.IS_NOT_NULL, null).when(fn);
-    }
-
-
-    /**
-     * in arrays
-     *
-     * @param arrays
-     * @return QueryCondition
-     */
-    public QueryCondition in(Object... arrays) {
-        //忽略 QueryWrapper.in("name", null) 的情况
-        if (arrays == null || arrays.length == 0 || (arrays.length == 1 && arrays[0] == null) || QueryColumnBehavior.shouldIgnoreValue(arrays)) {
+    @Override
+    public QueryCondition le(Object value, BooleanSupplier isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
             return QueryCondition.createEmpty();
         }
-
-        if (arrays.length == 1 && QueryColumnBehavior.isSmartConvertInToEquals()) {
-            return QueryCondition.create(this, SqlConsts.EQUALS, arrays[0]);
-        }
-
-        return QueryCondition.create(this, SqlConsts.IN, arrays);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LE, value).when(isEffective));
     }
 
-
-    public <T> QueryCondition in(Object[] arrays, Predicate<T> fn) {
-        //忽略 QueryWrapper.in("name", null) 的情况
-        if (arrays == null || arrays.length == 0 || (arrays.length == 1 && arrays[0] == null) || QueryColumnBehavior.shouldIgnoreValue(arrays)) {
+    @Override
+    public <T> QueryCondition le(T value, Predicate<T> isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
             return QueryCondition.createEmpty();
         }
-
-        if (arrays.length == 1 && QueryColumnBehavior.isSmartConvertInToEquals()) {
-            return QueryCondition.create(this, SqlConsts.EQUALS, arrays[0]);
-        }
-
-        return QueryCondition.create(this, SqlConsts.IN, arrays).when(fn);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LE, value).when(isEffective.test(value)));
     }
 
-    /**
-     * in child select
-     *
-     * @param queryWrapper
-     * @return QueryCondition
-     */
+    @Override
+    public QueryCondition in(Object... value) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value) || value.length == 0) {
+            return QueryCondition.createEmpty();
+        }
+        // IN 里面只有一个值的情况
+        if (value.length == 1) {
+            if (QueryColumnBehavior.shouldIgnoreValue(value[0])) {
+                return QueryCondition.createEmpty();
+            }
+            if (QueryColumnBehavior.isSmartConvertInToEquals()) {
+                return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.EQUALS, value[0]));
+            }
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlConsts.IN, value));
+    }
+
+    @Override
+    public QueryCondition in(Object[] value, boolean isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value) || value.length == 0) {
+            return QueryCondition.createEmpty();
+        }
+        // IN 里面只有一个值的情况
+        if (value.length == 1) {
+            if (QueryColumnBehavior.shouldIgnoreValue(value[0])) {
+                return QueryCondition.createEmpty();
+            }
+            if (QueryColumnBehavior.isSmartConvertInToEquals()) {
+                return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.EQUALS, value[0]).when(isEffective));
+            }
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlConsts.IN, value).when(isEffective));
+    }
+
+    @Override
+    public QueryCondition in(Object[] value, BooleanSupplier isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value) || value.length == 0) {
+            return QueryCondition.createEmpty();
+        }
+        // IN 里面只有一个值的情况
+        if (value.length == 1) {
+            if (QueryColumnBehavior.shouldIgnoreValue(value[0])) {
+                return QueryCondition.createEmpty();
+            }
+            if (QueryColumnBehavior.isSmartConvertInToEquals()) {
+                return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.EQUALS, value[0]).when(isEffective));
+            }
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlConsts.IN, value).when(isEffective));
+    }
+
+    @Override
+    public <T> QueryCondition in(T[] value, Predicate<T[]> isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value) || value.length == 0) {
+            return QueryCondition.createEmpty();
+        }
+        // IN 里面只有一个值的情况
+        if (value.length == 1) {
+            if (QueryColumnBehavior.shouldIgnoreValue(value[0])) {
+                return QueryCondition.createEmpty();
+            }
+            if (QueryColumnBehavior.isSmartConvertInToEquals()) {
+                return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.EQUALS, value[0]).when(isEffective.test(value)));
+            }
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlConsts.IN, value).when(isEffective.test(value)));
+    }
+
+    @Override
+    public QueryCondition in(Collection<?> value) {
+        if (value == null || value.isEmpty()) {
+            return QueryCondition.createEmpty();
+        }
+        return in(value.toArray());
+    }
+
+    @Override
+    public QueryCondition in(Collection<?> value, boolean isEffective) {
+        if (value == null || value.isEmpty()) {
+            return QueryCondition.createEmpty();
+        }
+        return in(value.toArray()).when(isEffective);
+    }
+
+    @Override
+    public QueryCondition in(Collection<?> value, BooleanSupplier isEffective) {
+        if (value == null || value.isEmpty()) {
+            return QueryCondition.createEmpty();
+        }
+        return in(value.toArray()).when(isEffective);
+    }
+
+    @Override
+    public <T extends Collection<?>> QueryCondition in(T value, Predicate<T> isEffective) {
+        if (value == null || value.isEmpty()) {
+            return QueryCondition.createEmpty();
+        }
+        return in(value.toArray()).when(isEffective.test(value));
+    }
+
+    @Override
     public QueryCondition in(QueryWrapper queryWrapper) {
-        if (queryWrapper == null || QueryColumnBehavior.shouldIgnoreValue(queryWrapper)) {
+        if (queryWrapper == null) {
             return QueryCondition.createEmpty();
         }
-        return QueryCondition.create(this, SqlConsts.IN, queryWrapper);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.IN, queryWrapper));
     }
 
-
-    public <T> QueryCondition in(QueryWrapper queryWrapper, Predicate<T> fn) {
-        if (queryWrapper == null || QueryColumnBehavior.shouldIgnoreValue(queryWrapper)) {
+    @Override
+    public QueryCondition in(QueryWrapper queryWrapper, boolean isEffective) {
+        if (queryWrapper == null) {
             return QueryCondition.createEmpty();
         }
-        return QueryCondition.create(this, SqlConsts.IN, queryWrapper).when(fn);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.IN, queryWrapper).when(isEffective));
     }
 
-
-    /**
-     * in Collection
-     *
-     * @param collection
-     * @return QueryCondition
-     */
-    public QueryCondition in(Collection<?> collection) {
-        if (collection != null && !collection.isEmpty() && !QueryColumnBehavior.shouldIgnoreValue(collection)) {
-            return in(collection.toArray());
-        }
-        return QueryCondition.createEmpty();
-    }
-
-    public <T> QueryCondition in(Collection<?> collection, Predicate<T> fn) {
-        if (collection != null && !collection.isEmpty() && !QueryColumnBehavior.shouldIgnoreValue(collection)) {
-            return in(collection.toArray(), fn);
-        }
-        return QueryCondition.createEmpty();
-    }
-
-    /**
-     * not int arrays
-     *
-     * @param arrays
-     * @return QueryCondition
-     */
-    public QueryCondition notIn(Object... arrays) {
-        //忽略 QueryWrapper.notIn("name", null) 的情况
-        if (arrays == null || arrays.length == 0 || (arrays.length == 1 && arrays[0] == null) || QueryColumnBehavior.shouldIgnoreValue(arrays)) {
+    @Override
+    public QueryCondition in(QueryWrapper queryWrapper, BooleanSupplier isEffective) {
+        if (queryWrapper == null) {
             return QueryCondition.createEmpty();
         }
-
-        if (arrays.length == 1 && QueryColumnBehavior.isSmartConvertInToEquals()) {
-            return QueryCondition.create(this, SqlConsts.NOT_EQUALS, arrays[0]);
-        }
-
-        return QueryCondition.create(this, SqlConsts.NOT_IN, arrays);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.IN, queryWrapper).when(isEffective));
     }
 
-    public <T> QueryCondition notIn(Object[] arrays, Predicate<T> fn) {
-        //忽略 QueryWrapper.notIn("name", null) 的情况
-        if (arrays == null || arrays.length == 0 || (arrays.length == 1 && arrays[0] == null) || QueryColumnBehavior.shouldIgnoreValue(arrays)) {
+    @Override
+    public QueryCondition notIn(Object... value) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value) || value.length == 0) {
             return QueryCondition.createEmpty();
         }
-
-        if (arrays.length == 1 && QueryColumnBehavior.isSmartConvertInToEquals()) {
-            return QueryCondition.create(this, SqlConsts.NOT_EQUALS, arrays[0]);
+        // NOT IN 里面只有一个值的情况
+        if (value.length == 1) {
+            if (QueryColumnBehavior.shouldIgnoreValue(value[0])) {
+                return QueryCondition.createEmpty();
+            }
+            if (QueryColumnBehavior.isSmartConvertInToEquals()) {
+                return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_EQUALS, value[0]));
+            }
         }
-
-        return QueryCondition.create(this, SqlConsts.NOT_IN, arrays).when(fn);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlConsts.NOT_IN, value));
     }
 
-
-    /**
-     * not in Collection
-     *
-     * @param collection
-     * @return QueryCondition
-     */
-    public QueryCondition notIn(Collection<?> collection) {
-        if (collection != null && !collection.isEmpty() && !QueryColumnBehavior.shouldIgnoreValue(collection)) {
-            return notIn(collection.toArray());
+    @Override
+    public QueryCondition notIn(Object[] value, boolean isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value) || value.length == 0) {
+            return QueryCondition.createEmpty();
         }
-        return QueryCondition.createEmpty();
+        // NOT IN 里面只有一个值的情况
+        if (value.length == 1) {
+            if (QueryColumnBehavior.shouldIgnoreValue(value[0])) {
+                return QueryCondition.createEmpty();
+            }
+            if (QueryColumnBehavior.isSmartConvertInToEquals()) {
+                return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_EQUALS, value[0]).when(isEffective));
+            }
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlConsts.NOT_IN, value).when(isEffective));
     }
 
-    public <T> QueryCondition notIn(Collection<?> collection, Predicate<T> fn) {
-        if (collection != null && !collection.isEmpty() && !QueryColumnBehavior.shouldIgnoreValue(collection)) {
-            return notIn(collection.toArray(), fn);
+    @Override
+    public QueryCondition notIn(Object[] value, BooleanSupplier isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value) || value.length == 0) {
+            return QueryCondition.createEmpty();
         }
-        return QueryCondition.createEmpty();
+        // NOT IN 里面只有一个值的情况
+        if (value.length == 1) {
+            if (QueryColumnBehavior.shouldIgnoreValue(value[0])) {
+                return QueryCondition.createEmpty();
+            }
+            if (QueryColumnBehavior.isSmartConvertInToEquals()) {
+                return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_EQUALS, value[0]).when(isEffective));
+            }
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlConsts.NOT_IN, value).when(isEffective));
     }
 
-    /**
-     * not in child select
-     *
-     * @param queryWrapper
-     */
+    @Override
+    public <T> QueryCondition notIn(T[] value, Predicate<T[]> isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value) || value.length == 0) {
+            return QueryCondition.createEmpty();
+        }
+        // NOT IN 里面只有一个值的情况
+        if (value.length == 1) {
+            if (QueryColumnBehavior.shouldIgnoreValue(value[0])) {
+                return QueryCondition.createEmpty();
+            }
+            if (QueryColumnBehavior.isSmartConvertInToEquals()) {
+                return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_EQUALS, value[0]).when(isEffective.test(value)));
+            }
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlConsts.NOT_IN, value).when(isEffective.test(value)));
+    }
+
+    @Override
+    public QueryCondition notIn(Collection<?> value) {
+        if (value == null || value.isEmpty()) {
+            return QueryCondition.createEmpty();
+        }
+        return notIn(value.toArray());
+    }
+
+    @Override
+    public QueryCondition notIn(Collection<?> value, boolean isEffective) {
+        if (value == null || value.isEmpty()) {
+            return QueryCondition.createEmpty();
+        }
+        return notIn(value.toArray()).when(isEffective);
+    }
+
+    @Override
+    public QueryCondition notIn(Collection<?> value, BooleanSupplier isEffective) {
+        if (value == null || value.isEmpty()) {
+            return QueryCondition.createEmpty();
+        }
+        return notIn(value.toArray()).when(isEffective);
+    }
+
+    @Override
+    public <T extends Collection<?>> QueryCondition notIn(T value, Predicate<T> isEffective) {
+        if (value == null || value.isEmpty()) {
+            return QueryCondition.createEmpty();
+        }
+        return notIn(value.toArray()).when(isEffective.test(value));
+    }
+
+    @Override
     public QueryCondition notIn(QueryWrapper queryWrapper) {
-        if (queryWrapper == null || QueryColumnBehavior.shouldIgnoreValue(queryWrapper)) {
+        if (queryWrapper == null) {
             return QueryCondition.createEmpty();
         }
-        return QueryCondition.create(this, SqlConsts.NOT_IN, queryWrapper);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_IN, queryWrapper));
     }
 
-
-    public <T> QueryCondition notIn(QueryWrapper queryWrapper, Predicate<T> fn) {
-        if (queryWrapper == null || QueryColumnBehavior.shouldIgnoreValue(queryWrapper)) {
+    @Override
+    public QueryCondition notIn(QueryWrapper queryWrapper, boolean isEffective) {
+        if (queryWrapper == null) {
             return QueryCondition.createEmpty();
         }
-        return QueryCondition.create(this, SqlConsts.NOT_IN, queryWrapper).when(fn);
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_IN, queryWrapper).when(isEffective));
     }
 
+    @Override
+    public QueryCondition notIn(QueryWrapper queryWrapper, BooleanSupplier isEffective) {
+        if (queryWrapper == null) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_IN, queryWrapper).when(isEffective));
+    }
 
-    /**
-     * between
-     *
-     * @param start
-     * @param end
-     */
+    @Override
     public QueryCondition between(Object start, Object end) {
-        return QueryCondition.create(this, SqlConsts.BETWEEN, new Object[]{start, end});
+        if (QueryColumnBehavior.shouldIgnoreValue(start) || QueryColumnBehavior.shouldIgnoreValue(end)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.BETWEEN, new Object[]{start, end}));
     }
 
-    public <T> QueryCondition between(Object start, Object end, Predicate<T> fn) {
-        return QueryCondition.create(this, SqlConsts.BETWEEN, new Object[]{start, end}).when(fn);
+    @Override
+    public QueryCondition between(Object start, Object end, boolean isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(start) || QueryColumnBehavior.shouldIgnoreValue(end)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.BETWEEN, new Object[]{start, end}).when(isEffective));
     }
 
+    @Override
+    public QueryCondition between(Object start, Object end, BooleanSupplier isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(start) || QueryColumnBehavior.shouldIgnoreValue(end)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.BETWEEN, new Object[]{start, end}).when(isEffective));
+    }
+
+    @Override
+    public <S, E> QueryCondition between(S start, E end, BiPredicate<S, E> isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(start) || QueryColumnBehavior.shouldIgnoreValue(end)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.BETWEEN, new Object[]{start, end}).when(isEffective.test(start, end)));
+    }
+
+    @Override
+    public QueryCondition notBetween(Object start, Object end) {
+        if (QueryColumnBehavior.shouldIgnoreValue(start) || QueryColumnBehavior.shouldIgnoreValue(end)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_BETWEEN, new Object[]{start, end}));
+    }
+
+    @Override
+    public QueryCondition notBetween(Object start, Object end, boolean isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(start) || QueryColumnBehavior.shouldIgnoreValue(end)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_BETWEEN, new Object[]{start, end}).when(isEffective));
+    }
+
+    @Override
+    public QueryCondition notBetween(Object start, Object end, BooleanSupplier isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(start) || QueryColumnBehavior.shouldIgnoreValue(end)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_BETWEEN, new Object[]{start, end}).when(isEffective));
+    }
+
+    @Override
+    public <S, E> QueryCondition notBetween(S start, E end, BiPredicate<S, E> isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(start) || QueryColumnBehavior.shouldIgnoreValue(end)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_BETWEEN, new Object[]{start, end}).when(isEffective.test(start, end)));
+    }
+
+    @Override
+    public QueryCondition like(Object value) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LIKE, "%" + value + "%"));
+    }
+
+    @Override
+    public QueryCondition like(Object value, boolean isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LIKE, "%" + value + "%").when(isEffective));
+    }
+
+    @Override
+    public QueryCondition like(Object value, BooleanSupplier isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LIKE, "%" + value + "%").when(isEffective));
+    }
+
+    @Override
+    public <T> QueryCondition like(T value, Predicate<T> isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LIKE, "%" + value + "%").when(isEffective.test(value)));
+    }
+
+    @Override
+    public QueryCondition likeLeft(Object value) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LIKE, value + "%"));
+    }
+
+    @Override
+    public QueryCondition likeLeft(Object value, boolean isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LIKE, value + "%").when(isEffective));
+    }
+
+    @Override
+    public QueryCondition likeLeft(Object value, BooleanSupplier isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LIKE, value + "%").when(isEffective));
+    }
+
+    @Override
+    public <T> QueryCondition likeLeft(T value, Predicate<T> isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LIKE, value + "%").when(isEffective.test(value)));
+    }
+
+    @Override
+    public QueryCondition likeRight(Object value) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LIKE, "%" + value));
+    }
+
+    @Override
+    public QueryCondition likeRight(Object value, boolean isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LIKE, "%" + value).when(isEffective));
+    }
+
+    @Override
+    public QueryCondition likeRight(Object value, BooleanSupplier isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LIKE, "%" + value).when(isEffective));
+    }
+
+    @Override
+    public <T> QueryCondition likeRight(T value, Predicate<T> isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LIKE, "%" + value).when(isEffective.test(value)));
+    }
 
     /**
-     * not between
-     *
-     * @param start
-     * @param end
+     * {@code LIKE value}
      */
-    public QueryCondition notBetween(Object start, Object end) {
-        return QueryCondition.create(this, SqlConsts.NOT_BETWEEN, new Object[]{start, end});
+    public QueryCondition likeRaw(Object value) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return likeRaw(value, true);
     }
 
-    public <T> QueryCondition notBetween(Object start, Object end, Predicate<T> fn) {
-        return QueryCondition.create(this, SqlConsts.NOT_BETWEEN, new Object[]{start, end}).when(fn);
+    /**
+     * {@code LIKE value}
+     */
+    public QueryCondition likeRaw(Object value, boolean isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.LIKE, value).when(isEffective));
+    }
+
+    /**
+     * {@code LIKE value}
+     */
+    public QueryCondition likeRaw(Object value, BooleanSupplier isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return likeRaw(value, isEffective.getAsBoolean());
+    }
+
+    /**
+     * {@code LIKE value}
+     */
+    public <T> QueryCondition likeRaw(T value, Predicate<T> isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return likeRaw(value, isEffective.test(value));
+    }
+
+    @Override
+    public QueryCondition notLike(Object value) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_LIKE, "%" + value + "%"));
+    }
+
+    @Override
+    public QueryCondition notLike(Object value, boolean isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_LIKE, "%" + value + "%").when(isEffective));
+    }
+
+    @Override
+    public QueryCondition notLike(Object value, BooleanSupplier isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_LIKE, "%" + value + "%").when(isEffective));
+    }
+
+    @Override
+    public <T> QueryCondition notLike(T value, Predicate<T> isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_LIKE, "%" + value + "%").when(isEffective.test(value)));
+    }
+
+    @Override
+    public QueryCondition notLikeLeft(Object value) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_LIKE, value + "%"));
+    }
+
+    @Override
+    public QueryCondition notLikeLeft(Object value, boolean isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_LIKE, value + "%").when(isEffective));
+    }
+
+    @Override
+    public QueryCondition notLikeLeft(Object value, BooleanSupplier isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_LIKE, value + "%").when(isEffective));
+    }
+
+    @Override
+    public <T> QueryCondition notLikeLeft(T value, Predicate<T> isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_LIKE, value + "%").when(isEffective.test(value)));
+    }
+
+    @Override
+    public QueryCondition notLikeRight(Object value) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_LIKE, "%" + value));
+    }
+
+    @Override
+    public QueryCondition notLikeRight(Object value, boolean isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_LIKE, "%" + value).when(isEffective));
+    }
+
+    @Override
+    public QueryCondition notLikeRight(Object value, BooleanSupplier isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_LIKE, "%" + value).when(isEffective));
+    }
+
+    @Override
+    public <T> QueryCondition notLikeRight(T value, Predicate<T> isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_LIKE, "%" + value).when(isEffective.test(value)));
+    }
+
+    /**
+     * {@code NOT LIKE value}
+     */
+    public QueryCondition notLikeRaw(Object value) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return likeRaw(value, true);
+    }
+
+    /**
+     * {@code NOT LIKE value}
+     */
+    public QueryCondition notLikeRaw(Object value, boolean isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.NOT_LIKE, value).when(isEffective));
+    }
+
+    /**
+     * {@code NOT LIKE value}
+     */
+    public QueryCondition notLikeRaw(Object value, BooleanSupplier isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return likeRaw(value, isEffective.getAsBoolean());
+    }
+
+    /**
+     * {@code NOT LIKE value}
+     */
+    public <T> QueryCondition notLikeRaw(T value, Predicate<T> isEffective) {
+        if (QueryColumnBehavior.shouldIgnoreValue(value)) {
+            return QueryCondition.createEmpty();
+        }
+        return likeRaw(value, isEffective.test(value));
+    }
+
+    @Override
+    public QueryCondition isNull(boolean isEffective) {
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.IS_NULL, null).when(isEffective));
+    }
+
+    @Override
+    public QueryCondition isNotNull(boolean isEffective) {
+        return QueryColumnBehavior.castCondition(QueryCondition.create(this, SqlOperator.IS_NOT_NULL, null).when(isEffective));
     }
 
 
@@ -627,7 +977,9 @@ public class QueryColumn implements CloneSupport<QueryColumn> {
             if (StringUtil.isNotBlank(selectTable.alias)) {
                 return dialect.wrap(selectTable.alias) + SqlConsts.REFERENCE + dialect.wrap(name);
             } else if (StringUtil.isNotBlank(selectTable.getSchema()) && StringUtil.isNotBlank(selectTable.getName())) {
-                return dialect.wrap(dialect.getRealSchema(selectTable.schema)) + SqlConsts.REFERENCE + dialect.wrap(dialect.getRealTable(selectTable.getName())) + SqlConsts.REFERENCE + dialect.wrap(name);
+                String realTable = dialect.getRealTable(selectTable.getName());
+                return dialect.wrap(dialect.getRealSchema(selectTable.schema, realTable)) + SqlConsts.REFERENCE + dialect.wrap(realTable)
+                    + SqlConsts.REFERENCE + dialect.wrap(name);
             } else if (StringUtil.isNotBlank(selectTable.getName())) {
                 return dialect.wrap(dialect.getRealTable(selectTable.getName())) + SqlConsts.REFERENCE + dialect.wrap(name);
             } else {
@@ -638,7 +990,7 @@ public class QueryColumn implements CloneSupport<QueryColumn> {
 
 
     String toSelectSql(List<QueryTable> queryTables, IDialect dialect) {
-        return toConditionSql(queryTables, dialect) + WrapperUtil.buildAlias(alias, dialect);
+        return toConditionSql(queryTables, dialect) + WrapperUtil.buildColumnAlias(alias, dialect);
     }
 
 

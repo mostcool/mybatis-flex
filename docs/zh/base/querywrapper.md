@@ -53,17 +53,21 @@ MyBatis-Flex 使用了 APT 技术，这个 `ACCOUNT` 是自动生成的。
 :::
 
 ## select *
-
 ```java
-QueryWrapper query = new QueryWrapper();
-query.select(ACCOUNT.ID, ACCOUNT.USER_NAME)
-    .from(ACCOUNT)
+QueryWrapper query1 = new QueryWrapper();
+query1.select(ACCOUNT.ID, ACCOUNT.USER_NAME)
+    .from(ACCOUNT);
+
+QueryWrapper query2 = new QueryWrapper();
+query2.select().from(ACCOUNT);
 ```
 
 其查询生成的 Sql 如下：
 
 ```sql
-SELECT id, user_name FROM tb_account
+SELECT id, user_name FROM tb_account;
+
+SELECT * FROM tb_account;
 ```
 
 ## select ... as
@@ -112,12 +116,12 @@ WHERE a.id = b.account_id
 示例 ：
 
 ```java
-QueryWrapper query=new QueryWrapper()
+QueryWrapper query = new QueryWrapper()
         .select(
-        ACCOUNT.ID,
-        ACCOUNT.USER_NAME,
-        max(ACCOUNT.BIRTHDAY),
-        avg(ACCOUNT.SEX).as("sex_avg")
+            ACCOUNT.ID,
+            ACCOUNT.USER_NAME,
+            max(ACCOUNT.BIRTHDAY),
+            avg(ACCOUNT.SEX).as("sex_avg")
         ).from(ACCOUNT);
 ```
 
@@ -320,6 +324,23 @@ SELECT (`id` + (`age` + 100)) AS `x100` FROM `tb_account`
 ```
 
 
+## select 取相反数
+
+```java
+import static com.mybatisflex.core.query.QueryMethods.*;
+
+QueryWrapper queryWrapper = QueryWrapper.create()
+    // 负数常量需要手动加括号，不能写成 number(-1)
+    .select(negative(column("(-1)")))
+    .select(negative(abs(ACCOUNT.AGE)).as("opp"))
+    .select(negative(ACCOUNT.ID.add(ACCOUNT.AGE)))
+    .from(ACCOUNT);
+```
+
+```sql
+SELECT -(-1), -ABS(`age`) AS `opp`, -(`id` + `age`) FROM `tb_account`
+```
+
 ## select case...when
 
 **示例 1：**
@@ -512,13 +533,18 @@ WHERE id >=  ?
 AND user_name LIKE  ?
 ```
 
-## where 动态条件 1
+## where 动态条件
+::: tip 注意
+QueryWrapper条件构建中，若参数为null时默认会被忽略，不会拼接查询条件
+:::
+
+**方式1：when()**
 
 ```java 1,4
 boolean flag = false;
 QueryWrapper queryWrapper = QueryWrapper.create()
     .select().from(ACCOUNT)
-    .where(flag ? ACCOUNT.ID.ge(100) : noCondition())
+    .where(ACCOUNT.ID.ge(100).when(flag)) //flag为false，忽略该条件
     .and(ACCOUNT.USER_NAME.like("michael"));
 ```
 
@@ -526,59 +552,59 @@ QueryWrapper queryWrapper = QueryWrapper.create()
 
 ```sql
 SELECT * FROM tb_account
-WHERE user_name LIKE  ?
+WHERE user_name LIKE 'michael'
 ```
-
-## where 动态条件 2
-
+**方式2：使用重载方法**
 ```java 1,4
 boolean flag = false;
 QueryWrapper queryWrapper = QueryWrapper.create()
     .select().from(ACCOUNT)
-    .where(ACCOUNT.ID.ge(100).when(flag)) // when....
-    .and(ACCOUNT.USER_NAME.like("michael"));
+    .and(ACCOUNT.USER_NAME.like("michael", flag)); //flag为false，忽略该条件
 ```
-
-其查询生成的 Sql 如下：
-
-```sql
-SELECT * FROM tb_account
-WHERE user_name LIKE  ?
-```
-
-## where 动态条件 3
-
+对当前条件参数进行判断：
 ```java 1,5
-String name = null;
+String name = "";
 QueryWrapper queryWrapper = QueryWrapper.create()
     .select().from(ACCOUNT)
-    .where(ACCOUNT.ID.ge(100)) // when....
-    .and(ACCOUNT.USER_NAME.like(name).when(StringUtil::isNotBlank));
+    .where(ACCOUNT.USER_NAME.like(name, StringUtil::isNotBlank)); //name为空字符串，忽略该条件
 ```
-
-其查询生成的 Sql 如下：
-
-```sql
-SELECT * FROM tb_account
-WHERE id >= ?
-```
-
-## where 动态条件 4
-
+框架提供了工具类`If`，包含常用的判断方法（如非空、非空集合、非空字符串等），供开发者简化代码：
 ```java 1,5
-String name = null;
+String name = "";
 QueryWrapper queryWrapper = QueryWrapper.create()
     .select().from(ACCOUNT)
-    .where(ACCOUNT.ID.ge(100))
-    .and(ACCOUNT.USER_NAME.like(name, If::hasText));
+    .where(ACCOUNT.USER_NAME.like(name, If::hasText)); //name是否有文本
+```
+
+上述代码生成的 Sql 如下：
+
+```sql
+SELECT * FROM tb_account;
+```
+
+## where 使用 SQL 函数
+你可以通过使用 QueryMethods 类下的函数实现 where 对指定列运算后作为条件进行查询（QueryMethods 位于 mybatisflex.core.query 下）。
+
+```java 1,5
+QueryWrapper qw = QueryWrapper.create();
+qw.select(USER.ID,
+    USER.USER_ALIAS,
+    USER.PASSWORD,
+    USER.USER_NAME.as("userName"))
+    .where(
+           QueryMethods.abs(USER.ID).eq(1)
+    )
+    .from(USER);
 ```
 
 其查询生成的 Sql 如下：
 
+
 ```sql
-SELECT * FROM tb_account
-WHERE id >= ?
+SELECT `id`, `alias`, `pwd`, `name` AS `userName`
+FROM `user` WHERE ABS(`id`) = 1
 ```
+
 
 ## where select
 ```java
@@ -641,6 +667,44 @@ AND (sex =  ? OR sex =  ? )
 OR (age IN (?,?,?) AND user_name LIKE ? )
 ```
 
+
+## 自定义字符串列名
+
+
+```java
+// 静态导入 QueryMethods.column 方法
+QueryColumn a1 = column("a1");
+
+QueryWrapper queryWrapper = QueryWrapper.create()
+    .select()
+    .from(ACCOUNT)
+    .where(a1.ge(100))
+    .and(a1.ne(200))
+```
+
+其查询生成的 Sql 如下：
+
+```sql
+SELECT * FROM tb_account
+WHERE a1 >=  100
+AND a1 != 200
+```
+
+以上 SQL 的 Java 代码也可以简写为：
+
+```java
+QueryWrapper queryWrapper = QueryWrapper.create()
+    .from(ACCOUNT)
+    .where(column("a1").ge(100))
+    .and(column("a1").ne(200))
+```
+
+注意，以上代码需要静态导入 QueryMethods.column 方法：
+
+```java
+import static com.mybatisflex.core.query.QueryMethods.*;
+```
+
 ## group by
 
 ```java
@@ -649,6 +713,7 @@ QueryWrapper queryWrapper=QueryWrapper.create()
     .from(ACCOUNT)
     .groupBy(ACCOUNT.USER_NAME);
 ```
+
 
 其查询生成的 Sql 如下：
 
@@ -689,6 +754,26 @@ QueryWrapper queryWrapper=QueryWrapper.create()
 ```sql
 SELECT * FROM tb_account
 ORDER BY age ASC, user_name DESC NULLS LAST
+```
+
+## orderBy 动态排序
+
+```java
+QueryWrapper queryWrapper = QueryWrapper.create()
+    .select()
+    .from(ACCOUNT)
+    // 动态条件取值：true 升序 false 降序 null 不排序。
+    .orderBy(ACCOUNT.ID, true)
+    .orderBy(ACCOUNT.BIRTHDAY, false)
+    .orderBy(ACCOUNT.USER_NAME, null);
+```
+
+其查询生成的 Sql 如下：
+
+```sql
+SELECT *
+FROM `tb_account`
+ORDER BY `id` ASC, `birthday` DESC
 ```
 
 ## hint
@@ -890,8 +975,6 @@ SELECT * FROM "tb_account" ORDER BY "id" DESC ROWS 20 TO 30
 
 ## Lambda 扩展
 
-虽然 MyBaits-Flex 也支持 lambda 方式，但是并不推荐使用，建议在一些简单的场景下使用，以下是示例：
-
 简单示例：
 ```java
 QueryWrapper query = QueryWrapper.create();
@@ -939,6 +1022,136 @@ WHERE `a`.`id` >=  100  AND
       )
 ```
 
+## MyBatis-Plus 兼容 API <Badge type="tip" text="^ v1.7.2" />
+
+从 MyBatis-Flex v1.7.2 开始，QueryWrapper 添加了一系列对 MyBatis-Plus 兼容的 API，方便喜欢 MyBatis-Flex 用户从 MyBatis-Plus 迁移到 MyBatis-Flex。
+
+示例代码如下：
+
+```java
+QueryWrapper queryWrapper = new QueryWrapper();
+queryWrapper.from("tb_account")
+    .eq("column1", "value1")
+    .ge(Account::getAge, 18)
+    .or(wrapper -> {
+        wrapper.eq("column2", "value2")
+            .ge(Account::getSex, 0);
+    });
+
+System.out.println(queryWrapper.toSQL());
+```
+
+以上代码内容，输出的 SQL 如下：
+
+```sql
+SELECT * FROM `tb_account`
+WHERE column1 = 'value1' AND `age` >= 18
+OR (column2 = 'value2' AND `sex` >= 0)
+```
+
+以上的 API 虽然尽量兼容 MyBatis-Plus，但也有所不同，需要用户注意以下几点：
+
+**注意点 1：**
+
+> 对于 `eq()`、`ne()`、`...` 等方法的忽略条件判断，MyBatis-Plus 在第一个参数，而 MyBatis-Flex 在 **最后一个** 参数。例如：
+
+MyBatis-Plus 的写法：
+
+```java
+QueryWrapper qw = new QueryWrapper();
+qw.eq(false, "column1", 0); // MyBatis-Plus 在第一个参数
+```
+
+MyBatis-Flex 的写法：
+
+```java
+QueryWrapper qw = new QueryWrapper();
+qw.eq("column1", 0, false); // MyBatis-Flex 在最后一个参数
+```
+
+**注意点 2：**
+
+> 对于 `likeLeft`、`likeRight`、 `notLikeLeft`、`notLikeRight` 这 4 个方法，MyBatis-Flex 和 MyBatis-Plus 是相反的。
+
+例如：
+
+```java
+QueryWrapper qw = new QueryWrapper();
+qw.likeLeft("name", "3");
+```
+MyBatis-Plus 生成的 where 条件是：
+
+```sql
+where name like '%3'
+```
+
+而 MyBatis-Flex 生成的 where 条件是：
+
+```sql
+where name like '3%'
+```
+
+因此，假设数据表的内容如下：
+
+```shell
+name
+————
+123
+345
+```
+相同的代码 `qw.likeLeft("name", "3")`，MyBatis-Flex 匹配到的内容是 `345`，而 MyBatis-Plus 匹配到的内容是 `123`。
+
+
+
+## Entity 转化为 QueryWrapper
+
+QueryWrapper 提供了 `create()` 方法帮助用户把 entity 转化为 QueryWrapper。
+
+简单示例：
+
+```java
+Account account = new Account();
+account.setAge(18);
+account.setUserName("michael");
+
+QueryWrapper qw = QueryWrapper.create(account);
+System.out.println(qw.toSQL());
+```
+
+输出的 SQL 内容如下：
+
+```sql
+SELECT `id`, `user_name`, `birthday`, `sex`, `age`, `is_normal`
+FROM `tb_account`
+WHERE `user_name` = 'michael' and `age` = 18
+```
+
+自定义 Entity 字段的 SQL 操作符示例：
+
+```java
+Account account = new Account();
+account.setAge(18);
+account.setUserName("michael");
+
+SqlOperators operators = SqlOperators.of()
+  .set(Account::getUserName, SqlOperator.LIKE)
+  .set(Account::getAge, SqlOperator.GE);
+
+QueryWrapper qw = QueryWrapper.create(account, operators);
+System.out.println(qw.toSQL());
+```
+
+输出的 SQL 内容如下：
+
+```sql
+SELECT `id`, `user_name`, `birthday`, `sex`, `age`, `is_normal`
+FROM `tb_account`
+WHERE `user_name` LIKE '%michael%' AND `age` >= 18
+```
+
+## Map 转化为 QueryWrapper
+
+方法同 [Entity 转化为 QueryWrapper](#entity-转化为-querywrapper) 类似，只需要把 entity 变量替换为 map 即可。
 
 ## QueryWrapper 序列化
 
@@ -995,7 +1208,27 @@ byte[] bytes = fst.asByteArray(wrapper);
 QueryWrapper newWrapper = (QueryWrapper) fst.asObject(bytes);
 ```
 
+## QueryWrapper 克隆
 
+当我们想对 `QueryWrapper` 进行改造而不想影响之前构建出来的 `QueryWrapper` 时，可以使用 `clone()` 方法，克隆出来一份
+`QueryWrapper` 进行操作，示例：
+
+```java 6
+QueryWrapper queryWrapper = QueryWrapper.create()
+    .from(ACCOUNT)
+    .select(ACCOUNT.DEFAULT_COLUMNS)
+    .where(ACCOUNT.ID.eq(1));
+
+QueryWrapper clone = queryWrapper.clone();
+
+// 清空 SELECT 语句
+CPI.setSelectColumns(clone, null);
+// 重新设置 SELECT 语句
+clone.select(ACCOUNT.ID, ACCOUNT.USER_NAME);
+
+System.out.println(queryWrapper.toSQL());
+System.out.println(clone.toSQL());
+```
 
 ## 特别注意事项!!!
 在 QueryWrapper 的条件构建中，如果传入 null 值，则自动忽略该条件，这有许多的好处，不需要额外的通过 `when()` 方法判断。但是也带来一些额外的知识记忆点，
@@ -1017,21 +1250,21 @@ QueryWrapper query2 = QueryWrapper.create()
 在以上的 `query1` 中，由于 `userName` 和 `id` 都为 null，MyBatis-Flex 会自动忽略 null 值的条件，因此，它们构建出来的 SQL 条件是和 `query2` 完全一致的 。
 
 
-## QueryColumnBehavior <Badge type="tip" text="^ v1.5.6" />
+## QueryColumnBehavior <Badge type="tip" text="^ v1.5.7" />
 
 在以上的内容中，我们知道 MyBatis-Flex 会自动忽略 `null` 值的条件，但是在实际开发中，有的开发者希望除了自动忽略 `null`
-值以外，还可以自动忽略其他值，比如 `空字符串` 等。
+值以外，还可以自动忽略其他值，内置的规则有`null`(默认) 、`空字符串`、`空白字符串` ，当然也可以自定义。
 
 
-此时，我们可以通过配置 QueryColumnBehavior 来自定义忽略的值。如下的代码会自动忽略 `null` 和 `空字符串`：
+此时，我们可以通过配置 QueryColumnBehavior 来自定义忽略的值。
 
 ```java
-QueryColumnBehavior.setIgnoreFunction(new Predicate<Object>() {
-    @Override
-    public boolean test(Object o) {
-        return "".equals(o);
-    }
-});
+// 使用内置规则自动忽略 null 和 空字符串
+QueryColumnBehavior.setIgnoreFunction(QueryColumnBehavior.IGNORE_EMPTY);
+// 使用内置规则自动忽略 null 和 空白字符串
+QueryColumnBehavior.setIgnoreFunction(QueryColumnBehavior.IGNORE_BLANK);
+// 其他自定义规则
+QueryColumnBehavior.setIgnoreFunction(o -> {...});
 ```
 
 另外，在某些场景下，开发者希望在构建 QueryWrapper 中，如果传入的值是集合或数组，则使用 `in` 逻辑，否则使用 `=`（等于）

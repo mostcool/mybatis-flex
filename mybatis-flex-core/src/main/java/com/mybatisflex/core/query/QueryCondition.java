@@ -16,16 +16,18 @@
 package com.mybatisflex.core.query;
 
 
+import com.mybatisflex.core.constant.SqlConnector;
 import com.mybatisflex.core.constant.SqlConsts;
+import com.mybatisflex.core.constant.SqlOperator;
 import com.mybatisflex.core.dialect.IDialect;
 import com.mybatisflex.core.exception.FlexExceptions;
 import com.mybatisflex.core.util.ClassUtil;
 import com.mybatisflex.core.util.ObjectUtil;
+import com.mybatisflex.core.util.StringUtil;
 
 import java.lang.reflect.Array;
 import java.util.List;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
+import java.util.function.BooleanSupplier;
 
 public class QueryCondition implements CloneSupport<QueryCondition> {
 
@@ -37,15 +39,29 @@ public class QueryCondition implements CloneSupport<QueryCondition> {
 
     //当前条件的上一个条件
     protected QueryCondition prev;
+
     //当前条件的下一个条件
     protected QueryCondition next;
 
     //两个条件直接的连接符
     protected SqlConnector connector;
 
+    /**
+     * 是否为空条件，默认false
+     */
+    private boolean empty = false;
+
+    protected boolean notEmpty() {
+        return !empty;
+    }
+
+    protected QueryCondition setEmpty(boolean empty) {
+        this.empty = empty;
+        return this;
+    }
 
     public static QueryCondition createEmpty() {
-        return new QueryCondition().when(false);
+        return new QueryCondition().when(false).setEmpty(true);
     }
 
 
@@ -69,7 +85,12 @@ public class QueryCondition implements CloneSupport<QueryCondition> {
         return condition;
     }
 
-    public QueryCondition() {
+    public static QueryCondition create(QueryColumn queryColumn, SqlOperator logic, Object value) {
+        QueryCondition condition = new QueryCondition();
+        condition.setColumn(queryColumn);
+        condition.setLogic(logic.getValue());
+        condition.setValue(value);
+        return condition;
     }
 
     public QueryColumn getColumn() {
@@ -96,31 +117,29 @@ public class QueryCondition implements CloneSupport<QueryCondition> {
         this.logic = logic;
     }
 
-
+    /**
+     * 动态条件构造。
+     *
+     * @param effective 是否启用该条件
+     * @return {@link QueryCondition}
+     */
     public QueryCondition when(boolean effective) {
-        this.effective = effective;
+        if (notEmpty()) {
+            this.effective = effective;
+        }
         return this;
     }
 
-    public void when(Supplier<Boolean> fn) {
-        Boolean effective = fn.get();
-        this.effective = (effective != null && effective);
-    }
-
-    public <T> QueryCondition when(Predicate<T> fn) {
-        Object val = this.value;
-        if ((SqlConsts.LIKE.equals(logic) || SqlConsts.NOT_LIKE.equals(logic))
-            && val instanceof String) {
-            String valStr = (String) val;
-            if (valStr.startsWith(SqlConsts.PERCENT_SIGN)) {
-                valStr = valStr.substring(1);
-            }
-            if (valStr.endsWith(SqlConsts.PERCENT_SIGN)) {
-                valStr = valStr.substring(0, valStr.length() - 1);
-            }
-            val = valStr;
+    /**
+     * 动态条件构造。
+     *
+     * @param fn 是否启用该条件
+     * @return {@link QueryCondition}
+     */
+    public QueryCondition when(BooleanSupplier fn) {
+        if (notEmpty()) {
+            this.effective = fn.getAsBoolean();
         }
-        this.effective = fn.test((T) val);
         return this;
     }
 
@@ -130,11 +149,11 @@ public class QueryCondition implements CloneSupport<QueryCondition> {
 
 
     public QueryCondition and(String sql) {
-        return and(new RawFragment(sql));
+        return and(new RawQueryCondition(sql));
     }
 
     public QueryCondition and(String sql, Object... params) {
-        return and(new RawFragment(sql, params));
+        return and(new RawQueryCondition(sql, params));
     }
 
     public QueryCondition and(QueryCondition nextCondition) {
@@ -142,11 +161,11 @@ public class QueryCondition implements CloneSupport<QueryCondition> {
     }
 
     public QueryCondition or(String sql) {
-        return or(new RawFragment(sql));
+        return or(new RawQueryCondition(sql));
     }
 
     public QueryCondition or(String sql, Object... params) {
-        return or(new RawFragment(sql, params));
+        return or(new RawQueryCondition(sql, params));
     }
 
     public QueryCondition or(QueryCondition nextCondition) {
@@ -154,11 +173,12 @@ public class QueryCondition implements CloneSupport<QueryCondition> {
     }
 
     protected void connect(QueryCondition nextCondition, SqlConnector connector) {
+
         if (this.next != null) {
             this.next.connect(nextCondition, connector);
         } else {
+            nextCondition.connector = connector;
             this.next = nextCondition;
-            this.connector = connector;
             nextCondition.prev = this;
         }
     }
@@ -168,8 +188,8 @@ public class QueryCondition implements CloneSupport<QueryCondition> {
         //检测是否生效
         if (checkEffective()) {
             QueryCondition prevEffectiveCondition = getPrevEffectiveCondition();
-            if (prevEffectiveCondition != null) {
-                sql.append(prevEffectiveCondition.connector);
+            if (prevEffectiveCondition != null && this.connector != null) {
+                sql.append(this.connector);
             }
             //列
             sql.append(getColumn().toConditionSql(queryTables, dialect));
@@ -188,8 +208,8 @@ public class QueryCondition implements CloneSupport<QueryCondition> {
                     .append(SqlConsts.BRACKET_RIGHT);
             }
             //原生sql
-            else if (value instanceof RawFragment) {
-                sql.append(((RawFragment) value).getContent());
+            else if (value instanceof RawQueryCondition) {
+                sql.append(((RawQueryCondition) value).getContent());
             }
             //正常查询，构建问号
             else {
@@ -205,11 +225,23 @@ public class QueryCondition implements CloneSupport<QueryCondition> {
     }
 
 
+    /**
+     * 获取上一个 “有效” 的条件
+     *
+     * @return QueryCondition
+     */
     protected QueryCondition getPrevEffectiveCondition() {
         if (prev == null) {
             return null;
         }
         return prev.checkEffective() ? prev : prev.getPrevEffectiveCondition();
+    }
+
+    protected QueryCondition getNextEffectiveCondition() {
+        if (next == null) {
+            return null;
+        }
+        return next.checkEffective() ? next : next.getNextEffectiveCondition();
     }
 
 
@@ -219,7 +251,7 @@ public class QueryCondition implements CloneSupport<QueryCondition> {
             || SqlConsts.IS_NOT_NULL.equals(logic)
             || value instanceof QueryColumn
             || value instanceof QueryWrapper
-            || value instanceof RawFragment) {
+            || value instanceof RawQueryCondition) {
             //do nothing
         }
 
@@ -263,7 +295,8 @@ public class QueryCondition implements CloneSupport<QueryCondition> {
             return nextContainsTable(tables);
         }
         for (String table : tables) {
-            if (column.table != null && table.equals(column.table.name)) {
+            String tableName = StringUtil.getTableNameWithAlias(table)[0];
+            if (column.table != null && tableName.equals(column.table.name)) {
                 return true;
             }
         }

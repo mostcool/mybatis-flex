@@ -15,6 +15,8 @@
  */
 package com.mybatisflex.codegen.config;
 
+import java.io.Serializable;
+
 /**
  * 生成 ServiceImpl 的配置。
  *
@@ -22,7 +24,14 @@ package com.mybatisflex.codegen.config;
  * @since 2023-05-15
  */
 @SuppressWarnings("unused")
-public class ServiceImplConfig {
+public class ServiceImplConfig implements Serializable {
+
+    private static final long serialVersionUID = 17115432462168151L;
+
+    /**
+     * 代码生成目录，当未配置时，使用 PackageConfig 的配置
+     */
+    private String sourceDir;
 
     /**
      * ServiceImpl 类的前缀。
@@ -48,6 +57,14 @@ public class ServiceImplConfig {
      * 是否生成缓存样例代码。
      */
     private boolean cacheExample;
+
+    public String getSourceDir() {
+        return sourceDir;
+    }
+
+    public void setSourceDir(String sourceDir) {
+        this.sourceDir = sourceDir;
+    }
 
     public String buildSuperClassImport() {
         if (superClass == null) {

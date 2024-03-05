@@ -1,5 +1,411 @@
 # MyBatis-Flex ChangeLog
 
+查看 [全部代码贡献者](/zh/intro/what-is-mybatisflex.html#贡献者)。
+
+
+## v1.8.1 20240302:
+- 新增：添加 CommaSplitTypeHandler 用于对逗号分割存储映射到实体类 `List<String>` 的支持
+- 新增：代码生成器 EntityConfig 添加 superClassFactory 配置的支持
+- 优化：重构代码生成器模块的 JdbcTypeMapper，以支持更多的参数读取
+- 优化：FlexTransactionAutoConfiguration 添加更多的 AutoConfigureBefore 设置，感谢 @wittplus #I930JB
+- 优化：优化 EntityGenerator.java 的相关输出日志
+- 优化：优化 TableInfo.newInstanceByRow 可能存在的性能问题 #I94D33
+- 优化：优化 ToManyRelation 存在的性能问题，感谢 @swqxdba
+- 修复：多数据源模式下，当设置了分片规则以后，不能设置正确的 DbType，感谢 @ccwilliam
+- 修复：代码生成器设置类型为 java.util.List 时，import 导入不正确的问题
+- 修复：ClassUtil.getAllMethods 方法处理枚举类型时逻辑有缺陷的问题 #I94749 #I94321
+- 修复：@EnumValue 标记在方法上没有获取 propertyType 的问题，感谢 @Suomm
+- 修复：设置全局的 TypeHandler 不起作用的问题，感谢 @Suomm
+- 修复：被 transient 标记的字段不会被映射到数据库当中的问题，感谢 @Suomm #I953IS
+- 文档：代码生成器添加设置 `java.util.List<String>` 类型的相关文档
+- 文档：代码生成器添加关于无法获取注释的相关注意事项
+- 文档：修正自动映射的相关示例代码，感谢 @zhangyx
+- 文档：修正 db + row 的相关实例代码，感谢 @zhangyx
+
+
+
+## v1.8.0 20240223:
+- 优化：entityOrBase.tpl 中命令占位符被替换后，entity 里面多了一行空白行，感谢 @caohenghui
+- 修复：在复杂的 VO 嵌套查询时，addResultMap 抛出异常的问题，感谢 @leizhiyou
+- 修复：实体类实现多层级的接口时监听器无法匹配问题，感谢 @ruansheng
+- 修复：使用 Mappers 执行语法时, 异常未被精确抛出问题，感谢 @ruansheng
+- 修复：@EnumValue 在 get 方法上，查询报错的问题，感谢 @Suomm
+
+
+
+## v1.7.9 20240204:
+- 新增：ActiveRecord 模式新增 withRelations(columns) 的查询方法，感谢 @tangzc
+- 新增：在不配置 genPath 时对增量编译的支持，感谢 @CloudPlayer
+- 新增：通过 FlexConfiguration 预注册的自定义 typeHandler 的功能，感谢 @tanglh
+- 优化：重构代码生成器生成 BaseEntity 的代码
+- 修复：QueryConditionBuilder 的 ge 方法修改为 eq 的问题，感谢 @wittplus
+- 修复：Db.insertBatchWithFirstRowColumns 当 row key 的顺序没保持一致时，出错的问题
+- 修复：Db.insertBatchWithFirstRowColumns 不能自动填充主键字段的问题
+- 修复：paginateWithRelationsAs 不及时清空 threadLocal 的 relation 配置的问题 #I90S5G
+- 修复：在某些极端情况下 AbstractRelation 出现 NPE 的问题 #I90XTY
+- 修复：在和 Apache CXF 整合时，出错的问题 #I90XE5
+- 文档：优化 faq 的相关文档，感谢 @Suomm
+
+
+
+## v1.7.8 20240201:
+- 新增：在 DialectFactory 中添加全局方言设置的功能，感谢 @farukonfly
+- 新增：SQL 审计的打印功能添加对当前数据源的输出，感谢 @hhggcon
+- 新增：枚举映射注解 @EnumValue 添加在方法上进行支持的功能，感谢 @huangxy
+- 新增：AbstractInsertListener 添加自动探测子类类型的支持，感谢 @luo_zhan
+- 新增：代码生成器为的实体类增加 serialVersionUID 字段生成的支持，感谢 @hanjinfeng39
+- 新增：代码生成器添加对 model、service、Controller 等自定义生成目录配置的支持
+- 新增：代码生成器添加生成 Entity Base 类的支持 #I7JH7K
+- 新增：SqlOperators 增加支持 QueryColumn 参数的重载，感谢 @robor.luo
+- 优化：完善对 mybatis-flex-spring-boot3-starter 的 Maven 版本管理
+- 优化：修正 Spring 下 BeanPostProcessorChecker 的警告问题，感谢 @Suomm
+- 优化：进一步优化关联查询时的重名映射问题，感谢 @Suomm
+- 优化：移除驼峰命名转化对 Row 类的影响
+- 优化：优化 FieldWrapper 的异常信息输出
+- 优化：优化 Page.java 防止传入为 0 的 pageSize 值
+- 修复：修改 exist 在子select中出错的问题，感谢 @font-c
+- 修复：修复 ColumnInfo 在某些情况下可能出现 NPE 的问题 #I8UTJC
+- 修复：SQL审计正确返回变更行数结果不正确的问题，感谢 @RishChen
+- 修复：关联查询时，当实体自身字段数据为 null 时，出现 NPE 的问题，感谢 @tangzc
+- 修复：RelationManager.clearMaxDepth() 不能正常工作的问题，感谢 @tangzc
+- 文档：更新关于使用 springboot3 的相关文档
+- 文档：增加在方法上使用注解 EnumValue 文档，感谢 @huangxy
+- 文档：代码生成器添加 setJdkVersion 的文档说明，感谢 @hanjinfeng39
+- 文档：进一步完善对 QueryWrapper 的相关描述，感谢 @robor.luo
+- 文档：添加 spring-data 整合警告解决方法的相关文档，感谢 @Suomm
+- 文档：更新常见问题，感谢 @Suomm
+
+
+
+## v1.7.7 20240104:
+- 新增：添加 spring-boot3 新模块，用于 springboot v3 下使用，感谢 @Suomm
+- 新增：QueryMethods 添加 NOT (column) 函数，感谢 @wittplus
+- 优化：更新 Solon 下的 @ProxyComponent 为 @Component，感谢 @citysoft
+- 优化：修改 com.mybatisflex.annotation.SetListener 的注释错误，感谢 @whzzone
+- 优化：修改 GBase_8s 数据库类型 sql 语句无反义处理
+- 优化：升级 MyBatis 到 3.5.15 最新版本 #I8PQLC
+- 修复：IService.getOne 没有添加 limit 1 的问题
+- 修复：Db.updateEntitiesBatch 更新部分字段时报错的问题，感谢 @617054137
+- 文档：更新在 Kotlin 下使用的相关文档，感谢 @kamo-sama
+- 文档：优化示例代码提交语言标识，感谢 @bf109f
+- 文档：更新存在一个为 is_deleted 的字段中拼写错误，感谢 @shuangtao
+
+
+
+## v1.7.6 20231223:
+- 新增：Db.selectFirstAndSecondColumnsAsMap 方法：查询结果的第一列作为 key，第二列作为 value，感谢 @617054137
+- 新增：方言添加添加权限处理统一入口 prepareAuth，感谢 @bf109f
+- 优化：在数组异常时不显示数组为空异常信息的问题，感谢 @Suomm
+- 优化：修改 QueryCondition 的类的相关错别字，感谢 @Suomm
+- 优化：升级 MyBatis 相关依赖到最新版本，感谢 @tocken
+- 修复：DB2 v10.5 不支持 offset 关键字进行分页的问题，感谢 @farukonfly
+- 修复：DB2 v10.5 不支持 Nulls First 或 Nulls Last 语法的问题，感谢 @farukonfly
+- 修复：FieldWrapper 对有泛型 Entity 进行部分更新时报错的问题，感谢 @617054137
+- 修复：Db.updateEntitiesBatch 更新部分字段时，在某些场景下报错的问题，感谢 @617054137
+- 修复：字段类型为 YearMonth,Year 等时更新出错的问题 #I8CGVM
+- 修复：main 方法直接调用 updateChain 方法构建 sql 时调用 toSQL 出错的问题 #I8NF9T
+- 测试：优化单元测试，移除 println，添加更多的断言，感谢 @mofan
+- 文档：添加 SpringBoot 3.2 版本启动失败解决办法，感谢 @Suomm
+- 文档：优化英文文档的相关内容，感谢 @mofan
+- 文档：更新 table 中的示例代码错误，感谢 @jtxfd_admin
+
+
+
+## v1.7.5 20231124:
+- 修复：主键 ID 当传入空字符串时，调用 `insert` 方法不会依据 `@Id` 自动生成主键 id 的问题
+- 修复：`FlexTransactionManager` 空指针异常的问题
+- 修复：`@ColumnMask`，`typeHandler` 一起使用时冲突导致 `@ColumnMask` 不生效的问题
+
+
+
+## v1.7.4 20231120:
+- 新增：QueryMethods 添加 bracket 在极特殊场景下用于构建括号的支持，感谢 @Suomm
+- 新增：QueryWrapper 添加取相反数的 SQL 构建，感谢 @Suomm
+- 优化：重命名 RawFragment 为 RawQueryCondition，保持 Raw 的风格统一，感谢 @Suomm
+- 优化：solon-plugin 升级 solon 升为 2.5.3，感谢 @noear_admin
+- 修复：ArithmeticQueryColumn 算术运算无法拼接条件的问题，感谢 @uanmengyuan
+- 修复：读写分离自定义分离策略不生效的问题 #I8FP0K
+- 修复：使用 @Transactional 嵌套时，默认事务传播机制与预期不符 #202
+- 修复：case when 别名丢失的问题，感谢 @x-core
+- 文档：添加关于 QueryWrapper 克隆测试的相关文档，感谢 @Suomm
+- 文档：添加关于 QueryWrapper 取相反数的 SQL 构建文档，感谢 @Suomm
+- 文档：优化 QueryWrapper 的相关文档，感谢 @Suomm
+
+
+
+## v1.7.3 20231027:
+- 新增：添加 Delete SQL 多表关联查询删除的支持
+- 新增：代码生成器添加 `Generator.getTables()` 方法，方便在某些场景下去获取所有表信息
+- 优化：重写 CommonsDialectImpl.wrapColumnAlias 方法，SQL 不对 as 关键字进行关键字包裹
+- 优化：代码生成器优化 IDialect，添加 AbstractJdbcDialect.java
+- 优化：QueryModel 的一些泛型方法添加 @SafeVarargs，消除 IDE 警告，感谢 @guan-meng-yuan
+- 修复：修复 fieldMapping 基础类型查询 null 的情况，感谢 @guan-meng-yuan
+- 修复：多全局 Listener 配置可能缺失问题，感谢 @ice-samll
+- 修复：表关联的从表配置 schema，查询从表时 schema 丢失问题，感谢 @font-c
+- 测试：添加 filedMapping 的相关代码测试，感谢 @guan-meng-yuan
+- 测试：添加全局 Listener 缺失修复的数据库插入测试，感谢 @ice-samll
+
+
+
+## v1.7.2 20231018:
+- 新增：QueryWrapper 添加对 MyBatis-Plus 的兼容 API，方便喜欢 MyBatis-Flex 的用户进行迁移
+- 新增：QueryModel #select()方法 添加 Iterable queryColumns，感谢 @guan-meng-yuan
+- 新增：QueryWrapper 添加 RawQueryTable 的支持，感谢 @Suomm
+- 新增：RelationToOne 注解添加对 extraCondition 配置的支持 #I88MJU
+- 新增：重构 DynamicSchemaProcessor，添加 table 参数，方便通过 table 获取 schema #I88REA
+- 优化：在 insert 时，若 entity 有主键，则直接使用 entity 的主键，不再通过主键生成器来生成 #I88TX1
+- 优化：RelationManager 前置数据源的设置，否则关联查询注解可能造成数据源设置冲突
+- 修复：使用 Db 无法使用指定 Logger 打印日志问题，感谢 @aohanaohan #I88C41
+- 修复：MyBatis-Flex 与 spring-data-jpa 混用时候，出现事务管理器冲突错误的问题，感谢 @tocken
+- 修复：CPI.setWhereQueryCondition 传入 null 时，出现 NPE 的问题 #I88DFH
+- 修复：代码生成器未做自定义配置时，生成代码时出现 NPE 的问题 #I88UIZ
+- 测试：为测试添加更多的断言已保证测试安全
+- 文档：QueryWrapper 添加关于自定义字符串列名的相关文档
+- 文档：QueryWrapper 添加关于 MyBatis-Plus 兼容 API 的相关文档
+- 文档：QueryWrapper 添加关于 Map 转化为 QueryWrapper 的相关文档
+
+
+
+## v1.7.1 20231016:
+- 新增：QueryColumnBehavior 增加内置的忽略规则，方便使用，感谢 @chenjh3
+- 优化：代码生成器提供了 GlobalConfig 的 customConfig 的 getter/setter，感谢 @qq925966998
+- 优化：代码生成器参数列表加入 customConfig，感谢 @qq925966998
+- 修复：某些场景下group by 字段错误的增加了表别名，而导致生产的sql错误，github #184
+- 修复：某些场景下 QueryWrapper 打印的 SQL 与 执行的 SQL 不一致的问题，感谢 @chenjh3
+- 修复：当条件满足忽略规则，when 又设置为 true 时，NPE 异常的问题，感谢 @chenjh3 #I86T6H
+- 测试：添加 Db + Row 的一些测试，感谢 @Suomm
+- 测试：重置 dynamicTableProcessor 防止影响其他的测试用例，感谢 @chenjh3
+- 测试：把测试代码中所有的测试用例都加上断言判断，感谢 @chenjh3
+- 文档：QueryWrapper 中添加关于多主键查询和删除的相关文档，感谢 @wchopper
+- 文档：修改一些已经移除的方法但是文档中还存着的问题，感谢 @HunnyOvO
+
+
+
+## v1.7.0 20231009:
+- 修复：紧急修复当上一个条件失效时，错误的使用上上个条件作为连接符的问题
+- 测试：单元测试更加更多的断言代码
+
+
+
+## v1.6.9 20231009:
+- 新增：添加 SQL 审计模块的计数消息收集器，感谢 @Suomm
+- 新增：QueryWrapper 的 Lambda 方式支持 allColumns 和 defaultColumns 构建功能，感谢 @Suomm
+- 新增：Mapper 增加 Entity 作为入参进行查询与删除和查询的方法，这有利于对多主键实体类的删除和查询，感谢 @Watcher.Wang
+- 新增：添加 ifNull 函数 lambda 下缺失的非 lambda elseColumn 参数的支持，感谢 @guanmengyuan
+- 优化：重构抽象 SQL 审计模块的消息收集器，感谢 @Suomm
+- 优化：SpringBoot-starter 模块的 autoconfigure-processor 默认添加 optional 配置，感谢 @Freeman Liu
+- 修复：当 `@Relation` 注解使用 `valueField` 配置时，在某些情况下抛出 IllegalStateException 异常的问题
+- 修复：在 FlexConfiguration 替换 ResultMap 时，替换了用户自定义的配置可能导致异常的问题
+- 测试：测试环境添加一个 SQL 格式化的相关依赖，感谢 @Suomm
+- 测试：添加关于 Lambda 方式 SQL 列构建测试，感谢 @Suomm
+- 文档：添加在 where 部分使用 SQL 函数的相关文档，感谢 @shaoerkuai
+
+
+
+## v1.6.8 20230928:
+- 新增：`@RelationOneToMany` 添加支持 selfValueSplitBy 字符分割的配置支持，感谢 @ice-samll
+- 新增：添加构建所有列方法 QueryMethods.allColumns()，感谢 @guanmengyuan
+- 修复：修复 QueryMethods.replace 无法支持空格替换的问题
+- 修复：ManyToOne 在某些场景下出错 IllegalArgumentException 错误的问题
+- 测试：添加关于 `@RelationOneToMany` 的 selfValueSplitBy 测试代码，感谢 @ice-samll
+- 文档：添加关于 `@RelationOneToMany` 的 selfValueSplitBy 的使用文档，感谢 @ice-samll
+- 文档：修改将批量操作文档中的相关错别字，感谢 @dataprince
+
+
+
+## v1.6.7 20230925:
+- 新增：多数据源添加 DataSourceShardingStrategy 接口，用于读写分离
+- 新增：Fastjson2TypeHandler 添加对接口或者抽象类的支持，感谢 @617054137
+- 优化：DataSourceKey 移除不必要的属性定义
+- 优化：代码生成器升级 enjoy 模块，以适配 JDK21
+- 优化：Table 注解移除 @Inherited ，以解决 VO 等继承 model 的实体类中，生成多余的、或冲突的 tableDef
+- 修复：APT 在类名和字段名相同的情况下，构建的 TableDef 出错的问题
+- 修复：FlexConfiguration 在某些情况下替换 resultMap 时出错的问题
+- 修复：AbstractRelation 在某些极端情况下出现 NPE 的问题
+- 修复：查询条件 OperatorQueryCondition 参数值未检查 effective 的问题，感谢 @wanggaoquan
+- 修复：查询条件 OperatorSelectCondition 参数值未检查 effective 的问题，感谢 @wanggaoquan
+- 修复：QueryWrapper 在某些情况下构建的 SQL 会出现两次 as 的问题，感谢 @cnscoo
+- 文档：优化 kotlin 文档的 git 链接顺序与完善文档内容，感谢 @kamo-sama
+- 文档：多租户添加相关的代码示例
+- 文档：添加读写分离的相关文档
+
+
+
+## v1.6.6 20230922:
+- 新增：UpdateChain.of 使用 Mapper 进行构造方便在批量操作使用的功能
+- 新增：QueryWrapper.select(Iterable) 方法，方便 Kotlin 扩展
+- 新增：Relation 注解新增 valueField 配置，当不为空串时值进行某个字段赋值，感谢 @ice-samll
+- 优化：转驼峰方法多次转换保持结果一致，感谢 @617054137
+- 优化：生成列别名规范，保持用户原始的列别名命名，感谢 @font-c
+- 修复：QueryWrapper 在某些场景下构建 SQL 会出现两个 AS 关键字的问题
+- 修复：Db 或 MyBatis 原生查询驼峰转换需处理不包含下划线的字段，感谢 @617054137
+- 测试：增加 Relation 注解单字段赋值 Springboot 测试，感谢 @ice-samll
+- 文档：添加 Relation 注解单字段赋值的相关文档，感谢 @ice-samll
+- 文档：添加关于批量操作使用 UpdateChain 的相关示例
+
+
+
+## v1.6.5 20230914:
+- 新增：代码生成器为 Oracle 的 JdbcTypeMapping 类型 OracleBlob 添加映射处理
+- 新增：LogicDeleteManager 和 TenantManager 添加 Runnable 无返回值重载，感谢 @Suomm
+- 新增：RawQueryColumn 添加参数占位符的支持功能，感谢 @Suomm
+- 新增：代码生成器添加关于 solon Controller 生成的代码模板，感谢 @ZhuHJay
+- 新增：UpdateEntity 添加自动去除有忽略注解的字段的功能，感谢 @aqnghu
+- 优化：代码生成器配置类添加 Serializable 接口实现的支持，方便自定义缓存保存，感谢 @zoufang162
+- 优化：使用 lambda 优化部分写法，感谢 @handy-git
+- 优化：使用 try-with-resources 释放 Connection，感谢 @handy-git
+- 优化：DataSourceBuilder 出错时，吞掉原始的 exception 的 message 信息的问题 #I7YYRF
+- 优化：`@Table` 注解增加 `@Inherited` 修饰，感谢 @jerryzhengsz1
+- 修复：当工作流引擎 activti6 整合 MyBatis-Flex 可能出现 NPE 的问题
+- 修复：通过 XML 自定义的 SQL 查询不兼容自定义枚举使用的问题，感谢 @lifejwang11
+- 文档：更新关于 MyBatis-Flex-Admin 的相关文档
+- 文档：添加关于 MyBatis-Flex-Kotlin 的相关文档 感谢 @kamo-sama
+- 文档：修正自定义脱敏处理器的示例代码错误，感谢 @wang_yong_ji
+- 文档：添加关于 MyBatis-Flex 与 activiti6 以及 Flowable 等工作流引擎集成的相关文档，感谢 @simple_wind
+- 文档：修复逻辑删除文档的个别错别字，感谢 @cainiao3853
+- 文档：修正自定义映射的相关代码示例错误，感谢 @tycms
+
+
+
+## v1.6.4 20230903:
+- 新增：QueryWrapper 添加动态排序功能的支持，感谢 @Suomm
+- 优化：Solon 取消无必要的 FlexSqlSessionFactoryBuilder 注入，感谢 @noear_admin
+- 修复：开启 mapUnderscoreToCamelCase 配置后，@Relations 关联查询可能无法正常查询的问题
+- 文档：添加动态排序的相关文档，感谢 @Suomm
+
+
+
+## v1.6.3 20230901:
+- 修复：紧急修复 v1.6.2 分页查询无法查询数据列表的问题
+
+
+
+## v1.6.2 20230831:
+- 新增：添加一个 mysql 函数 GROUP_CONCAT，感谢 @shen_jun_feng
+- 优化：优化 TableDefs 的多一次判断可能影响性能的问题
+- 优化：代码生成器的 Builder 缺少的字段构建，感谢 @Suomm
+- 修复：FlexMapWrapper 在开启 useCamelCaseMapping 时的一些错误问题
+- 修复：无法配置自定义 EnumTypeHandler 的问题 #I7WNQQ
+- 修复：自动映射无法对 List 进行自动忽略的问题 #I7X7G7 #I7XBQS
+- 修复：实体类在不同包名下，无法初始化全部 TableDefs 的问题，感谢 @hezhijie
+- 文档：优化多租户的忽略租户条件的相关文档
+- 文档：修改 QueryWrapper 的 SQL 示例错误
+- 文档：添加 select .. as 的使用注意事项
+- 文档：优化多数据源的示例代码错误的问题，感谢 @CrazyAirhead
+- 文档：修改 mybatis-flex-dependencies/pom.xml 中 groupId 拼写错误，感谢 @chaosforever
+
+
+
+## v1.6.1 20230827:
+- 新增：添加 QueryWrapper.create(entity,SqlOperators) 支持通过 Entity 转换为 QueryWrapper
+- 优化：移动 SqlConnector 的包名
+- 优化：优化 IService.exists() 的效率，感谢 @Suomm
+- 修复：开启 mapUnderscoreToCamelCase = true 时， row 无法转换 entity 的问题
+- 修复：使用 QueryColumn 无法构建 UPDATE SET 语句，感谢 @Suomm
+- 修复：UpdateChain 不支持 @EnumValue 注解的问题，感谢 @Suomm
+- 文档：添加 Entity 转换为 QueryWrapper 的相关文档
+- 文档：添加 `@Column(isLarge = true)` 的其他使用方式，感谢 @Suomm
+- 文档：优化 `@Column` 注解的一些错误描述，感谢 @Suomm
+- 文档：添加关于 QueryColumnBehavior 配置的相关文档，感谢 @Suomm
+
+
+
+## v1.6.0 20230825:
+- 新增：添加 RelationManager.addQueryRelations() 方法用于只查询部分关联字段
+- 优化：重构移除已经标识删除的方法或类 ！！！破坏性更新
+- 修复：Oracle 下的批量操作时在某些情况下可能返回结果不正确的问题
+- 修复：代码生成器在某些情况下出现 NPE 的问题，感谢 @Suomm
+- 修复：v1.5.9 版本造成的 ignore 属性也被加入 defaultQueryColumns 默认查询列的问题，感谢 @Suomm
+- 文档：添加 RelationManager.addQueryRelations() 使用的相关文档
+- 文档：添加 mybatis-flex-dependencies 使用说明，感谢 @Suomm
+
+
+
+## v1.5.9 20230824:
+- 新增：添加对数据库 Hive SQL 和 Doris 的支持
+- 新增：ActiveRecord 添加 saveOpt 方法，用户保存数据并返回内容
+- 新增：数据查询添加对 ignore 字段自动映射的支持
+- 优化：SnowFlakeIDKeyGenerator 添加更多的参数设置的方法
+- 优化：重构 FlexSpringTransaction 使其拥有更高的性能
+- 优化：对 Mappers 进行优化和添加必要的注释，感谢 @Suomm
+- 优化：重构代码生成器，添加链式调用的支持以及必要的代码注释，感谢 @Suomm
+- 优化：重构将不为 null 的判断统一到 QueryColumnBehavior 中，方便用户自定义逻辑，感谢 @Suomm
+- 优化：修改 FlexSqlSessionFactoryBean 下的一些注释错误 ，感谢 @cainiao3853
+- 修复：在某些场景下使用 as 时出现 NPE 的问题  #I7T00C
+- 修复：Db + Row 的场景下，自定义 RowKey 时结果不正确的问题
+- 修复：QueryMethods.dateFormat 使用出错的问题 #I7TEUM
+- 修复：QueryMethods.substring 使用出错的问题 #I7TEUM
+- 修复：返回 map 时，配置 map-underscore-to-camel-case 不起作用的问题
+- 修复：数据源解密器通过 Bean 注解配置和自定义配置配置不统一的问题  #I7UHUN
+- 修复：使用 Hutool 的 BeanUtil.copyProperties 拷贝 Page 失败的问题 #I7VBUE
+- 修复：UpdateEntity 没有对 @Column(ignore = true) 的字段进行过滤的问题 #I7RE0J
+- 修复：FlexSpringTransaction 在某些场景下出错的问题，感谢 @chenjh3
+- 文档：修改 faq 下的一些错别字
+- 文档：常见问题添加如何获取保存并获取主键的相关文档
+- 文档：添加多逻辑删除时，同时更新删除人和删除时间的相关文档
+- 文档：添加批量操作时，可能无用的错误注意事项
+- 文档：优化代码生成器的相关文档，感谢 @Suomm
+- 文档：ActiveRecord 添加 saveOpt 的相关文档，感谢 @Suomm
+- 文档：修改动态表名的示例代码错误的问题，感谢 @Suomm
+- 文档：修正 gradle 文档错误的问题，感谢 @tiansai
+- 文档：修正 Db + Row 的一些描述错误的问题，感谢 @yang-zzu
+
+
+
+## v1.5.8 20230820:
+- 新增：Row 以及 Entity 在新增时，添加 setRaw 的支持
+- 新增：数据库方言添加对 lealone 数据库的支持，感谢 @hopper
+- 新增：QueryChain 添加新 of 方法，用于支持通过 Entity 创建 QueryChain 对象，感谢 @liibang
+- 新增：提供多线程情况下子父线程获取切换数据源功能，感谢 @lifejwang11
+- 优化：设置乐观锁未设置值的异常信息国际化
+- 优化：设置 @Table 的名称配置支持 "schema.tableName" 配置
+- 优化：重构移除乐观锁、逻辑删除、多租户的全局默认字段配置，用户需手动配置生效
+- 优化：添加逻辑删除、乐观锁、多租户的全局配置的 spring 配置文件提示功能
+- 优化：重构用户手写的条件中是否包含该表，感谢 @Suomm
+- 优化：重构获取 join 连表信息时携带别名，感谢 @Suomm
+- 优化：重构 QueryWrapper 的括号生成，以动态添加子 where 条件，感谢 @Suomm
+- 优化：添加 Conditional 接口用于统一 Condition 的 api，感谢 @Suomm
+- 修复：druid 数据源的某些场景下，数据加密无法使用的问题
+- 修复：修复 MybatisKeyGeneratorUtil 类在某些情况下可能得空指针异常问题，感谢 @norkts
+- 修复：SqlOperator 遗漏了 NOT_EQUALS 操作符 的问题，感谢 @Suomm
+- 修复：Relation 注解查询，忽略字段使用的泛型错误的问题，感谢 @Suomm
+- 修复：DbChain 的 setRaw 方法指向错误的问题，感谢 @Suomm
+- 文档：添加 set 和 setRaw 区别的相关文档
+- 文档：修改代码生成器的相关文档错别字，感谢 @PatrickSt
+- 文档：改正了注解处理器中的内容，将其修改为正确的注解处理器，感谢 @CloudPlayer
+- 文档：优化 Gradle 和 KAPT 的相关文档，感谢 @Suomm
+- 文档：添加乐观锁、逻辑删除、多租户的全局配置的相关文档，感谢 @Suomm
+- 文档：添加多线程情况下子父线程获取切换数据源功能的相关文档，感谢 @lifejwang11
+
+
+
+## v1.5.7 20230812:
+- 新增：QueryWrapper 添加对 delete 和 update 的 left join 支持
+- 新增：RelationManager.addIgnoreRelations() 添加对 lambda 的支持
+- 新增：添加 QueryColumnBehavior 用于自定义 QueryColumn 的某些行为特征
+- 新增：typeHandler 添加对泛型自动支持的功能
+- 新增：多数据源新增对 Seata 分布式事务的支持，感谢 @lifejwang11
+- 新增：添加对 Kotlin 的扩展支持，感谢 @kamo-sama
+- 新增：添加 saveOrUpdateBatch 方法的支持，感谢 @Suomm
+- 新增：QueryModel 提供 as 方法的支持，感谢 @Suomm
+- 新增：逻辑删除、乐观锁、多租户添加全局默认自动配置的功能，感谢 @Suomm
+- 优化：移除 flex 自动把 id 属性设置为主键的功能
+- 优化：重构链式调用的方法，统一链式调用和 ActiveRecord 的 API，感谢 @Suomm
+- 优化：UpdateChian 支持设置 left join 的表数据的支持，感谢 @Suomm
+- 修复：db2 方言的 KeywordWrap 错误的问题
+- 修复：在某些场景下 count 查询没有被替换的问题，感谢 @Suomm
+- 修复：QueryWrapper 的 or(consumer, condition) 方法逻辑错误，感谢 @Suomm
+- 修复：QueryColumn 由于 Predicate 没有类型约束可能导致类型转换异常的问题，感谢 @Suomm
+- 修复：OSGI 环境下，Lambda 通过 ClassLoader 获取不到类的问题，感谢 @2han9wen71an
+- 文档：更新视频教程的文档链接
+- 文档：添加 SpringBoot 最低版本的说明文档，感谢 @Suomm
+- 文档：Seata 分布式事务的相关文档，感谢 @lifejwang11
+- 文档：增加了使用gradle构建时的文档说明，感谢 @CloudPlayer
+- 文档：增加了在Kotlin中使用注解处理器的说明，感谢 @CloudPlayer
+- 文档：常见问题添加代码生成器获取不到注释说明，感谢 @Suomm
+- 文档：常见问题添加 Spring Devtools 造成的类转换异常的相关文档
+- 文档：常见问题添加 Nacos 集成启动出错的相关文档
+
 
 
 ## v1.5.6 20230804:

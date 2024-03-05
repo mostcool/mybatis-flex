@@ -15,7 +15,6 @@
  */
 package com.mybatisflex.spring;
 
-import com.mybatisflex.core.datasource.DataSourceKey;
 import com.mybatisflex.core.datasource.FlexDataSource;
 import com.mybatisflex.core.transaction.TransactionContext;
 import com.mybatisflex.core.util.StringUtil;
@@ -23,67 +22,62 @@ import org.apache.ibatis.transaction.Transaction;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
- * spring 事务支持，解决 issues https://gitee.com/mybatis-flex/mybatis-flex/issues/I7HJ4J
+ * spring 事务支持，解决 issues: https://gitee.com/mybatis-flex/mybatis-flex/issues/I7HJ4J
  *
  * @author life
+ * @author michael
  */
 public class FlexSpringTransaction implements Transaction {
 
     private final FlexDataSource dataSource;
-    private final Map<String, Connection> connectionMap = new HashMap<>();
+    private Boolean isConnectionTransactional;
+    private Boolean autoCommit;
+    private Connection connection;
 
-    private boolean isTransaction = false;
-    private boolean autoCommit;
-
-
-    public FlexSpringTransaction(FlexDataSource dataSource, boolean autoCommit) {
+    public FlexSpringTransaction(FlexDataSource dataSource) {
         this.dataSource = dataSource;
-        this.autoCommit = autoCommit;
     }
 
     @Override
     public Connection getConnection() throws SQLException {
-        String dataSourceKey = DataSourceKey.get();
-        if (StringUtil.isBlank(dataSourceKey)) {
-            dataSourceKey = dataSource.getDefaultDataSourceKey();
+        if (isConnectionTransactional == null) {
+            connection = dataSource.getConnection();
+            isConnectionTransactional = StringUtil.isNotBlank(TransactionContext.getXID());
+            autoCommit = connection.getAutoCommit();
+            return connection;
         }
-
-        Connection connection = connectionMap.get(dataSourceKey);
-        if (connection == null) {
-            connection = this.dataSource.getConnection();
-            connectionMap.put(dataSourceKey, connection);
+        // 在事务中，通过 FlexDataSource 去获取
+        // FlexDataSource 内部会进行 connection 缓存以及多数据源下的 key 判断
+        else if (isConnectionTransactional) {
+            return dataSource.getConnection();
         }
-
-        this.autoCommit = connection.getAutoCommit();
-
-        if (TransactionContext.getXID() != null) {
-            this.isTransaction = true;
+        // 非事务，返回当前链接
+        else {
+            return connection;
         }
-
-        return connection;
     }
 
     @Override
     public void commit() throws SQLException {
-        if (!isTransaction && !autoCommit) {
-            getConnection().commit();
+        if (this.connection != null && !this.isConnectionTransactional && !this.autoCommit) {
+            this.connection.commit();
         }
     }
 
     @Override
     public void rollback() throws SQLException {
-        if (!isTransaction && !autoCommit) {
-            getConnection().rollback();
+        if (this.connection != null && !this.isConnectionTransactional && !this.autoCommit) {
+            this.connection.rollback();
         }
     }
 
     @Override
     public void close() throws SQLException {
-        getConnection().close();
+        if (this.connection != null && !this.isConnectionTransactional) {
+            connection.close();
+        }
     }
 
     @Override

@@ -16,6 +16,8 @@
 package com.mybatisflex.core.util;
 
 
+import org.apache.ibatis.javassist.util.proxy.ProxyObject;
+
 import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -68,6 +70,11 @@ public class ClassUtil {
     }
 
     public static <T> Class<T> getUsefulClass(Class<T> clazz) {
+
+        if (ProxyObject.class.isAssignableFrom(clazz)) {
+            return (Class<T>) clazz.getSuperclass();
+        }
+
         if (isProxy(clazz)) {
             return getJdkProxySuperClass(clazz);
         }
@@ -75,7 +82,6 @@ public class ClassUtil {
         //ControllerTest$ServiceTest$$EnhancerByGuice$$40471411#hello   -------> Guice
         //com.demo.blog.Blog$$EnhancerByCGLIB$$69a17158  ----> CGLIB
         //io.jboot.test.app.TestAppListener_$$_jvstb9f_0 ------> javassist
-
         final String name = clazz.getName();
         if (name.contains(ENHANCER_BY) || name.contains(JAVASSIST_BY)) {
             return (Class<T>) clazz.getSuperclass();
@@ -280,17 +286,35 @@ public class ClassUtil {
         }
 
         Method[] declaredMethods = clazz.getDeclaredMethods();
-        for (Method method : declaredMethods) {
-            if (predicate == null || predicate.test(method)) {
-                methods.add(method);
-                if (firstOnly) {
-                    break;
+        if (clazz.isInterface()) {
+            for (Method method : declaredMethods) {
+                // 接口类只需要获取 default 方法
+                if (method.isDefault() && (predicate == null || predicate.test(method))) {
+                    methods.add(method);
+                    if (firstOnly) {
+                        break;
+                    }
+                }
+            }
+        } else {
+            for (Method method : declaredMethods) {
+                if (predicate == null || predicate.test(method)) {
+                    methods.add(method);
+                    if (firstOnly) {
+                        break;
+                    }
                 }
             }
         }
 
+
         if (firstOnly && !methods.isEmpty()) {
             return;
+        }
+
+        Class<?>[] interfaces = clazz.getInterfaces();
+        for (Class<?> anInterface : interfaces) {
+            doGetMethods(anInterface, methods, predicate, firstOnly);
         }
 
         doGetMethods(clazz.getSuperclass(), methods, predicate, firstOnly);

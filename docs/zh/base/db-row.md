@@ -27,6 +27,9 @@ String listsql = "select * from tb_account where age > ?"
 List<Row> rows = Db.selectListBySql(listsql,18);
 
 
+//查询所有大于 18 岁用户的Id和用户名对应的Map
+Map map = Db.selectFirstAndSecondColumnsAsMap("select id,user_name from tb_account where age >?",18);
+
 //分页查询：每页 10 条数据，查询第 3 页的年龄大于 18 的用户
 QueryWrapper query=QueryWrapper.create()
     .where(ACCOUNT.AGE.ge(18));
@@ -45,8 +48,8 @@ Page<Row> rowPage=Db.paginate("tb_account",3,10,query);
 ```java
 // 新增 Row 构建
 DbChain.table("tb_account")
-    .set(RowKey.AUTO)
-    .set("user_name","王帅")
+    .setId(RowKey.AUTO)
+    .set("user_name","zhangsan")
     .set("age",18)
     .set("birthday",new Date())
     .save();
@@ -138,7 +141,7 @@ System.out.println(articles);
 
 ## Row.toObject()
 
-`Row.toObject(Other.class)` 和 `Row.toEntity(Entity.class)` 和相似。不一样的地方在于 `Row.toObject(Other.class)` 是通过去查找
+`Row.toObject(Other.class)` 和 `Row.toEntity(Entity.class)` 相似。不一样的地方在于 `Row.toObject(Other.class)` 是通过去查找
 `Other.class` 的 `setter` 方法去匹配 Row 的 key 进行赋值的。
 
 例如 `Other.class` 的代码如下：

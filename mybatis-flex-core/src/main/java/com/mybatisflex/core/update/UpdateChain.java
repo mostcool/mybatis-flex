@@ -37,7 +37,7 @@ import java.lang.reflect.Type;
  * @since 2023-07-25
  */
 @SuppressWarnings("unchecked")
-public class UpdateChain<T> extends QueryWrapperAdapter<UpdateChain<T>> {
+public class UpdateChain<T> extends QueryWrapperAdapter<UpdateChain<T>> implements PropertySetter<UpdateChain<T>> {
 
     private final BaseMapper<T> baseMapper;
     private final T entity;
@@ -48,9 +48,17 @@ public class UpdateChain<T> extends QueryWrapperAdapter<UpdateChain<T>> {
         return new UpdateChain<>(baseMapper);
     }
 
+    public static <T> UpdateChain<T> of(BaseMapper<T> baseMapper) {
+        return new UpdateChain<>(baseMapper);
+    }
+
     public static <T> UpdateChain<T> of(T entityObject) {
         Class<T> entityClass = (Class<T>) ClassUtil.getUsefulClass(entityObject.getClass());
         BaseMapper<T> baseMapper = Mappers.ofEntityClass(entityClass);
+        return new UpdateChain<>(baseMapper, entityObject);
+    }
+
+    public static <T> UpdateChain<T> of(T entityObject, BaseMapper<T> baseMapper) {
         return new UpdateChain<>(baseMapper, entityObject);
     }
 
@@ -82,64 +90,40 @@ public class UpdateChain<T> extends QueryWrapperAdapter<UpdateChain<T>> {
         return new UpdateChain<>(baseMapper);
     }
 
-    public UpdateChain<T> set(String property, Object value, boolean condition) {
-        entityWrapper.set(property, value, condition);
+    @Override
+    public UpdateChain<T> set(String property, Object value, boolean isEffective) {
+        entityWrapper.set(property, value, isEffective);
         return this;
     }
 
-    public UpdateChain<T> set(String property, Object value) {
-        entityWrapper.set(property, value);
+    @Override
+    public UpdateChain<T> set(QueryColumn queryColumn, Object value, boolean isEffective) {
+        entityWrapper.set(queryColumn, value, isEffective);
         return this;
     }
 
-    public UpdateChain<T> set(LambdaGetter<T> getter, Object value, boolean condition) {
-        entityWrapper.set(getter, value, condition);
-        return this;
-    }
-
-    public UpdateChain<T> set(LambdaGetter<T> getter, Object value) {
-        entityWrapper.set(getter, value);
-        return this;
-    }
-
-    public UpdateChain<T> set(QueryColumn queryColumn, Object value, boolean condition) {
-        entityWrapper.set(queryColumn, value, condition);
+    @Override
+    public <L> UpdateChain<T> set(LambdaGetter<L> getter, Object value, boolean isEffective) {
+        entityWrapper.set(getter, value, isEffective);
         return this;
     }
 
 
-    public UpdateChain<T> set(QueryColumn queryColumn, Object value) {
-        entityWrapper.set(queryColumn, value);
+    @Override
+    public UpdateChain<T> setRaw(String property, Object value, boolean isEffective) {
+        entityWrapper.setRaw(property, value, isEffective);
         return this;
     }
 
-    public UpdateChain<T> setRaw(String property, Object value, boolean condition) {
-        entityWrapper.setRaw(property, value, condition);
+    @Override
+    public UpdateChain<T> setRaw(QueryColumn queryColumn, Object value, boolean isEffective) {
+        entityWrapper.setRaw(queryColumn, value, isEffective);
         return this;
     }
 
-    public UpdateChain<T> setRaw(String property, Object value) {
-        entityWrapper.setRaw(property, value);
-        return this;
-    }
-
-    public UpdateChain<T> setRaw(LambdaGetter<T> getter, Object value, boolean condition) {
-        entityWrapper.setRaw(getter, value, condition);
-        return this;
-    }
-
-    public UpdateChain<T> setRaw(LambdaGetter<T> getter, Object value) {
-        entityWrapper.setRaw(getter, value);
-        return this;
-    }
-
-    public UpdateChain<T> setRaw(QueryColumn queryColumn, Object value, boolean condition) {
-        entityWrapper.setRaw(queryColumn, value, condition);
-        return this;
-    }
-
-    public UpdateChain<T> setRaw(QueryColumn queryColumn, Object value) {
-        entityWrapper.set(queryColumn, value);
+    @Override
+    public <L> UpdateChain<T> setRaw(LambdaGetter<L> getter, Object value, boolean isEffective) {
+        entityWrapper.setRaw(getter, value, isEffective);
         return this;
     }
 

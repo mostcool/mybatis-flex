@@ -15,10 +15,7 @@
  */
 package com.mybatisflex.annotation;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * 数据库表信息注解。
@@ -27,6 +24,7 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE})
+//@Inherited 需要注释，否则会在 vo 等继承 model 的实体类中，生成多余的、或冲突的 tableDef
 public @interface Table {
 
     /**

@@ -127,9 +127,7 @@ public class Db {
      * @param batchSize 每次提交的数据量
      */
     public static int[] insertBatch(String schema, String tableName, Collection<Row> rows, int batchSize) {
-        return executeBatch(rows, batchSize, RowMapper.class, (mapper, row) -> {
-            mapper.insert(schema, tableName, row);
-        });
+        return executeBatch(rows, batchSize, RowMapper.class, (mapper, row) -> mapper.insert(schema, tableName, row));
     }
 
     /**
@@ -140,9 +138,7 @@ public class Db {
      * @param batchSize 每次提交的数据量
      */
     public static int[] insertBatch(String tableName, Collection<Row> rows, int batchSize) {
-        return executeBatch(rows, batchSize, RowMapper.class, (mapper, row) -> {
-            mapper.insert(null, tableName, row);
-        });
+        return executeBatch(rows, batchSize, RowMapper.class, (mapper, row) -> mapper.insert(null, tableName, row));
     }
 
     /**
@@ -472,33 +468,6 @@ public class Db {
         return updateEntitiesBatch(entities, RowMapper.DEFAULT_BATCH_SIZE);
     }
 
-
-    /**
-     * 通过 update schema.table set field = field + 1 where ... 的这种方向更新数据库某个字段内容
-     *
-     * @param schema       模式
-     * @param tableName    表名
-     * @param fieldName    字段名
-     * @param value        递增值
-     * @param queryWrapper 条件
-     * @return 受影响行数
-     */
-    public static int updateNumberAddByQuery(String schema, String tableName, String fieldName, Number value, QueryWrapper queryWrapper) {
-        return invoker().updateNumberAddByQuery(schema, tableName, fieldName, value, queryWrapper);
-    }
-
-    /**
-     * 通过 update table set field = field + 1 where ... 的这种方向更新数据库某个字段内容
-     *
-     * @param tableName
-     * @param fieldName
-     * @param value
-     * @param queryWrapper
-     * @return
-     */
-    public static int updateNumberAddByQuery(String tableName, String fieldName, Number value, QueryWrapper queryWrapper) {
-        return invoker().updateNumberAddByQuery(null, tableName, fieldName, value, queryWrapper);
-    }
 
 
     /**
@@ -885,6 +854,48 @@ public class Db {
         return invoker().selectObjectByQuery(null, null, queryWrapper);
     }
 
+    /**
+     * 根据 queryWrapper 查询内容，数据返回为Map  第一列的值作为key 第二列的值作为value
+     *
+     * @param queryWrapper query 封装
+     * @return 数据内容
+     */
+    public static Map selectFirstAndSecondColumnsAsMap(QueryWrapper queryWrapper) {
+        return invoker().selectFirstAndSecondColumnsAsMapByQuery(null, null, queryWrapper);
+    }
+
+    /**
+     * 查询某个内容，数据返回为Map  第一列的值作为key 第二列的值作为value
+     *
+     * @param sql  sql 内容
+     * @param args sql 参数
+     */
+    public static Map selectFirstAndSecondColumnsAsMap(String sql, Object... args) {
+        return invoker().selectFirstAndSecondColumnsAsMap(sql, args);
+    }
+
+    /**
+     * 根据 queryWrapper 查询内容，数据返回为Map  第一列的值作为key 第二列的值作为value
+     *
+     * @param schema       模式
+     * @param tableName    表名
+     * @param queryWrapper query 封装
+     * @return 数据内容
+     */
+    public static Map selectFirstAndSecondColumnsAsMap(String schema, String tableName, QueryWrapper queryWrapper) {
+        return invoker().selectFirstAndSecondColumnsAsMapByQuery(schema, tableName, queryWrapper);
+    }
+
+    /**
+     * 根据 queryWrapper 查询内容，数据返回为Map  第一列的值作为key 第二列的值作为value
+     *
+     * @param tableName    表名
+     * @param queryWrapper query 封装
+     * @return 数据内容
+     */
+    public static Map selectFirstAndSecondColumnsAsMap(String tableName, QueryWrapper queryWrapper) {
+        return invoker().selectFirstAndSecondColumnsAsMapByQuery(null, tableName, queryWrapper);
+    }
 
     /**
      * 查询某列内容，数据返回应该有 多行 1 列

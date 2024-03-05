@@ -129,8 +129,39 @@ public class Table {
         this.columns = columns;
     }
 
-    public void addColumn(Column column) {
 
+    public boolean containsColumn(String columnName) {
+        if (columns == null || columns.isEmpty() || StringUtil.isBlank(columnName)) {
+            return false;
+        }
+        for (Column column : columns) {
+            if (columnName.equals(column.getName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean containsColumn(String... columnNames) {
+        for (String columnName : columnNames) {
+            if (!containsColumn(columnName)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean containsAnyColumn(String... columnNames) {
+        for (String columnName : columnNames) {
+            if (containsColumn(columnName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    public void addColumn(Column column) {
         //主键
         if (primaryKeys != null && primaryKeys.contains(column.getName())) {
             column.setPrimaryKey(true);
@@ -169,34 +200,46 @@ public class Table {
     /**
      * 构建 import 导包。
      */
-    public List<String> buildImports() {
+    public List<String> buildImports(boolean isBase) {
         Set<String> imports = new HashSet<>();
-        imports.add("com.mybatisflex.annotation.Table");
-        for (Column column : columns) {
-            imports.addAll(column.getImportClasses());
+
+        //base 类不需要添加 Table 的导入，没有 @Table 注解
+        if (!isBase) {
+            imports.add("com.mybatisflex.annotation.Table");
         }
 
         EntityConfig entityConfig = globalConfig.getEntityConfig();
 
-        if (entityConfig.getSuperClass() != null) {
-            imports.add(entityConfig.getSuperClass().getName());
+        //未开启基类生成，或者是基类的情况下，添加 Column 类型的导入
+        if (!entityConfig.isWithBaseClassEnable() || (entityConfig.isWithBaseClassEnable() && isBase)) {
+            for (Column column : columns) {
+                imports.addAll(column.getImportClasses());
+            }
+
+            Class<?> superClass = entityConfig.getSuperClass(this);
+            if (superClass != null) {
+                imports.add(superClass.getName());
+            }
+
+            if (entityConfig.getImplInterfaces() != null) {
+                for (Class<?> entityInterface : entityConfig.getImplInterfaces()) {
+                    imports.add(entityInterface.getName());
+                }
+            }
         }
 
-        if (entityConfig.getImplInterfaces() != null) {
-            for (Class<?> entityInterface : entityConfig.getImplInterfaces()) {
-                imports.add(entityInterface.getName());
-            }
-        }
 
-        if (tableConfig != null) {
-            if (tableConfig.getInsertListenerClass() != null) {
-                imports.add(tableConfig.getInsertListenerClass().getName());
-            }
-            if (tableConfig.getUpdateListenerClass() != null) {
-                imports.add(tableConfig.getUpdateListenerClass().getName());
-            }
-            if (tableConfig.getSetListenerClass() != null) {
-                imports.add(tableConfig.getSetListenerClass().getName());
+        if (!entityConfig.isWithBaseClassEnable() || (entityConfig.isWithBaseClassEnable() && !isBase)) {
+            if (tableConfig != null) {
+                if (tableConfig.getInsertListenerClass() != null) {
+                    imports.add(tableConfig.getInsertListenerClass().getName());
+                }
+                if (tableConfig.getUpdateListenerClass() != null) {
+                    imports.add(tableConfig.getUpdateListenerClass().getName());
+                }
+                if (tableConfig.getSetListenerClass() != null) {
+                    imports.add(tableConfig.getSetListenerClass().getName());
+                }
             }
         }
 
@@ -254,7 +297,7 @@ public class Table {
                 tableAnnotation.append(", mapperGenerateEnable = false");
             }
         }
-        return tableAnnotation.append(")").toString();
+        return tableAnnotation.append(")\n").toString();
     }
 
     /**
@@ -262,8 +305,9 @@ public class Table {
      */
     public String buildExtends() {
         EntityConfig entityConfig = globalConfig.getEntityConfig();
-        if (entityConfig.getSuperClass() != null) {
-            return " extends " + entityConfig.getSuperClass().getSimpleName();
+        Class<?> superClass = entityConfig.getSuperClass(this);
+        if (superClass != null) {
+            return " extends " + superClass.getSimpleName();
         } else {
             return "";
         }

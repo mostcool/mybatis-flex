@@ -17,10 +17,12 @@
 package com.mybatisflex.coretest;
 
 import com.mybatisflex.core.query.FunctionQueryColumn;
+import com.mybatisflex.core.query.QueryOrderBy;
 import com.mybatisflex.core.query.QueryWrapper;
-import com.mybatisflex.core.query.StringQueryColumn;
+import com.mybatisflex.core.query.RawQueryColumn;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static com.mybatisflex.core.query.QueryMethods.*;
 import static com.mybatisflex.coretest.table.AccountTableDef.ACCOUNT;
 
@@ -34,11 +36,12 @@ public class FunctionSqlTest {
     public void test() {
         String sql = QueryWrapper.create()
             .select(new FunctionQueryColumn("NOW").as("n1"))
-            .select(new FunctionQueryColumn("NOW", new StringQueryColumn("")).as("n2"))
+            .select(new FunctionQueryColumn("NOW", new RawQueryColumn("")).as("n2"))
             .select(new FunctionQueryColumn("CONCAT", ACCOUNT.USER_NAME, ACCOUNT.AGE).as("c1"))
             .from(ACCOUNT)
             .toSQL();
         System.out.println(sql);
+        assertEquals("SELECT NOW() AS `n1`, NOW() AS `n2`, CONCAT(`user_name`, `age`) AS `c1` FROM `tb_account`", sql);
     }
 
     @Test
@@ -50,6 +53,66 @@ public class FunctionSqlTest {
             .where(not(ACCOUNT.ID.eq(1)))
             .toSQL();
         System.out.println(sql);
+        assertEquals("SELECT CONCAT_WS('abc', `user_name`, `birthday`), ABS(-3) FROM `tb_account` WHERE NOT (`id` = 1)", sql);
+    }
+
+    @Test
+    public void test03() {
+        String sql = QueryWrapper.create()
+            .select()
+            .from(ACCOUNT)
+            .where(upper(ACCOUNT.USER_NAME).likeRaw(raw("UPPER('ws')")))
+            .toSQL();
+
+        System.out.println(sql);
+        assertEquals("SELECT * FROM `tb_account` WHERE UPPER(`user_name`) LIKE UPPER('ws')", sql);
+    }
+
+    @Test
+    public void test04() {
+        String sql = QueryWrapper.create()
+            .select()
+            .from(ACCOUNT)
+            .where(findInSet(number(100), ACCOUNT.ID).gt(0))
+            .toSQL();
+
+        System.out.println(sql);
+        assertEquals("SELECT * FROM `tb_account` WHERE FIND_IN_SET(100, `id`) > 0", sql);
+    }
+
+    @Test
+    public void test05() {
+        String sql = QueryWrapper.create()
+            .select()
+            .from(ACCOUNT)
+            .orderBy(new QueryOrderBy(rand(), ""))
+            .toSQL();
+
+        System.out.println(sql);
+        assertEquals("SELECT * FROM `tb_account` ORDER BY RAND()", sql);
+    }
+
+    @Test
+    public void test06() {
+        String sql = QueryWrapper.create()
+            .select(column("(select role_name from tb_role where id = ?)", 1))
+            .select(ACCOUNT.USER_NAME)
+            .from(ACCOUNT)
+            .toSQL();
+
+        System.out.println(sql);
+        assertEquals("SELECT (select role_name from tb_role where id = 1), `user_name` FROM `tb_account`", sql);
+    }
+    @Test
+    public void testReplaceString() {
+        String sql = QueryWrapper.create()
+            .select(ACCOUNT.USER_NAME)
+            .from(ACCOUNT)
+            .where(ACCOUNT.USER_NAME.eq(replace("nsg_contract.primer_name","' '","''")))
+            .toSQL();
+
+        System.out.println(sql);
+        assertEquals("SELECT `user_name` FROM `tb_account` WHERE `user_name` = REPLACE(nsg_contract.primer_name, ' ', '')", sql);
     }
 
 }

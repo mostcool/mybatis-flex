@@ -11,7 +11,9 @@ export default defineConfig({
     // logo: '/assets/images/logo02.png',
 
     themeConfig: {
-        outlineTitle:'章节',
+        outline: {
+            label: "章节"
+        },
         search: {
             provider: 'local'
         },
@@ -27,14 +29,17 @@ export default defineConfig({
 
             {text: '帮助文档', link: '/zh/intro/what-is-mybatisflex'},
             {text: '🆘 常见问题', link: '/zh/faq'},
-            {text: '周边', link: '/zh/awesome-things'},
-            {text: 'ChangeLog', link: '/zh/changes'},
+            {text: '周边 / 视频教程', link: '/zh/awesome-things'},
+            {text: '更新日志', link: '/zh/changes'},
+            {text: 'JavaDoc', link: 'https://apidoc.gitee.com/mybatis-flex/mybatis-flex/'},
             {
                 text: '获取源码', items: [
                     {text: 'Gitee', link: 'https://gitee.com/mybatis-flex/mybatis-flex'},
                     {text: 'Github', link: 'https://github.com/mybatis-flex/mybatis-flex'},
                     {text: '示例代码', link: 'https://gitee.com/mybatis-flex/mybatis-flex-samples'},
                     {text: '性能测试代码', link: 'https://gitee.com/mybatis-flex/mybatis-benchmark'},
+                    {text: 'MyBatis-Flex-Admin', link: 'https://gitee.com/mybatis-flex/mybatis-flex-admin'},
+                    {text: 'MyBatis-Flex-Kotlin', link: 'https://gitee.com/mybatis-flex/mybatis-flex-kotlin'},
                 ]
             },
         ],
@@ -46,11 +51,13 @@ export default defineConfig({
                     {text: 'MyBatis-Flex 是什么', link: '/zh/intro/what-is-mybatisflex'},
                     {text: '快速开始', link: '/zh/intro/getting-started'},
                     {text: 'Maven 依赖', link: '/zh/intro/maven'},
+                    {text: 'Gradle 依赖', link: '/zh/intro/gradle'},
+                    {text: 'Kotlin 使用', link: '/zh/intro/use-in-kotlin'},
                     {text: '和同类框架「功能」对比', link: '/zh/intro/comparison'},
                     {text: '和同类框架「性能」对比', link: '/zh/intro/benchmark'},
                     {text: '使用 Mybatis 原生功能', link: '/zh/intro/use-mybatis-native'},
                     {text: '支持的数据库类型', link: '/zh/intro/support-database'},
-                    {text: 'QQ 交流群', link: '/zh/intro/qq-group'},
+                    {text: '微信（或QQ）交流群', link: '/zh/intro/qq-group'},
                 ]
             },
             {
@@ -84,6 +91,7 @@ export default defineConfig({
                     {text: 'SQL 审计', link: '/zh/core/audit'},
                     {text: 'SQL 打印', link: '/zh/core/sql-print'},
                     {text: '多数据源', link: '/zh/core/multi-datasource'},
+                    {text: '读写分离 💥', link: '/zh/core/read-write-splitting'},
                     {text: '数据源加密', link: '/zh/core/datasource-encryption'},
                     {text: '动态表名', link: '/zh/core/dynamic-table'},
                     {text: '事务管理', link: '/zh/core/tx'},
@@ -100,13 +108,22 @@ export default defineConfig({
                 items: [
                     {text: '代码生成器', link: '/zh/others/codegen'},
                     {text: 'APT 设置', link: '/zh/others/apt'},
+                    {text: 'KAPT 设置', link: '/zh/others/kapt'},
                 ]
             }
         ],
 
         footer: {
             message: 'Released under the Apache License.',
-            copyright: 'Copyright © 2022-present Mybatis-Flex，<span style="font-size: 12px">备案号：<a style="color:#777" target="_blank" rel="noopener" href="http://beian.miit.gov.cn/">黔ICP备19009310号-9 </a></span>'
+            copyright: 'Copyright © 2022-present Mybatis-Flex. ' +
+                '<span style="display: flex;align-items: center;justify-content: center;">' +
+                '<span style="font-size: 12px;margin-right:10px;"><a style="color:#777" target="_blank" rel="noopener" href="http://beian.miit.gov.cn/">黔ICP备19009310号-9 </a></span>' +
+
+                '<img src="/assets/images/beian.jpg" style="margin-top: -2px;margin-right: 2px;width: 15px;">' +
+
+                '<a target="_blank" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=52010202003658"' +
+                ' style="display:inline-block;text-decoration:none;color:#777;font-size: 12px">贵公网安备 52010202003658 号</a>' +
+                '</span>'
         }
     },
     head: [

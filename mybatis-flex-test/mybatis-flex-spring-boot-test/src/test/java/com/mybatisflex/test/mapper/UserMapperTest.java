@@ -18,7 +18,13 @@ package com.mybatisflex.test.mapper;
 
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
-import com.mybatisflex.test.model.*;
+import com.mybatisflex.test.model.OrderInfo;
+import com.mybatisflex.test.model.User;
+import com.mybatisflex.test.model.UserInfo;
+import com.mybatisflex.test.model.UserVO;
+import com.mybatisflex.test.model.UserVO1;
+import com.mybatisflex.test.model.UserVO2;
+import com.mybatisflex.test.model.UserVO3;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -279,5 +285,11 @@ class UserMapperTest {
         user = userMapper.selectOneByQueryAs(queryWrapper, UserVO2.class);
         System.err.println(user);
     }
+
+//    @Test
+//    public void testFieldBindRelations() {
+//        List<UserVO5> userVO5List = userMapper.selectListWithRelationsByQueryAs(QueryWrapper.create(), UserVO5.class);
+//        System.out.println(userVO5List);
+//    }
 
 }

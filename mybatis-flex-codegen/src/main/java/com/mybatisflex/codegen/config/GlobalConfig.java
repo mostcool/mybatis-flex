@@ -15,8 +15,10 @@
  */
 package com.mybatisflex.codegen.config;
 
+import com.mybatisflex.codegen.entity.Table;
 import com.mybatisflex.codegen.template.ITemplate;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -32,7 +34,8 @@ import java.util.function.UnaryOperator;
  * @since 2023-05-15
  */
 @SuppressWarnings("unused")
-public class GlobalConfig {
+public class GlobalConfig implements Serializable {
+    private static final long serialVersionUID = 5033600623041298000L;
 
     // === 必须配置 ===
 
@@ -51,9 +54,8 @@ public class GlobalConfig {
     private TableDefConfig tableDefConfig;
     private MapperXmlConfig mapperXmlConfig;
 
-    // === 其他配置 ===
-
-    private Map<String, Object> customConfig;
+    // === 其他自定义配置 ===
+    private Map<String, Object> customConfig = new HashMap<>();
 
     // === 是否启用生成 ===
 
@@ -218,19 +220,20 @@ public class GlobalConfig {
     // === 自定义配置 ===
 
     public Object getCustomConfig(String key) {
-        if (customConfig != null) {
-            return customConfig.get(key);
-        }
-        return null;
+        return customConfig.get(key);
     }
 
     public void setCustomConfig(String key, Object value) {
-        if (customConfig == null) {
-            customConfig = new HashMap<>();
-        }
         customConfig.put(key, value);
     }
 
+    public Map<String, Object> getCustomConfig() {
+        return customConfig;
+    }
+
+    public void setCustomConfig(Map<String, Object> customConfig) {
+        this.customConfig = customConfig;
+    }
     // === 分项配置 ===
 
     /**
@@ -864,6 +867,20 @@ public class GlobalConfig {
     }
 
     /**
+     * @see EntityConfig#setSuperClassFactory(Function)
+     */
+    public void setEntitySuperClassFactory(Function<Table, Class<?>> superClassFactory) {
+        getEntityConfig().setSuperClassFactory(superClassFactory);
+    }
+
+    /**
+     * @see EntityConfig#getSuperClassFactory()
+     */
+    public Function<Table, Class<?>> getEntitySuperClassFactory() {
+        return getEntityConfig().getSuperClassFactory();
+    }
+
+    /**
      * @see EntityConfig#getImplInterfaces()
      */
     public Class<?>[] getEntityInterfaces() {
@@ -938,6 +955,20 @@ public class GlobalConfig {
      */
     public void setEntityDataSource(String dataSource) {
         getEntityConfig().setDataSource(dataSource);
+    }
+
+    /**
+     * @see EntityConfig#getJdkVersion()
+     */
+    public int getEntityJdkVersion() {
+        return getEntityConfig().getJdkVersion();
+    }
+
+    /**
+     * @see EntityConfig#setJdkVersion(int)
+     */
+    public void setEntityJdkVersion(int jdkVersion) {
+        getEntityConfig().setJdkVersion(jdkVersion);
     }
 
     public boolean isMapperGenerateEnable() {

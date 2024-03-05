@@ -15,6 +15,8 @@
  */
 package com.mybatisflex.codegen.config;
 
+import java.io.Serializable;
+
 /**
  * 生成 Controller 的配置。
  *
@@ -22,8 +24,13 @@ package com.mybatisflex.codegen.config;
  * @since 2023-05-15
  */
 @SuppressWarnings("unused")
-public class ControllerConfig {
+public class ControllerConfig implements Serializable {
 
+    private static final long serialVersionUID = 8391630904705910611L;
+    /**
+     * 代码生成目录，当未配置时，使用 PackageConfig 的配置
+     */
+    private String sourceDir;
     /**
      * Controller 类的前缀。
      */
@@ -55,6 +62,14 @@ public class ControllerConfig {
 
     public String buildSuperClassName() {
         return superClass.getSimpleName();
+    }
+
+    public String getSourceDir() {
+        return sourceDir;
+    }
+
+    public void setSourceDir(String sourceDir) {
+        this.sourceDir = sourceDir;
     }
 
     /**

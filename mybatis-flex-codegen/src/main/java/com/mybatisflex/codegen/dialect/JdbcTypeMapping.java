@@ -15,6 +15,8 @@
  */
 package com.mybatisflex.codegen.dialect;
 
+import com.mybatisflex.codegen.entity.Column;
+import com.mybatisflex.codegen.entity.Table;
 import com.mybatisflex.core.util.StringUtil;
 
 import java.util.HashMap;
@@ -22,6 +24,8 @@ import java.util.Map;
 
 /**
  * 字段类型映射。
+ *
+ * @author michael
  */
 public class JdbcTypeMapping {
 
@@ -33,6 +37,7 @@ public class JdbcTypeMapping {
 
     static {
         registerMapping("[B", "byte[]");
+        registerMapping("oracle.jdbc.OracleBlob", "byte[]");
     }
 
     public static void registerMapping(Class<?> from, Class<?> to) {
@@ -65,17 +70,19 @@ public class JdbcTypeMapping {
         registerMapping("java.time.LocalDate", "java.util.Date");
     }
 
-    static String getType(String jdbcType, int length) {
+    static String getType(String jdbcType, Table table, Column column) {
         if (mapper != null) {
-            return mapper.getType(jdbcType, length);
+            String type = mapper.getType(jdbcType, table, column);
+            if (StringUtil.isNotBlank(type)) {
+                return type;
+            }
         }
-
         String registered = mapping.get(jdbcType);
         return StringUtil.isNotBlank(registered) ? registered : jdbcType;
     }
 
     public interface JdbcTypeMapper {
-        String getType(String jdbcType, int length);
+        String getType(String jdbcType, Table table, Column column);
     }
 
 }

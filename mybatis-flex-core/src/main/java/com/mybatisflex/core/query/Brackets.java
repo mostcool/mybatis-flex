@@ -15,6 +15,8 @@
  */
 package com.mybatisflex.core.query;
 
+import com.mybatisflex.core.constant.SqlConnector;
+import com.mybatisflex.core.constant.SqlConsts;
 import com.mybatisflex.core.dialect.IDialect;
 import com.mybatisflex.core.util.ObjectUtil;
 import com.mybatisflex.core.util.StringUtil;
@@ -32,6 +34,35 @@ public class Brackets extends QueryCondition {
         this.childCondition = childCondition;
     }
 
+    @Override
+    public QueryColumn getColumn() {
+        return childCondition.getColumn();
+    }
+
+    @Override
+    public void setColumn(QueryColumn column) {
+        childCondition.setColumn(column);
+    }
+
+    @Override
+    public void setValue(Object value) {
+        childCondition.setValue(value);
+    }
+
+    @Override
+    public String getLogic() {
+        return childCondition.getLogic();
+    }
+
+    @Override
+    public void setLogic(String logic) {
+        childCondition.setLogic(logic);
+    }
+
+    @Override
+    protected QueryCondition getNextEffectiveCondition() {
+        return childCondition.getNextEffectiveCondition();
+    }
 
     @Override
     public QueryCondition and(QueryCondition nextCondition) {
@@ -84,10 +115,10 @@ public class Brackets extends QueryCondition {
             String childSql = childCondition.toSql(queryTables, dialect);
             if (StringUtil.isNotBlank(childSql)) {
                 QueryCondition prevEffectiveCondition = getPrevEffectiveCondition();
-                if (prevEffectiveCondition != null) {
-                    childSql = prevEffectiveCondition.connector + "(" + childSql + ")";
+                if (prevEffectiveCondition != null && this.connector != null) {
+                    childSql = this.connector + SqlConsts.BRACKET_LEFT + childSql + SqlConsts.BRACKET_RIGHT;
                 } else if (StringUtil.isNotBlank(sqlNext)) {
-                    childSql = "(" + childSql + ")";
+                    childSql = SqlConsts.BRACKET_LEFT + childSql + SqlConsts.BRACKET_RIGHT;
                 }
                 sql.append(childSql);
             } else {

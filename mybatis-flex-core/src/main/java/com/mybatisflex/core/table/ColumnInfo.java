@@ -15,13 +15,28 @@
  */
 package com.mybatisflex.core.table;
 
-import com.mybatisflex.core.handler.CompositeEnumTypeHandler;
+import com.mybatisflex.core.FlexGlobalConfig;
+import com.mybatisflex.core.mask.CompositeMaskTypeHandler;
 import com.mybatisflex.core.mask.MaskTypeHandler;
+import com.mybatisflex.core.util.ArrayUtil;
 import com.mybatisflex.core.util.StringUtil;
-import org.apache.ibatis.type.JdbcType;
-import org.apache.ibatis.type.TypeHandler;
+import org.apache.ibatis.session.Configuration;
+import org.apache.ibatis.type.*;
+
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.*;
+import java.time.chrono.JapaneseDate;
+import java.util.Date;
 
 public class ColumnInfo {
+
+    private static final Class<?>[] needGetTypeHandlerTypes = {
+        Date.class, java.sql.Date.class, Time.class, Timestamp.class,
+        Instant.class, LocalDate.class, LocalDateTime.class, LocalTime.class, OffsetDateTime.class, OffsetTime.class, ZonedDateTime.class,
+        Year.class, Month.class, YearMonth.class, JapaneseDate.class,
+        byte[].class, Byte[].class, Byte.class,
+    };
 
     /**
      * 数据库列名。
@@ -34,7 +49,7 @@ public class ColumnInfo {
     protected String[] alias;
 
     /**
-     * java entity 定义的属性名称。
+     * java entity 定义的属性名称（field name）。
      */
     protected String property;
 
@@ -51,12 +66,22 @@ public class ColumnInfo {
     /**
      * 自定义 TypeHandler。
      */
-    protected TypeHandler typeHandler;
+    protected TypeHandler<?> typeHandler;
+
+    /**
+     * 最终使用和构建出来的 typeHandler
+     */
+    protected TypeHandler<?> buildTypeHandler;
 
     /**
      * 数据脱敏类型。
      */
     protected String maskType;
+
+    /**
+     * 是否忽略
+     */
+    protected boolean ignore;
 
 
     public String getColumn() {
@@ -99,25 +124,41 @@ public class ColumnInfo {
         this.jdbcType = jdbcType;
     }
 
-    public TypeHandler buildTypeHandler() {
+    public TypeHandler<?> buildTypeHandler(Configuration configuration) {
 
-        //优先使用自定义的 typeHandler
-        if (typeHandler != null) {
-            return typeHandler;
+        if (buildTypeHandler != null) {
+            return buildTypeHandler;
         }
-        //枚举
-        else if (propertyType.isEnum()) {
-            typeHandler = new CompositeEnumTypeHandler(propertyType);
-        }
-        //若用户未定义 typeHandler，而配置了数据脱敏，则使用脱敏的 handler 处理
+
+        //脱敏规则配置
         else if (StringUtil.isNotBlank(maskType)) {
-            typeHandler = new MaskTypeHandler(maskType);
+            if (typeHandler != null) {
+                //noinspection unchecked
+                buildTypeHandler = new CompositeMaskTypeHandler(maskType, (TypeHandler<Object>) typeHandler);
+            } else {
+                buildTypeHandler = new MaskTypeHandler(maskType);
+            }
         }
 
-        return typeHandler;
+        //用户自定义的 typeHandler
+        else if (typeHandler != null) {
+            buildTypeHandler = typeHandler;
+        }
+
+        //枚举
+        else if (propertyType.isEnum() || ArrayUtil.contains(needGetTypeHandlerTypes, propertyType)) {
+            if (configuration == null) {
+                configuration = FlexGlobalConfig.getDefaultConfig().getConfiguration();
+            }
+            if (configuration != null) {
+                buildTypeHandler = configuration.getTypeHandlerRegistry().getTypeHandler(propertyType);
+            }
+        }
+
+        return buildTypeHandler;
     }
 
-    public void setTypeHandler(TypeHandler typeHandler) {
+    public void setTypeHandler(TypeHandler<?> typeHandler) {
         this.typeHandler = typeHandler;
     }
 
@@ -129,4 +170,12 @@ public class ColumnInfo {
         this.maskType = maskType;
     }
 
+
+    public boolean isIgnore() {
+        return ignore;
+    }
+
+    public void setIgnore(boolean ignore) {
+        this.ignore = ignore;
+    }
 }

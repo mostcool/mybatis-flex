@@ -27,12 +27,12 @@ TableManager.setDynamicTableProcessor(new DynamicTableProcessor() {
 
 ```java
 try{
-    TableManager.setHintTableMapping("tb_account", "tb_account_01")
+    TableManager.setHintTableMapping("tb_account", "tb_account_01");
 
     //这里写您的业务逻辑
 
-}finally{
-    TableManager.clear()
+} finally {
+    TableManager.clear();
 }
 
 ```
@@ -45,7 +45,7 @@ try{
 ```java
 TableManager.setDynamicSchemaProcessor(new DynamicSchemaProcessor() {
     @Override
-    public String process(String schema) {
+    public String process(String schema, String table) {
         return schema + "_01";
     }
 });

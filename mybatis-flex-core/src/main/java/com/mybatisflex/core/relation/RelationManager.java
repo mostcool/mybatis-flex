@@ -68,9 +68,16 @@ public class RelationManager {
 
 
     /**
+     * 查询时，仅查询这个配置的 Relations
+     */
+    private static ThreadLocal<Set<String>> onlyQueryRelations = new ThreadLocal<>();
+
+
+    /**
      * 每次查询是否自动清除 depth  extraConditionParams ignoreRelations 的配置
      */
     private static ThreadLocal<Boolean> autoClearConfig = ThreadLocal.withInitial(() -> true);
+
 
     public static int getDefaultQueryDepth() {
         return defaultQueryDepth;
@@ -89,7 +96,7 @@ public class RelationManager {
     }
 
     public static void clearMaxDepth() {
-        extraConditionParams.remove();
+        depthThreadLocal.remove();
     }
 
 
@@ -114,6 +121,11 @@ public class RelationManager {
         extraConditionParams.remove();
     }
 
+
+    //////ignore relations //////
+    public static Set<String> getIgnoreRelations() {
+        return ignoreRelations.get();
+    }
 
     public static void setIgnoreRelations(Set<String> ignoreRelations) {
         RelationManager.ignoreRelations.set(ignoreRelations);
@@ -141,12 +153,46 @@ public class RelationManager {
         relations.addAll(Arrays.asList(ignoreRelations));
     }
 
-    public static Set<String> getIgnoreRelations() {
-        return ignoreRelations.get();
-    }
 
     public static void clearIgnoreRelations() {
         ignoreRelations.remove();
+    }
+
+
+    //////query relations //////
+    public static Set<String> getQueryRelations() {
+        return onlyQueryRelations.get();
+    }
+
+    public static void setQueryRelations(Set<String> queryRelations) {
+        RelationManager.onlyQueryRelations.set(queryRelations);
+    }
+
+
+    public static <T> void addQueryRelations(LambdaGetter<T>... queryRelations) {
+        Set<String> relations = RelationManager.onlyQueryRelations.get();
+        if (relations == null) {
+            relations = new HashSet<>();
+            setQueryRelations(relations);
+        }
+        for (LambdaGetter<T> lambdaGetter : queryRelations) {
+            String fieldName = LambdaUtil.getFieldName(lambdaGetter);
+            relations.add(fieldName);
+        }
+    }
+
+    public static void addQueryRelations(String... queryRelations) {
+        Set<String> relations = RelationManager.onlyQueryRelations.get();
+        if (relations == null) {
+            relations = new HashSet<>();
+            setQueryRelations(relations);
+        }
+        relations.addAll(Arrays.asList(queryRelations));
+    }
+
+
+    public static void clearQueryRelations() {
+        onlyQueryRelations.remove();
     }
 
 
@@ -214,25 +260,29 @@ public class RelationManager {
 
 
     public static <Entity> void queryRelations(BaseMapper<?> mapper, List<Entity> entities) {
-        doQueryRelations(mapper, entities, 0, depthThreadLocal.get(), ignoreRelations.get());
-        clearConfigIfNecessary();
+        try {
+            doQueryRelations(mapper, entities, 0, depthThreadLocal.get(), ignoreRelations.get(), onlyQueryRelations.get());
+        } finally {
+            clearConfigIfNecessary();
+        }
     }
 
     /**
      * 清除查询配置
      */
-    private static void clearConfigIfNecessary() {
+    public static void clearConfigIfNecessary() {
         Boolean autoClearEnable = autoClearConfig.get();
         if (autoClearEnable != null && autoClearEnable) {
             depthThreadLocal.remove();
             extraConditionParams.remove();
+            onlyQueryRelations.remove();
             ignoreRelations.remove();
         }
     }
 
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    static <Entity> void doQueryRelations(BaseMapper<?> mapper, List<Entity> entities, int currentDepth, int maxDepth, Set<String> ignoreRelations) {
+    static <Entity> void doQueryRelations(BaseMapper<?> mapper, List<Entity> entities, int currentDepth, int maxDepth, Set<String> ignoreRelations, Set<String> queryRelations) {
         if (CollectionUtil.isEmpty(entities)) {
             return;
         }
@@ -257,39 +307,10 @@ public class RelationManager {
                     return;
                 }
 
-                Set<Object> targetValues;
-                List<Row> mappingRows = null;
-
-                //通过中间表关联查询
-                if (relation.isRelationByMiddleTable()) {
-                    targetValues = new HashSet<>();
-                    Set selfFieldValues = relation.getSelfFieldValues(entities);
-                    QueryWrapper queryWrapper = QueryWrapper.create().select()
-                        .from(relation.getJoinTable());
-                    if (selfFieldValues.size() > 1) {
-                        queryWrapper.where(column(relation.getJoinSelfColumn()).in(selfFieldValues));
-                    } else {
-                        queryWrapper.where(column(relation.getJoinSelfColumn()).eq(selfFieldValues.iterator().next()));
-                    }
-
-                    mappingRows = mapper.selectListByQueryAs(queryWrapper, Row.class);
-                    if (CollectionUtil.isEmpty(mappingRows)) {
-                        return;
-                    }
-
-                    for (Row mappingData : mappingRows) {
-                        Object targetValue = mappingData.getIgnoreCase(relation.getJoinTargetColumn());
-                        if (targetValue != null) {
-                            targetValues.add(targetValue);
-                        }
-                    }
-                }
-                //通过外键字段关联查询
-                else {
-                    targetValues = relation.getSelfFieldValues(entities);
-                }
-
-                if (CollectionUtil.isEmpty(targetValues)) {
+                //only query
+                if (queryRelations != null && !queryRelations.isEmpty()
+                    && !queryRelations.contains(relation.getSimpleName())
+                    && !queryRelations.contains(relation.getName())) {
                     return;
                 }
 
@@ -304,12 +325,55 @@ public class RelationManager {
                         DataSourceKey.use(configDsKey);
                     }
 
+                    Set<Object> targetValues;
+                    List<Row> mappingRows = null;
+
+                    //通过中间表关联查询
+                    if (relation.isRelationByMiddleTable()) {
+
+                        Set selfFieldValues = relation.getSelfFieldValues(entities);
+                        // 当数据对应的字段没有值的情况下，直接返回
+                        if (selfFieldValues.isEmpty()) {
+                            return;
+                        }
+                        QueryWrapper queryWrapper = QueryWrapper.create().select()
+                            .from(relation.getJoinTable());
+                        if (selfFieldValues.size() > 1) {
+                            queryWrapper.where(column(relation.getJoinSelfColumn()).in(selfFieldValues));
+                        } else {
+                            queryWrapper.where(column(relation.getJoinSelfColumn()).eq(selfFieldValues.iterator().next()));
+                        }
+
+                        mappingRows = mapper.selectListByQueryAs(queryWrapper, Row.class);
+                        if (CollectionUtil.isEmpty(mappingRows)) {
+                            return;
+                        }
+
+                        targetValues = new HashSet<>();
+
+                        for (Row mappingData : mappingRows) {
+                            Object targetValue = mappingData.getIgnoreCase(relation.getJoinTargetColumn());
+                            if (targetValue != null) {
+                                targetValues.add(targetValue);
+                            }
+                        }
+                    }
+                    //通过外键字段关联查询
+                    else {
+                        targetValues = relation.getSelfFieldValues(entities);
+                    }
+
+                    if (CollectionUtil.isEmpty(targetValues)) {
+                        return;
+                    }
+
+                    //仅绑定字段:As目标实体类 不进行字段绑定:As映射类型
                     QueryWrapper queryWrapper = relation.buildQueryWrapper(targetValues);
-                    List<?> targetObjectList = mapper.selectListByQueryAs(queryWrapper, relation.getMappingType());
+                    List<?> targetObjectList = mapper.selectListByQueryAs(queryWrapper, relation.isOnlyQueryValueField() ? relation.getTargetEntityClass() : relation.getMappingType());
                     if (CollectionUtil.isNotEmpty(targetObjectList)) {
 
                         //递归查询
-                        doQueryRelations(mapper, targetObjectList, currentDepth + 1, maxDepth, ignoreRelations);
+                        doQueryRelations(mapper, targetObjectList, currentDepth + 1, maxDepth, ignoreRelations, queryRelations);
 
                         //进行内存 join
                         relation.join(entities, targetObjectList, mappingRows);

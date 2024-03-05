@@ -7,7 +7,7 @@
     <groupId>com.mybatis-flex</groupId>
     <artifactId>parent</artifactId>
     <packaging>pom</packaging>
-    <version>1.5.6</version>
+    <version>1.8.1</version>
 
     <name>mybatis-flex</name>
     <url>https://mybatis-flex.com</url>
@@ -45,20 +45,20 @@
         <module>mybatis-flex-core</module>
         <module>mybatis-flex-spring</module>
         <module>mybatis-flex-spring-boot-starter</module>
+        <module>mybatis-flex-spring-boot3-starter</module>
         <module>mybatis-flex-solon-plugin</module>
         <module>mybatis-flex-test</module>
         <module>mybatis-flex-processor</module>
-        <module>mybatis-flex-kotlin</module>
     </modules>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
 
-        <mybatis-flex.version>1.5.6</mybatis-flex.version>
+        <mybatis-flex.version>1.8.1</mybatis-flex.version>
 
-        <mybatis.version>3.5.13</mybatis.version>
-        <mybatis-spring.version>2.1.0</mybatis-spring.version>
+        <mybatis.version>3.5.15</mybatis.version>
+        <mybatis-spring.version>2.1.2</mybatis-spring.version>
         <mybatis-freemarker.version>1.2.4</mybatis-freemarker.version>
         <mybatis-velocity.version>2.1.2</mybatis-velocity.version>
         <mybatis-thymeleaf.version>1.0.4</mybatis-thymeleaf.version>
@@ -68,9 +68,10 @@
 
         <spring.version>5.3.27</spring.version>
         <spring-boot.version>2.7.11</spring-boot.version>
-        <solon.version>2.3.1</solon.version>
+        <solon.version>2.5.3</solon.version>
 
         <junit.version>4.13.2</junit.version>
+        <testcontainers.version>1.19.3</testcontainers.version>
         <maven-flatten.version>1.5.0</maven-flatten.version>
     </properties>
 
@@ -188,6 +189,14 @@
                 <optional>true</optional>
             </dependency>
 
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
@@ -211,6 +220,19 @@
                     <source>1.8</source>
                     <target>1.8</target>
                     <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.2.0</version>
+                <configuration>
+                    <charset>UTF-8</charset>
+                    <encoding>UTF-8</encoding>
+                    <docencoding>UTF-8</docencoding>
+                    <doclint>none</doclint>
+                    <skippedModules>mybatis-flex-spring-boot3-starter,mybatis-flex-test</skippedModules>
                 </configuration>
             </plugin>
         </plugins>

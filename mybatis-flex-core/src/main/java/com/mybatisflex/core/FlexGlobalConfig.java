@@ -17,6 +17,7 @@ package com.mybatisflex.core;
 
 import com.mybatisflex.annotation.InsertListener;
 import com.mybatisflex.annotation.KeyType;
+import com.mybatisflex.annotation.Listener;
 import com.mybatisflex.annotation.SetListener;
 import com.mybatisflex.annotation.UpdateListener;
 import com.mybatisflex.core.datasource.FlexDataSource;
@@ -26,11 +27,10 @@ import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSessionFactory;
 
 import javax.sql.DataSource;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * 全局配置文件
@@ -87,6 +87,21 @@ public class FlexGlobalConfig {
      * 默认的 Relation 注解查询深度
      */
     private int defaultRelationQueryDepth = 2;
+
+    /**
+     * 默认的逻辑删除字段，允许设置 {@code null} 忽略匹配。
+     */
+    private String logicDeleteColumn;
+
+    /**
+     * 默认的多租户字段，允许设置 {@code null} 忽略匹配。
+     */
+    private String tenantColumn;
+
+    /**
+     * 默认的乐观锁字段，允许设置 {@code null} 忽略匹配。
+     */
+    private String versionColumn;
 
     public boolean isPrintBanner() {
         return printBanner;
@@ -185,40 +200,26 @@ public class FlexGlobalConfig {
      * @param entityClass 实体class
      * @return UpdateListener
      */
-    public List<SetListener> getSupportedSetListener(Class<?> entityClass, boolean interfaceOnly) {
-
-        Map<Class<?>, SetListener> map = new HashMap<>();
-        if (!interfaceOnly) {
-            doGetSupportedSetListener(entityClass, map);
-        }
-
-        while (entityClass.getSuperclass() != null) {
-            Class<?>[] interfaces = entityClass.getInterfaces();
-            for (Class<?> interfaceClass : interfaces) {
-                doGetSupportedSetListener(interfaceClass, map);
-            }
-            entityClass = entityClass.getSuperclass();
-        }
-
-        return new ArrayList<>(map.values());
+    public List<SetListener> getSupportedSetListener(Class<?> entityClass) {
+        return this.findSupportedListeners(entityClass, this.entitySetListeners);
     }
-
-
-    private void doGetSupportedSetListener(Class<?> childClass, Map<Class<?>, SetListener> listeners) {
-        SetListener setListener = null;
-        while (setListener == null && childClass != null) {
-            setListener = entitySetListeners.get(childClass);
-            childClass = childClass.getSuperclass();
-        }
-
-        if (setListener != null) {
-            listeners.put(childClass, setListener);
-        }
-    }
-
 
     public UpdateListener getUpdateListener(Class<?> entityClass) {
         return entityUpdateListeners.get(entityClass);
+    }
+
+    /**
+     * 查找支持该 {@code entityClass} 的监听器
+     * @param entityClass 实体class
+     * @param listenerMap 监听器map
+     * @return 符合条件的监听器
+     * @param <T> 监听器类型
+     */
+    public <T extends Listener> List<T> findSupportedListeners(Class<?> entityClass, Map<Class<?>, T> listenerMap) {
+        return listenerMap.entrySet().stream()
+            .filter(entry -> entry.getKey().isAssignableFrom(entityClass))
+            .map(Map.Entry::getValue)
+            .collect(Collectors.toList());
     }
 
     /**
@@ -228,35 +229,8 @@ public class FlexGlobalConfig {
      * @param entityClass 实体class
      * @return UpdateListener
      */
-    public List<UpdateListener> getSupportedUpdateListener(Class<?> entityClass, boolean interfaceOnly) {
-
-        Map<Class<?>, UpdateListener> map = new HashMap<>();
-        if (!interfaceOnly) {
-            doGetSupportedUpdateListener(entityClass, map);
-        }
-
-        while (entityClass.getSuperclass() != null) {
-            Class<?>[] interfaces = entityClass.getInterfaces();
-            for (Class<?> interfaceClass : interfaces) {
-                doGetSupportedUpdateListener(interfaceClass, map);
-            }
-            entityClass = entityClass.getSuperclass();
-        }
-
-        return new ArrayList<>(map.values());
-    }
-
-
-    private void doGetSupportedUpdateListener(Class<?> childClass, Map<Class<?>, UpdateListener> listeners) {
-        UpdateListener updateListener = null;
-        while (updateListener == null && childClass != null) {
-            updateListener = entityUpdateListeners.get(childClass);
-            childClass = childClass.getSuperclass();
-        }
-
-        if (updateListener != null) {
-            listeners.put(childClass, updateListener);
-        }
+    public List<UpdateListener> getSupportedUpdateListener(Class<?> entityClass) {
+        return this.findSupportedListeners(entityClass, this.entityUpdateListeners);
     }
 
 
@@ -271,44 +245,16 @@ public class FlexGlobalConfig {
      * @param entityClass 实体class
      * @return InsertListener
      */
-    public List<InsertListener> getSupportedInsertListener(Class<?> entityClass, boolean interfaceOnly) {
-
-        Map<Class<?>, InsertListener> map = new HashMap<>();
-        if (!interfaceOnly) {
-            doGetSupportedInsertListener(entityClass, map);
-        }
-
-        while (entityClass.getSuperclass() != null) {
-            Class<?>[] interfaces = entityClass.getInterfaces();
-            for (Class<?> interfaceClass : interfaces) {
-                doGetSupportedInsertListener(interfaceClass, map);
-            }
-            entityClass = entityClass.getSuperclass();
-        }
-
-        return new ArrayList<>(map.values());
+    public List<InsertListener> getSupportedInsertListener(Class<?> entityClass) {
+        return this.findSupportedListeners(entityClass, this.entityInsertListeners);
     }
-
-
-    private void doGetSupportedInsertListener(Class<?> childClass, Map<Class<?>, InsertListener> listeners) {
-        InsertListener insertListener = null;
-        while (insertListener == null && childClass != null) {
-            insertListener = entityInsertListeners.get(childClass);
-            childClass = childClass.getSuperclass();
-        }
-
-        if (insertListener != null) {
-            listeners.put(childClass, insertListener);
-        }
-    }
-
 
     public Object getNormalValueOfLogicDelete() {
         return normalValueOfLogicDelete;
     }
 
     public void setNormalValueOfLogicDelete(Object normalValueOfLogicDelete) {
-        FlexAssert.notNull(normalValueOfLogicDelete,"normalValueOfLogicDelete");
+        FlexAssert.notNull(normalValueOfLogicDelete, "normalValueOfLogicDelete");
         this.normalValueOfLogicDelete = normalValueOfLogicDelete;
     }
 
@@ -317,7 +263,7 @@ public class FlexGlobalConfig {
     }
 
     public void setDeletedValueOfLogicDelete(Object deletedValueOfLogicDelete) {
-        FlexAssert.notNull(deletedValueOfLogicDelete,"deletedValueOfLogicDelete");
+        FlexAssert.notNull(deletedValueOfLogicDelete, "deletedValueOfLogicDelete");
         this.deletedValueOfLogicDelete = deletedValueOfLogicDelete;
     }
 
@@ -335,6 +281,30 @@ public class FlexGlobalConfig {
 
     public void setDefaultRelationQueryDepth(int defaultRelationQueryDepth) {
         this.defaultRelationQueryDepth = defaultRelationQueryDepth;
+    }
+
+    public String getLogicDeleteColumn() {
+        return logicDeleteColumn;
+    }
+
+    public void setLogicDeleteColumn(String logicDeleteColumn) {
+        this.logicDeleteColumn = logicDeleteColumn;
+    }
+
+    public String getTenantColumn() {
+        return tenantColumn;
+    }
+
+    public void setTenantColumn(String tenantColumn) {
+        this.tenantColumn = tenantColumn;
+    }
+
+    public String getVersionColumn() {
+        return versionColumn;
+    }
+
+    public void setVersionColumn(String versionColumn) {
+        this.versionColumn = versionColumn;
     }
 
     public FlexDataSource getDataSource() {

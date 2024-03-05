@@ -29,6 +29,7 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 
 import javax.sql.DataSource;
 import java.util.List;
+import java.util.function.Supplier;
 
 public class MultiDataSourceTester {
 
@@ -37,7 +38,7 @@ public class MultiDataSourceTester {
             .setType(EmbeddedDatabaseType.H2)
             .setName("db1")
             .addScript("schema.sql")
-            .addScript("data.sql")
+            .addScript("data.sql").setScriptEncoding("UTF-8")
             .build();
 
         HikariDataSource dataSource2 = new HikariDataSource();
@@ -57,6 +58,13 @@ public class MultiDataSourceTester {
         //设置 SQL 审计收集器
         MessageCollector collector = new ConsoleMessageCollector();
         AuditManager.setMessageCollector(collector);
+
+        Db.tx(() -> {
+            Db.selectAll(null, "tb_account");
+            DataSourceKey.use("ds2");
+            Db.selectAll(null, "tb_account");
+            return true;
+        });
 
 
         //默认查询 db1

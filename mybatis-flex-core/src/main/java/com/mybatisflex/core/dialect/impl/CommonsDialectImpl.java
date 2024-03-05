@@ -18,25 +18,66 @@ package com.mybatisflex.core.dialect.impl;
 import com.mybatisflex.core.dialect.IDialect;
 import com.mybatisflex.core.dialect.KeywordWrap;
 import com.mybatisflex.core.dialect.LimitOffsetProcessor;
+import com.mybatisflex.core.dialect.OperateType;
 import com.mybatisflex.core.exception.FlexExceptions;
 import com.mybatisflex.core.exception.locale.LocalizedFormats;
 import com.mybatisflex.core.logicdelete.LogicDeleteManager;
-import com.mybatisflex.core.query.*;
+import com.mybatisflex.core.query.CPI;
+import com.mybatisflex.core.query.Join;
+import com.mybatisflex.core.query.QueryColumn;
+import com.mybatisflex.core.query.QueryCondition;
+import com.mybatisflex.core.query.QueryOrderBy;
+import com.mybatisflex.core.query.QueryTable;
+import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.core.query.UnionWrapper;
+import com.mybatisflex.core.query.With;
 import com.mybatisflex.core.row.Row;
 import com.mybatisflex.core.row.RowCPI;
 import com.mybatisflex.core.table.TableInfo;
-import com.mybatisflex.core.table.TableInfoFactory;
 import com.mybatisflex.core.update.RawValue;
 import com.mybatisflex.core.util.ArrayUtil;
 import com.mybatisflex.core.util.CollectionUtil;
 import com.mybatisflex.core.util.SqlUtil;
 import com.mybatisflex.core.util.StringUtil;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringJoiner;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-import static com.mybatisflex.core.constant.SqlConsts.*;
+import static com.mybatisflex.core.constant.SqlConsts.AND;
+import static com.mybatisflex.core.constant.SqlConsts.ASTERISK;
+import static com.mybatisflex.core.constant.SqlConsts.BLANK;
+import static com.mybatisflex.core.constant.SqlConsts.BRACKET_LEFT;
+import static com.mybatisflex.core.constant.SqlConsts.BRACKET_RIGHT;
+import static com.mybatisflex.core.constant.SqlConsts.DELETE;
+import static com.mybatisflex.core.constant.SqlConsts.DELETE_FROM;
+import static com.mybatisflex.core.constant.SqlConsts.DELIMITER;
+import static com.mybatisflex.core.constant.SqlConsts.EMPTY;
+import static com.mybatisflex.core.constant.SqlConsts.EQUALS;
+import static com.mybatisflex.core.constant.SqlConsts.EQUALS_PLACEHOLDER;
+import static com.mybatisflex.core.constant.SqlConsts.FROM;
+import static com.mybatisflex.core.constant.SqlConsts.GROUP_BY;
+import static com.mybatisflex.core.constant.SqlConsts.HAVING;
+import static com.mybatisflex.core.constant.SqlConsts.HINT_END;
+import static com.mybatisflex.core.constant.SqlConsts.HINT_START;
+import static com.mybatisflex.core.constant.SqlConsts.INSERT_INTO;
+import static com.mybatisflex.core.constant.SqlConsts.OR;
+import static com.mybatisflex.core.constant.SqlConsts.ORDER_BY;
+import static com.mybatisflex.core.constant.SqlConsts.PLACEHOLDER;
+import static com.mybatisflex.core.constant.SqlConsts.REFERENCE;
+import static com.mybatisflex.core.constant.SqlConsts.SELECT;
+import static com.mybatisflex.core.constant.SqlConsts.SELECT_ALL_FROM;
+import static com.mybatisflex.core.constant.SqlConsts.SEMICOLON;
+import static com.mybatisflex.core.constant.SqlConsts.SET;
+import static com.mybatisflex.core.constant.SqlConsts.UPDATE;
+import static com.mybatisflex.core.constant.SqlConsts.VALUES;
+import static com.mybatisflex.core.constant.SqlConsts.WHERE;
 
 /**
  * 通用的方言设计，其他方言可以继承于当前 CommonsDialectImpl
@@ -64,6 +105,11 @@ public class CommonsDialectImpl implements IDialect {
         return ASTERISK.equals(keyword) ? keyword : keywordWrap.wrap(keyword);
     }
 
+    @Override
+    public String wrapColumnAlias(String keyword) {
+//        return ASTERISK.equals(keyword) ? keyword : keywordWrap.getPrefix() + keyword + keywordWrap.getSuffix();
+        return ASTERISK.equals(keyword) ? keyword : keywordWrap.wrap(keyword);
+    }
 
     @Override
     public String forHint(String hintString) {
@@ -73,27 +119,36 @@ public class CommonsDialectImpl implements IDialect {
     @Override
     public String forInsertRow(String schema, String tableName, Row row) {
         StringBuilder fields = new StringBuilder();
-        StringBuilder questions = new StringBuilder();
+        StringBuilder paramsOrPlaceholder = new StringBuilder();
 
-        Set<String> modifyAttrs = RowCPI.getModifyAttrs(row);
+        //插入数据时，可能包含主键
+        Set<String> modifyAttrs = RowCPI.getInsertAttrs(row);
         int index = 0;
         for (String attr : modifyAttrs) {
             fields.append(wrap(attr));
-            questions.append(PLACEHOLDER);
+
+            Object value = row.get(attr);
+            if (value instanceof RawValue) {
+                paramsOrPlaceholder.append(((RawValue) value).toSql(this));
+            } else {
+                paramsOrPlaceholder.append(PLACEHOLDER);
+            }
             if (index != modifyAttrs.size() - 1) {
                 fields.append(DELIMITER);
-                questions.append(DELIMITER);
+                paramsOrPlaceholder.append(DELIMITER);
             }
             index++;
         }
+
+        String table = getRealTable(tableName);
         StringBuilder sql = new StringBuilder();
         sql.append(INSERT_INTO);
         if (StringUtil.isNotBlank(schema)) {
-            sql.append(wrap(getRealSchema(schema))).append(REFERENCE);
+            sql.append(wrap(getRealSchema(schema, table))).append(REFERENCE);
         }
-        sql.append(wrap(getRealTable(tableName)));
+        sql.append(wrap(table));
         sql.append(BRACKET_LEFT).append(fields).append(BRACKET_RIGHT);
-        sql.append(VALUES).append(BRACKET_LEFT).append(questions).append(BRACKET_RIGHT);
+        sql.append(VALUES).append(BRACKET_LEFT).append(paramsOrPlaceholder).append(BRACKET_RIGHT);
         return sql.toString();
     }
 
@@ -104,7 +159,7 @@ public class CommonsDialectImpl implements IDialect {
         StringBuilder questions = new StringBuilder();
 
         Row firstRow = rows.get(0);
-        Set<String> attrs = RowCPI.getModifyAttrs(firstRow);
+        Set<String> attrs = RowCPI.getInsertAttrs(firstRow);
         int index = 0;
         for (String column : attrs) {
             fields.append(wrap(column));
@@ -121,13 +176,13 @@ public class CommonsDialectImpl implements IDialect {
             }
         }
 
-
+        String table = getRealTable(tableName);
         StringBuilder sql = new StringBuilder();
         sql.append(INSERT_INTO);
         if (StringUtil.isNotBlank(schema)) {
-            sql.append(wrap(getRealSchema(schema))).append(REFERENCE);
+            sql.append(wrap(getRealSchema(schema, table))).append(REFERENCE);
         }
-        sql.append(wrap(getRealTable(tableName)));
+        sql.append(wrap(table));
         sql.append(BLANK).append(BRACKET_LEFT)
             .append(fields)
             .append(BRACKET_RIGHT).append(BLANK);
@@ -138,12 +193,13 @@ public class CommonsDialectImpl implements IDialect {
 
     @Override
     public String forDeleteById(String schema, String tableName, String[] primaryKeys) {
+        String table = getRealTable(tableName);
         StringBuilder sql = new StringBuilder();
         sql.append(DELETE_FROM);
         if (StringUtil.isNotBlank(schema)) {
-            sql.append(wrap(getRealSchema(schema))).append(REFERENCE);
+            sql.append(wrap(getRealSchema(schema, table))).append(REFERENCE);
         }
-        sql.append(wrap(getRealTable(tableName)));
+        sql.append(wrap(table));
         sql.append(WHERE);
         for (int i = 0; i < primaryKeys.length; i++) {
             if (i > 0) {
@@ -151,18 +207,21 @@ public class CommonsDialectImpl implements IDialect {
             }
             sql.append(wrap(primaryKeys[i])).append(EQUALS_PLACEHOLDER);
         }
+        prepareAuth(schema, table, sql, OperateType.DELETE);
         return sql.toString();
     }
 
 
     @Override
     public String forDeleteBatchByIds(String schema, String tableName, String[] primaryKeys, Object[] ids) {
+        String table = getRealTable(tableName);
         StringBuilder sql = new StringBuilder();
         sql.append(DELETE_FROM);
         if (StringUtil.isNotBlank(schema)) {
-            sql.append(wrap(getRealSchema(schema))).append(REFERENCE);
+            sql.append(wrap(getRealSchema(schema, table))).append(REFERENCE);
         }
-        sql.append(wrap(getRealTable(tableName)));
+
+        sql.append(wrap(table));
         sql.append(WHERE);
 
         //多主键的场景
@@ -190,27 +249,30 @@ public class CommonsDialectImpl implements IDialect {
                 sql.append(wrap(primaryKeys[0])).append(EQUALS_PLACEHOLDER);
             }
         }
+        prepareAuth(schema, table, sql, OperateType.DELETE);
         return sql.toString();
     }
 
     @Override
     public String forDeleteByQuery(QueryWrapper queryWrapper) {
+        prepareAuth(queryWrapper, OperateType.DELETE);
         return buildDeleteSql(queryWrapper);
     }
 
     @Override
     public String forUpdateById(String schema, String tableName, Row row) {
+        String table = getRealTable(tableName);
         StringBuilder sql = new StringBuilder();
-
         Set<String> modifyAttrs = RowCPI.getModifyAttrs(row);
         Map<String, RawValue> rawValueMap = RowCPI.getRawValueMap(row);
         String[] primaryKeys = RowCPI.obtainsPrimaryKeyStrings(row);
 
         sql.append(UPDATE);
         if (StringUtil.isNotBlank(schema)) {
-            sql.append(wrap(getRealSchema(schema))).append(REFERENCE);
+            sql.append(wrap(getRealSchema(schema, table))).append(REFERENCE);
         }
-        sql.append(wrap(getRealTable(tableName))).append(SET);
+
+        sql.append(wrap(table)).append(SET);
         int index = 0;
         for (Map.Entry<String, Object> e : row.entrySet()) {
             String colName = e.getKey();
@@ -236,12 +298,13 @@ public class CommonsDialectImpl implements IDialect {
             }
             sql.append(wrap(primaryKeys[i])).append(EQUALS_PLACEHOLDER);
         }
-
+        prepareAuth(schema, table, sql, OperateType.UPDATE);
         return sql.toString();
     }
 
     @Override
     public String forUpdateByQuery(QueryWrapper queryWrapper, Row row) {
+        prepareAuth(queryWrapper, OperateType.UPDATE);
         StringBuilder sqlBuilder = new StringBuilder();
 
         Set<String> modifyAttrs = RowCPI.getModifyAttrs(row);
@@ -304,22 +367,25 @@ public class CommonsDialectImpl implements IDialect {
 
     @Override
     public String forSelectOneById(String schema, String tableName, String[] primaryKeys, Object[] primaryValues) {
+        String table = getRealTable(tableName);
         StringBuilder sql = new StringBuilder(SELECT_ALL_FROM);
         if (StringUtil.isNotBlank(schema)) {
-            sql.append(wrap(getRealSchema(schema))).append(REFERENCE);
+            sql.append(wrap(getRealSchema(schema, table))).append(REFERENCE);
         }
-        sql.append(wrap(getRealTable(tableName))).append(WHERE);
+        sql.append(wrap(table)).append(WHERE);
         for (int i = 0; i < primaryKeys.length; i++) {
             if (i > 0) {
                 sql.append(AND);
             }
             sql.append(wrap(primaryKeys[i])).append(EQUALS_PLACEHOLDER);
         }
+        prepareAuth(schema, table, sql, OperateType.SELECT);
         return sql.toString();
     }
 
     @Override
     public String forSelectByQuery(QueryWrapper queryWrapper) {
+        prepareAuth(queryWrapper, OperateType.SELECT);
         return buildSelectSql(queryWrapper);
     }
 
@@ -334,36 +400,33 @@ public class CommonsDialectImpl implements IDialect {
 
         List<QueryColumn> selectColumns = CPI.getSelectColumns(queryWrapper);
 
-        int queryTablesCount = queryTables == null ? 0 : queryTables.size();
-        int joinTablesCount = joinTables != null ? joinTables.size() : 0;
-
-        //多表查询时，自动映射
-        if (queryTablesCount > 0 && queryTablesCount + joinTablesCount > 1) {
-            QueryTable firstTable = queryTables.get(0);
-            if (!(firstTable instanceof SelectQueryTable)) {
-                TableInfo tableInfo = TableInfoFactory.ofTableName(firstTable.getName());
-                if (tableInfo != null && selectColumns != null && !selectColumns.isEmpty()) {
-                    String[] firstTableColumns = tableInfo.getAllColumns();
-                    for (int i = 0; i < selectColumns.size(); i++) {
-                        QueryColumn selectColumn = selectColumns.get(i);
-                        QueryTable selectColumnTable = selectColumn.getTable();
-                        String selectColumnName = selectColumn.getName();
-
-                        //用户未配置别名的情况下，自动未用户添加别名
-                        if (selectColumnTable != null
-                            && selectColumnName != null
-                            && !"*".equals(selectColumnName)
-                            && StringUtil.isBlank(selectColumn.getAlias())
-                            && !(selectColumnTable instanceof SelectQueryTable)
-                            && !CPI.isSameTable(firstTable, selectColumnTable)
-                            && ArrayUtil.contains(firstTableColumns, selectColumnName)
-                        ) {
-                            QueryColumn newSelectColumn = selectColumn.as(selectColumnTable.getName() + "$" + selectColumnName);
-                            selectColumns.set(i, newSelectColumn);
-                        }
-                    }
-                }
-            }
+        // 多个表，非 SELECT * 时，需要处理重名字段
+        if (allTables.size() > 1 && selectColumns != null && selectColumns.size() > 1) {
+            IntStream.range(0, selectColumns.size())
+                .boxed()
+                // 生成 索引-字段值 对应关系
+                .collect(Collectors.toMap(Function.identity(), selectColumns::get))
+                .entrySet()
+                .stream()
+                // 需要处理别名的情况
+                .filter(e -> StringUtil.isNotBlank(e.getValue().getName()))
+                .filter(e -> StringUtil.isBlank(e.getValue().getAlias()))
+                .filter(e -> !"*".equals(e.getValue().getName()))
+                // 将相同字段对象放在一个集合里
+                .collect(Collectors.groupingBy(e -> e.getValue().getName(),
+                    Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList)))
+                .values()
+                .stream()
+                // 过滤出来重名的字段
+                .filter(e -> e.size() > 1)
+                // 合并所有需要加别名的字段
+                .flatMap(Collection::stream)
+                // 过滤出来可以添加别名的列
+                .filter(e -> e.getValue().getTable() != null)
+                .filter(e -> StringUtil.isNotBlank(e.getValue().getTable().getName()))
+                // 添加别名并放回原集合索引位置
+                .forEach(e -> selectColumns.set(e.getKey(),
+                    e.getValue().as(e.getValue().getTable().getName() + "$" + e.getValue().getName())));
         }
 
         StringBuilder sqlBuilder = new StringBuilder();
@@ -474,6 +537,23 @@ public class CommonsDialectImpl implements IDialect {
         if (StringUtil.isNotBlank(hint)) {
             sqlBuilder.append(BLANK).append(hint).deleteCharAt(sqlBuilder.length() - 1);
         }
+
+        //delete with join
+        if (joinTables != null && !joinTables.isEmpty()) {
+            if (queryTables == null || queryTables.isEmpty()) {
+                throw new IllegalArgumentException("Delete with join sql must designate the from table.");
+            } else if (queryTables.size() != 1) {
+                throw new IllegalArgumentException("Delete with join sql must has 1 table only. but current has " + queryTables.size());
+            }
+            QueryTable queryTable = queryTables.get(0);
+            String table = getRealTable(queryTable.getName());
+            if (StringUtil.isNotBlank(queryTable.getSchema())) {
+                sqlBuilder.append(wrap(getRealSchema(queryTable.getSchema(), table))).append(REFERENCE);
+            }
+            sqlBuilder.append(BLANK).append(wrap(getRealTable(table)));
+        }
+
+
         sqlBuilder.append(FROM).append(StringUtil.join(DELIMITER, queryTables, queryTable -> queryTable.toSql(this)));
 
         buildJoinSql(sqlBuilder, queryWrapper, allTables);
@@ -516,12 +596,16 @@ public class CommonsDialectImpl implements IDialect {
         String[] insertColumns = tableInfo.obtainInsertColumns(entity, ignoreNulls);
         Map<String, String> onInsertColumns = tableInfo.getOnInsertColumns();
 
+        Map<String, RawValue> rawValueMap = tableInfo.obtainUpdateRawValueMap(entity);
+
         StringJoiner sqlFields = new StringJoiner(DELIMITER);
         StringJoiner sqlValues = new StringJoiner(DELIMITER);
 
         for (String insertColumn : insertColumns) {
             sqlFields.add(wrap(insertColumn));
-            if (onInsertColumns != null && onInsertColumns.containsKey(insertColumn)) {
+            if (rawValueMap.containsKey(insertColumn)) {
+                sqlValues.add(rawValueMap.get(insertColumn).toSql(this));
+            } else if (onInsertColumns != null && onInsertColumns.containsKey(insertColumn)) {
                 sqlValues.add(onInsertColumns.get(insertColumn));
             } else {
                 sqlValues.add(PLACEHOLDER);
@@ -626,6 +710,7 @@ public class CommonsDialectImpl implements IDialect {
 
         //租户ID
         tableInfo.buildTenantCondition(sql, tenantIdArgs, this);
+        prepareAuth(tableInfo, sql, OperateType.DELETE);
         return sql.toString();
     }
 
@@ -685,7 +770,7 @@ public class CommonsDialectImpl implements IDialect {
         sql.append(BRACKET_RIGHT).append(AND).append(buildLogicNormalCondition(logicDeleteColumn, tableInfo));
 
         tableInfo.buildTenantCondition(sql, tenantIdArgs, this);
-
+        prepareAuth(tableInfo, sql, OperateType.DELETE);
         return sql.toString();
     }
 
@@ -700,6 +785,7 @@ public class CommonsDialectImpl implements IDialect {
         }
 
 
+        prepareAuth(queryWrapper, OperateType.DELETE);
         //逻辑删除
         List<QueryTable> queryTables = CPI.getQueryTables(queryWrapper);
         List<QueryTable> joinTables = CPI.getJoinTables(queryWrapper);
@@ -736,11 +822,11 @@ public class CommonsDialectImpl implements IDialect {
 
         StringJoiner stringJoiner = new StringJoiner(DELIMITER);
 
-        for (String modifyAttr : updateColumns) {
-            if (rawValueMap.containsKey(modifyAttr)) {
-                stringJoiner.add(wrap(modifyAttr) + EQUALS + rawValueMap.get(modifyAttr).toSql(this));
+        for (String updateColumn : updateColumns) {
+            if (rawValueMap.containsKey(updateColumn)) {
+                stringJoiner.add(wrap(updateColumn) + EQUALS + rawValueMap.get(updateColumn).toSql(this));
             } else {
-                stringJoiner.add(wrap(modifyAttr) + EQUALS_PLACEHOLDER);
+                stringJoiner.add(wrap(updateColumn) + EQUALS_PLACEHOLDER);
             }
         }
 
@@ -785,12 +871,13 @@ public class CommonsDialectImpl implements IDialect {
             sql.append(AND).append(wrap(versionColumn)).append(EQUALS).append(versionValue);
         }
 
-
+        prepareAuth(tableInfo, sql, OperateType.UPDATE);
         return sql.toString();
     }
 
     @Override
     public String forUpdateEntityByQuery(TableInfo tableInfo, Object entity, boolean ignoreNulls, QueryWrapper queryWrapper) {
+        prepareAuth(queryWrapper, OperateType.UPDATE);
         StringBuilder sqlBuilder = new StringBuilder();
 
         Set<String> updateColumns = tableInfo.obtainUpdateColumns(entity, ignoreNulls, true);
@@ -844,15 +931,6 @@ public class CommonsDialectImpl implements IDialect {
         }
 
 
-//        String whereConditionSql = buildWhereConditionSql(queryWrapper);
-//
-//        //不允许全量更新
-//        if (StringUtil.isBlank(whereConditionSql)) {
-//            throw FlexExceptions.wrap(LocalizedFormats.UPDATE_OR_DELETE_NOT_ALLOW);
-//        }
-//
-//        sql.append(WHERE).append(whereConditionSql);
-
         List<String> endFragments = CPI.getEndFragments(queryWrapper);
         if (CollectionUtil.isNotEmpty(endFragments)) {
             for (String endFragment : endFragments) {
@@ -861,65 +939,6 @@ public class CommonsDialectImpl implements IDialect {
         }
 
         return sqlBuilder.toString();
-    }
-
-
-    @Override
-    public String forUpdateNumberAddByQuery(String schema, String tableName, String fieldName, Number value, QueryWrapper queryWrapper) {
-        StringBuilder sql = new StringBuilder();
-        sql.append(UPDATE).append(forHint(CPI.getHint(queryWrapper)));
-        if (StringUtil.isNotBlank(schema)) {
-            sql.append(wrap(getRealSchema(schema))).append(REFERENCE);
-        }
-        sql.append(wrap(getRealTable(tableName))).append(SET);
-        sql.append(wrap(fieldName)).append(EQUALS).append(wrap(fieldName)).append(geZero(value) ? PLUS_SIGN : MINUS_SIGN).append(abs(value));
-
-        String whereConditionSql = buildWhereConditionSql(queryWrapper);
-
-        //不允许全量更新
-        if (StringUtil.isBlank(whereConditionSql)) {
-            throw FlexExceptions.wrap(LocalizedFormats.UPDATE_OR_DELETE_NOT_ALLOW);
-        }
-
-        sql.append(WHERE).append(whereConditionSql);
-
-        List<String> endFragments = CPI.getEndFragments(queryWrapper);
-        if (CollectionUtil.isNotEmpty(endFragments)) {
-            for (String endFragment : endFragments) {
-                sql.append(BLANK).append(endFragment);
-            }
-        }
-        return sql.toString();
-    }
-
-
-    protected boolean geZero(Number number) {
-        if (number instanceof BigDecimal) {
-            return ((BigDecimal) number).signum() >= 0;
-        } else if (number instanceof BigInteger) {
-            return ((BigInteger) number).signum() >= 0;
-        } else if (number instanceof Float) {
-            return (Float) number >= 0;
-        } else if (number instanceof Double) {
-            return (Double) number >= 0;
-        } else {
-            return number.longValue() >= 0;
-        }
-    }
-
-
-    protected Number abs(Number number) {
-        if (number instanceof BigDecimal) {
-            return ((BigDecimal) number).abs();
-        } else if (number instanceof BigInteger) {
-            return ((BigInteger) number).abs();
-        } else if (number instanceof Float) {
-            return Math.abs((Float) number);
-        } else if (number instanceof Double) {
-            return Math.abs((Double) number);
-        } else {
-            return Math.abs(number.longValue());
-        }
     }
 
 
@@ -946,7 +965,7 @@ public class CommonsDialectImpl implements IDialect {
         //多租户
         Object[] tenantIdArgs = tableInfo.buildTenantIdArgs();
         tableInfo.buildTenantCondition(sql, tenantIdArgs, this);
-
+        prepareAuth(tableInfo, sql, OperateType.SELECT);
         return sql.toString();
     }
 
@@ -1002,7 +1021,7 @@ public class CommonsDialectImpl implements IDialect {
 
         //多租户
         tableInfo.buildTenantCondition(sql, tenantIdArgs, this);
-
+        prepareAuth(tableInfo, sql, OperateType.SELECT);
         return sql.toString();
     }
 

@@ -43,16 +43,21 @@ public class Account extends BaseEntity implements Serializable, AgeAware {
     @ColumnAlias("my_age")
     private int age;
 
+    private SexEnum sex;
+
     @NotBlank
     private Date birthday;
 
     @Column(typeHandler = Fastjson2TypeHandler.class)
     private Map<String, Object> options;
 
-    @Column(isLogicDelete = true)
+//    @Column(isLogicDelete = true)
     private Boolean isDelete;
 
     private List<Article> articles;
+
+    @Column(ignore = true)
+    private String title;
 
 
     public Long getId() {
@@ -79,6 +84,14 @@ public class Account extends BaseEntity implements Serializable, AgeAware {
     @Override
     public void setAge(int age) {
         this.age = age;
+    }
+
+    public SexEnum getSex() {
+        return sex;
+    }
+
+    public void setSex(SexEnum sex) {
+        this.sex = sex;
     }
 
     public Date getBirthday() {
@@ -120,17 +133,27 @@ public class Account extends BaseEntity implements Serializable, AgeAware {
         this.articles = articles;
     }
 
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+
     @Override
     public String toString() {
         return "Account{" +
             "id=" + id +
             ", userName='" + userName + '\'' +
             ", age=" + age +
+            ", sex=" + sex +
             ", birthday=" + birthday +
             ", options=" + options +
             ", isDelete=" + isDelete +
             ", articles=" + articles +
+            ", title='" + title + '\'' +
             '}';
     }
-
 }

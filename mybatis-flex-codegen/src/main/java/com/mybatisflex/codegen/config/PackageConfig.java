@@ -18,6 +18,8 @@ package com.mybatisflex.codegen.config;
 
 import com.mybatisflex.core.util.StringUtil;
 
+import java.io.Serializable;
+
 /**
  * 生成软件包的配置。
  *
@@ -25,8 +27,9 @@ import com.mybatisflex.core.util.StringUtil;
  * @since 2023-05-15
  */
 @SuppressWarnings("unused")
-public class PackageConfig {
+public class PackageConfig implements Serializable {
 
+    private static final long serialVersionUID = -8257632247633439537L;
     /**
      * 代码生成目录。
      */
@@ -41,7 +44,6 @@ public class PackageConfig {
      * Entity 所在包。
      */
     private String entityPackage;
-
     /**
      * Mapper 所在包。
      */

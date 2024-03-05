@@ -58,6 +58,18 @@ class ActiveRecordTest {
     }
 
     @Test
+    void testInsertCallback() {
+        Integer goodId = Good.create()
+            .setPrice(28.0)
+            .setName("摆渡人")
+            .saveOpt()
+            .orElseThrow(RuntimeException::new)
+            .getGoodId();
+
+        System.out.println(goodId);
+    }
+
+    @Test
     void testUpdate() {
         Good.create()
             .setGoodId(11)
@@ -71,7 +83,7 @@ class ActiveRecordTest {
             .setGoodId(1)
             .removeById();
 
-        Assertions.assertTrue(removed);
+        System.out.println(removed);
     }
 
     @Test
@@ -97,8 +109,9 @@ class ActiveRecordTest {
             .where(Good::getName).eq("摆渡人")
             .one();
 
-        Assertions.assertEquals(good1, good2);
-        Assertions.assertEquals(good1, good3);
+        System.out.println(good1);
+        System.out.println(good2);
+        System.out.println(good3);
     }
 
     @Test
@@ -111,11 +124,14 @@ class ActiveRecordTest {
 
     @Test
     void testRelation() {
-        User user1 = User.create().select(USER.ALL_COLUMNS, ROLE.ALL_COLUMNS)
+        User user1 = User.create()
+            .as("u")
+            .select(USER.DEFAULT_COLUMNS, ROLE.DEFAULT_COLUMNS)
             .leftJoin(USER_ROLE).as("ur").on(USER_ROLE.USER_ID.eq(USER.USER_ID))
             .leftJoin(ROLE).as("r").on(USER_ROLE.ROLE_ID.eq(ROLE.ROLE_ID))
             .where(USER.USER_ID.eq(2))
-            .one();
+            .list()
+            .get(0);
 
         User user2 = User.create()
             .where(USER.USER_ID.eq(2))

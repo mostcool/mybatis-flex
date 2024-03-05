@@ -15,9 +15,15 @@
  */
 package com.mybatisflex.core.query;
 
+import com.mybatisflex.core.table.TableInfo;
+import com.mybatisflex.core.table.TableInfoFactory;
 import com.mybatisflex.core.util.ArrayUtil;
 import com.mybatisflex.core.util.LambdaGetter;
 import com.mybatisflex.core.util.LambdaUtil;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static com.mybatisflex.core.constant.FuncName.*;
 
@@ -807,85 +813,44 @@ public class QueryMethods {
     /**
      * 返回字符串 s 的前 n 个字符。
      */
-    public static QueryColumn left(String columnS, String columnN) {
-        return new FunctionQueryColumn(LEFT, columnS, columnN);
+    public static QueryColumn left(String columnS, int length) {
+        return new FunctionQueryColumn(LEFT, string(columnS), number(length));
     }
 
     /**
      * 返回字符串 s 的前 n 个字符。
      */
-    public static QueryColumn left(QueryColumn columnS, QueryColumn columnN) {
-        return new FunctionQueryColumn(LEFT, columnS, columnN);
+    public static QueryColumn left(QueryColumn columnS, int length) {
+        return new FunctionQueryColumn(LEFT, columnS, number(length));
     }
 
     /**
      * 返回字符串 s 的前 n 个字符。
      */
-    public static <S, N> QueryColumn left(LambdaGetter<S> columnS, LambdaGetter<N> columnN) {
-        return new FunctionQueryColumn(LEFT, LambdaUtil.getQueryColumn(columnS), LambdaUtil.getQueryColumn(columnN));
+    public static <S, N> QueryColumn left(LambdaGetter<S> columnS, int length) {
+        return new FunctionQueryColumn(LEFT, LambdaUtil.getQueryColumn(columnS), number(length));
+    }
+
+
+    /**
+     * 返回字符串 s 的后 length 个字符。
+     */
+    public static QueryColumn right(String columnS, int length) {
+        return new FunctionQueryColumn(RIGHT, string(columnS), number(length));
     }
 
     /**
-     * 返回字符串 s 的前 n 个字符。
+     * 返回字符串 s 的后 length 个字符。
      */
-    public static QueryColumn left(String columnX, Integer n) {
-        return new FunctionQueryColumn(LEFT, new QueryColumn(columnX), number(n));
+    public static QueryColumn right(QueryColumn columnS, int length) {
+        return new FunctionQueryColumn(RIGHT, columnS, number(length));
     }
 
     /**
-     * 返回字符串 s 的前 n 个字符。
+     * 返回字符串 s 的后 length 个字符。
      */
-    public static QueryColumn left(QueryColumn columnX, Integer n) {
-        return new FunctionQueryColumn(LEFT, columnX, number(n));
-    }
-
-    /**
-     * 返回字符串 s 的前 n 个字符。
-     */
-    public static <T> QueryColumn left(LambdaGetter<T> columnX, Integer n) {
-        return new FunctionQueryColumn(LEFT, LambdaUtil.getQueryColumn(columnX), number(n));
-    }
-
-    /**
-     * 返回字符串 s 的后 n 个字符。
-     */
-    public static QueryColumn right(String columnS, String columnN) {
-        return new FunctionQueryColumn(RIGHT, columnS, columnN);
-    }
-
-    /**
-     * 返回字符串 s 的后 n 个字符。
-     */
-    public static QueryColumn right(QueryColumn columnS, QueryColumn columnN) {
-        return new FunctionQueryColumn(RIGHT, columnS, columnN);
-    }
-
-    /**
-     * 返回字符串 s 的后 n 个字符。
-     */
-    public static <S, N> QueryColumn right(LambdaGetter<S> columnS, LambdaGetter<N> columnN) {
-        return new FunctionQueryColumn(RIGHT, LambdaUtil.getQueryColumn(columnS), LambdaUtil.getQueryColumn(columnN));
-    }
-
-    /**
-     * 返回字符串 s 的后 n 个字符。
-     */
-    public static QueryColumn right(String columnX, Integer n) {
-        return new FunctionQueryColumn(RIGHT, new QueryColumn(columnX), number(n));
-    }
-
-    /**
-     * 返回字符串 s 的后 n 个字符。
-     */
-    public static QueryColumn right(QueryColumn columnX, Integer n) {
-        return new FunctionQueryColumn(RIGHT, columnX, number(n));
-    }
-
-    /**
-     * 返回字符串 s 的后 n 个字符。
-     */
-    public static <T> QueryColumn right(LambdaGetter<T> columnX, Integer n) {
-        return new FunctionQueryColumn(RIGHT, LambdaUtil.getQueryColumn(columnX), number(n));
+    public static <S, N> QueryColumn right(LambdaGetter<S> columnS, int length) {
+        return new FunctionQueryColumn(RIGHT, LambdaUtil.getQueryColumn(columnS), number(length));
     }
 
     /**
@@ -1046,7 +1011,7 @@ public class QueryMethods {
      * 用字符串 s2 代替字符串 s 中的字符串 s1。
      */
     public static QueryColumn replace(String columnS, String columnS1, String columnS2) {
-        return new FunctionQueryColumn(REPLACE, columnS, columnS1, columnS2);
+        return new StringFunctionQueryColumn(REPLACE, columnS, columnS1, columnS2);
     }
 
     /**
@@ -1084,25 +1049,47 @@ public class QueryMethods {
         return new FunctionQueryColumn(STRCMP, LambdaUtil.getQueryColumn(columnS1), LambdaUtil.getQueryColumn(columnS2));
     }
 
+
     /**
-     * 获取从字符串 s 中的第 n 个位置开始长度为 len 的字符串。
+     * 获取从字符串 s 中的第 position 个位置开始长度为 length 的字符串。
      */
-    public static QueryColumn substring(String columnS, String columnN, String columnLen) {
-        return new FunctionQueryColumn(SUBSTRING, columnS, columnN, columnLen);
+    public static QueryColumn substring(String columnS, int position) {
+        return new FunctionQueryColumn(SUBSTRING, string(columnS), number(position));
     }
 
     /**
-     * 获取从字符串 s 中的第 n 个位置开始长度为 len 的字符串。
+     * 获取从字符串 s 中的第 position 个位置开始长度为 length 的字符串。
      */
-    public static QueryColumn substring(QueryColumn columnS, QueryColumn columnN, QueryColumn columnLen) {
-        return new FunctionQueryColumn(SUBSTRING, columnS, columnN, columnLen);
+    public static QueryColumn substring(QueryColumn columnS, int position) {
+        return new FunctionQueryColumn(SUBSTRING, columnS, number(position));
     }
 
     /**
-     * 获取从字符串 s 中的第 n 个位置开始长度为 len 的字符串。
+     * 获取从字符串 s 中的第 position 个位置开始长度为 length 的字符串。
      */
-    public static <S, N, L> QueryColumn substring(LambdaGetter<S> columnS, LambdaGetter<N> columnN, LambdaGetter<L> columnLen) {
-        return new FunctionQueryColumn(SUBSTRING, LambdaUtil.getQueryColumn(columnS), LambdaUtil.getQueryColumn(columnN), LambdaUtil.getQueryColumn(columnLen));
+    public static <S, N, L> QueryColumn substring(LambdaGetter<S> columnS, int position) {
+        return new FunctionQueryColumn(SUBSTRING, LambdaUtil.getQueryColumn(columnS), number(position));
+    }
+
+    /**
+     * 获取从字符串 s 中的第 position 个位置开始长度为 length 的字符串。
+     */
+    public static QueryColumn substring(String columnS, int position, int length) {
+        return new FunctionQueryColumn(SUBSTRING, string(columnS), number(position), number(length));
+    }
+
+    /**
+     * 获取从字符串 s 中的第 position 个位置开始长度为 length 的字符串。
+     */
+    public static QueryColumn substring(QueryColumn columnS, int position, int length) {
+        return new FunctionQueryColumn(SUBSTRING, columnS, number(position), number(length));
+    }
+
+    /**
+     * 获取从字符串 s 中的第 position 个位置开始长度为 length 的字符串。
+     */
+    public static <S, N, L> QueryColumn substring(LambdaGetter<S> columnS, int position, int length) {
+        return new FunctionQueryColumn(SUBSTRING, LambdaUtil.getQueryColumn(columnS), number(position), number(length));
     }
 
     /**
@@ -1832,22 +1819,22 @@ public class QueryMethods {
     /**
      * 按照表达式 f 的要求显示日期 d。
      */
-    public static QueryColumn dateFormat(String columnD, String columnF) {
-        return new FunctionQueryColumn(DATE_FORMAT, columnD, columnF);
+    public static QueryColumn dateFormat(String columnD, String format) {
+        return new FunctionQueryColumn(DATE_FORMAT, string(columnD), string(format));
     }
 
     /**
      * 按照表达式 f 的要求显示日期 d。
      */
-    public static QueryColumn dateFormat(QueryColumn columnD, QueryColumn columnF) {
-        return new FunctionQueryColumn(DATE_FORMAT, columnD, columnF);
+    public static QueryColumn dateFormat(QueryColumn columnD, String format) {
+        return new FunctionQueryColumn(DATE_FORMAT, columnD, string(format));
     }
 
     /**
      * 按照表达式 f 的要求显示日期 d。
      */
-    public static <D, F> QueryColumn dateFormat(LambdaGetter<D> columnD, LambdaGetter<F> columnF) {
-        return new FunctionQueryColumn(DATE_FORMAT, LambdaUtil.getQueryColumn(columnD), LambdaUtil.getQueryColumn(columnF));
+    public static <D, F> QueryColumn dateFormat(LambdaGetter<D> columnD, String format) {
+        return new FunctionQueryColumn(DATE_FORMAT, LambdaUtil.getQueryColumn(columnD), string(format));
     }
 
     /**
@@ -2326,7 +2313,7 @@ public class QueryMethods {
      * 返回指定列的总行数。
      */
     public static FunctionQueryColumn count() {
-        return new FunctionQueryColumn(COUNT, new StringQueryColumn("*"));
+        return new FunctionQueryColumn(COUNT, new RawQueryColumn("*"));
     }
 
     /**
@@ -2360,6 +2347,12 @@ public class QueryMethods {
         return new DistinctQueryColumn(columns);
     }
 
+    @SafeVarargs
+    public static <T> DistinctQueryColumn distinct(LambdaGetter<T>... columns) {
+        return new DistinctQueryColumn(Arrays.stream(columns)
+            .map(LambdaUtil::getQueryColumn).toArray(QueryColumn[]::new));
+    }
+
     // === CASE THEN ELSE ===
 
     /**
@@ -2391,42 +2384,49 @@ public class QueryMethods {
      * 构建 TRUE 常量。
      */
     public static QueryColumn true_() {
-        return new StringQueryColumn("TRUE");
+        return new RawQueryColumn("TRUE");
     }
 
     /**
      * 构建 FALSE 常量。
      */
     public static QueryColumn false_() {
-        return new StringQueryColumn("FALSE");
+        return new RawQueryColumn("FALSE");
     }
 
     /**
      * 构建 NULL 常量。
      */
     public static QueryColumn null_() {
-        return new StringQueryColumn("NULL");
+        return new RawQueryColumn("NULL");
     }
 
     /**
      * 构建数字常量。
      */
     public static QueryColumn number(Number n) {
-        return new StringQueryColumn(n.toString());
+        return new RawQueryColumn(n);
     }
 
     /**
      * 构建数字常量。
      */
     public static QueryColumn string(String s) {
-        return new StringQueryColumn("'" + s + "'");
+        return new RawQueryColumn("'" + s + "'");
+    }
+
+    /**
+     * 构建相反数。
+     */
+    public static QueryColumn negative(QueryColumn queryColumn) {
+        return new NegativeQueryColumn(queryColumn);
     }
 
     /**
      * 构建自定义列。
      */
-    public static QueryColumn column(String column) {
-        return new StringQueryColumn(column);
+    public static QueryColumn column(String column, Object... params) {
+        return new RawQueryColumn(column, params);
     }
 
     /**
@@ -2455,6 +2455,38 @@ public class QueryMethods {
      */
     public static QueryColumn column(QueryWrapper queryWrapper) {
         return new SelectQueryColumn(queryWrapper);
+    }
+
+    /**
+     * 构建所有列。
+     */
+    public static QueryColumn allColumns() {
+        return column("*");
+    }
+
+    /**
+     * 构建所有列。
+     */
+    public static Iterable<QueryColumn> allColumns(Class<?>... classes) {
+        List<QueryColumn> queryColumns = new ArrayList<>(classes.length);
+        for (Class<?> aClass : classes) {
+            TableInfo tableInfo = TableInfoFactory.ofEntityClass(aClass);
+            QueryTable queryTable = new QueryTable(tableInfo.getSchema(), tableInfo.getTableName());
+            queryColumns.add(new QueryColumn(queryTable, "*"));
+        }
+        return queryColumns;
+    }
+
+    /**
+     * 构建默认列。
+     */
+    public static Iterable<QueryColumn> defaultColumns(Class<?>... classes) {
+        List<QueryColumn> queryColumns = new ArrayList<>();
+        for (Class<?> aClass : classes) {
+            TableInfo tableInfo = TableInfoFactory.ofEntityClass(aClass);
+            queryColumns.addAll(tableInfo.getDefaultQueryColumn());
+        }
+        return queryColumns;
     }
 
     // === IF 函数 ===
@@ -2501,6 +2533,21 @@ public class QueryMethods {
         return new FunctionQueryColumn("IFNULL", LambdaUtil.getQueryColumn(nullColumn), LambdaUtil.getQueryColumn(elseColumn));
     }
 
+    /**
+     * IFNULL 函数。
+     */
+    public static <N> QueryColumn ifNull(LambdaGetter<N> nullColumn, QueryColumn elseColumn) {
+        return ifNull(LambdaUtil.getQueryColumn(nullColumn), elseColumn);
+    }
+
+    /**
+     * IFNULL 函数。
+     */
+    public static <N> QueryColumn ifNull(LambdaGetter<N> nullColumn, String elseColumn) {
+        return ifNull(nullColumn, new QueryColumn(elseColumn));
+    }
+
+
     // === 构建 QueryCondition 查询条件 ===
 
     /**
@@ -2525,10 +2572,24 @@ public class QueryMethods {
     }
 
     /**
+     * {@code NOT (column)} 或 {@code NOT column}
+     */
+    public static <N> QueryColumn not(LambdaGetter<N> column) {
+        return new FunctionQueryColumn("NOT", LambdaUtil.getQueryColumn(column));
+    }
+
+    /**
      * 空条件。
      */
     public static QueryCondition noCondition() {
         return QueryCondition.createEmpty();
+    }
+
+    /**
+     * 括号条件。
+     */
+    public static QueryCondition bracket(QueryCondition condition) {
+        return new Brackets(condition);
     }
 
     // === 构建 QueryWrapper 查询 ===
@@ -2548,24 +2609,24 @@ public class QueryMethods {
     }
 
     /**
-     * SELECT 1 FROM table
+     * SELECT 1 as temp_one FROM table
      */
     public static QueryWrapper selectOne() {
-        return select(column("1"));
+        return select(column("1").as("temp_one"));
     }
 
     /**
-     * SELECT COUNT(*) FROM table
+     * SELECT COUNT(*) as temp_count FROM table
      */
     public static QueryWrapper selectCount() {
-        return select(count());
+        return select(count().as("temp_count"));
     }
 
     /**
-     * SELECT COUNT(1) FROM table
+     * SELECT COUNT(1) as temp_count_one FROM table
      */
     public static QueryWrapper selectCountOne() {
-        return select(count("1"));
+        return select(count(new RawQueryColumn("1")).as("temp_count_one"));
     }
 
     /**
@@ -2581,14 +2642,22 @@ public class QueryMethods {
      * 构建原生查询条件。
      */
     public static QueryCondition raw(String raw) {
-        return new RawFragment(raw);
+        return new RawQueryCondition(raw);
     }
 
     /**
      * 构建原生查询条件，并附带参数。
      */
     public static QueryCondition raw(String raw, Object... params) {
-        return new RawFragment(raw, params);
+        return new RawQueryCondition(raw, params);
+    }
+
+
+    /**
+     * 分组值拼接
+     */
+    public static QueryColumn groupConcat(QueryColumn columnX) {
+        return new FunctionQueryColumn(GROUP_CONCAT, columnX);
     }
 
 }

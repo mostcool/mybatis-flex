@@ -36,7 +36,7 @@ public class UpdateWrapperTest {
         DataSource dataSource = new EmbeddedDatabaseBuilder()
             .setType(EmbeddedDatabaseType.H2)
             .addScript("schema.sql")
-            .addScript("data.sql")
+            .addScript("data.sql").setScriptEncoding("UTF-8")
             .build();
 
         MybatisFlexBootstrap bootstrap = MybatisFlexBootstrap.getInstance()
@@ -72,7 +72,7 @@ public class UpdateWrapperTest {
         System.out.println("//////////account3");
 
         Account account3 = UpdateEntity.of(Account.class, 1);
-        UpdateWrapper wrapper3 = (UpdateWrapper) account3;
+        UpdateWrapper<Account> wrapper3 = (UpdateWrapper) account3;
         wrapper3.setRaw(Account::getAge, "age + 1");
         accountMapper.update(account3);
 

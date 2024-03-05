@@ -40,7 +40,7 @@ public class EntityTestStarter {
         DataSource dataSource = new EmbeddedDatabaseBuilder()
             .setType(EmbeddedDatabaseType.H2)
             .addScript("schema.sql")
-            .addScript("data.sql")
+            .addScript("data.sql").setScriptEncoding("UTF-8")
             .build();
 
         MybatisFlexBootstrap bootstrap = MybatisFlexBootstrap.getInstance()
@@ -134,13 +134,13 @@ public class EntityTestStarter {
             .from(Article.class)
 //                .leftJoin(Account.class).as("a").on(ARTICLE.ACCOUNT_ID.eq(ACCOUNT.ID))
             .leftJoin(Account.class).as("a").on(wrapper -> wrapper.where(Account::getId).eq(Article::getAccountId))
-            .where(Account::getId).ge(100, If::notEmpty)
+            .where(Account::getId).ge(100, If::notNull)
             .and(wrapper -> {
                 wrapper.where(Account::getId).ge(100)
                     .or(Account::getAge).gt(200)
                     .and(Article::getAccountId).eq(200)
                     .or(wrapper1 -> {
-                        wrapper1.where(Account::getId).like("a", If::notEmpty);
+                        wrapper1.where(Account::getId).like("a", If::hasText);
                     })
                 ;
             });
@@ -176,18 +176,15 @@ public class EntityTestStarter {
 //        Page<ArticleDTO01> paginate = accountMapper.paginateAs(Page.of(1, 10), asWrapper, ArticleDTO01.class);
 //        System.out.println(paginate);
 
-        Db.tx(new Supplier<Boolean>() {
-            @Override
-            public Boolean get() {
-                Cursor<Account> accounts = accountMapper.selectCursorByQuery(asWrapper);
-                System.out.println(accounts.isOpen());
-                for (Account account : accounts) {
-                    System.out.println(accounts.isOpen());
-                    System.out.println(account);
-                }
-                System.out.println(accounts.isOpen());
-                return true;
+        Db.tx(() -> {
+            Cursor<Account> accounts1 = accountMapper.selectCursorByQuery(asWrapper);
+            System.out.println(accounts1.isOpen());
+            for (Account account : accounts1) {
+                System.out.println(accounts1.isOpen());
+                System.out.println(account);
             }
+            System.out.println(accounts1.isOpen());
+            return true;
         });
 
 //        Cursor<Account> accounts = accountMapper.selectCursorByQuery(asWrapper);

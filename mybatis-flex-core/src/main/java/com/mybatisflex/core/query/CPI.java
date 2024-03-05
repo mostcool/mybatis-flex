@@ -15,6 +15,7 @@
  */
 package com.mybatisflex.core.query;
 
+import com.mybatisflex.core.constant.SqlConnector;
 import com.mybatisflex.core.dialect.IDialect;
 import com.mybatisflex.core.util.CollectionUtil;
 import com.mybatisflex.core.util.StringUtil;
@@ -133,9 +134,20 @@ public class CPI {
         queryWrapper.addJoin(join);
     }
 
+    public static QueryCondition getPrevEffectiveCondition(QueryCondition queryCondition) {
+        return queryCondition.getPrevEffectiveCondition();
+    }
+
+    public static QueryCondition getNextCondition(QueryCondition queryCondition) {
+        return queryCondition.getNextEffectiveCondition();
+    }
 
     public static QueryCondition getWhereQueryCondition(QueryWrapper queryWrapper) {
         return queryWrapper.getWhereQueryCondition();
+    }
+
+    public static void setWhereQueryCondition(QueryWrapper queryWrapper, QueryCondition queryCondition) {
+        queryWrapper.setWhereQueryCondition(queryCondition);
     }
 
     public static void addWhereQueryCondition(QueryWrapper queryWrapper, QueryCondition queryCondition, SqlConnector connector) {

@@ -18,6 +18,7 @@ package com.mybatisflex.codegen.config;
 
 import com.mybatisflex.core.util.StringUtil;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -30,8 +31,9 @@ import java.util.Set;
  * @since 2023-05-14
  */
 @SuppressWarnings("unused")
-public class StrategyConfig {
+public class StrategyConfig implements Serializable {
 
+    private static final long serialVersionUID = 504853587703061034L;
     /**
      * 数据库表前缀，多个前缀用英文逗号（,） 隔开。
      */
@@ -87,6 +89,7 @@ public class StrategyConfig {
     public Set<String> getIgnoreColumns() {
         return ignoreColumns;
     }
+
     /**
      * 设置需要忽略的列  全局配置。
      */
@@ -121,7 +124,11 @@ public class StrategyConfig {
      * 获取表配置。
      */
     public TableConfig getTableConfig(String tableName) {
-        return tableConfigMap == null ? null : tableConfigMap.get(tableName);
+        if (tableConfigMap == null) {
+            return null;
+        }
+        TableConfig tableConfig = tableConfigMap.get(tableName);
+        return tableConfig != null ? tableConfig : tableConfigMap.get(TableConfig.ALL_TABLES);
     }
 
     /**
@@ -190,7 +197,7 @@ public class StrategyConfig {
             setTableConfig(tableConfig);
         }
 
-        tableConfig.addColumnConfig(columnConfig);
+        tableConfig.setColumnConfig(columnConfig);
 
         return this;
     }

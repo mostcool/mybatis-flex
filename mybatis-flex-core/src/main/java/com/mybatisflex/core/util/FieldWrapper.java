@@ -15,6 +15,7 @@
  */
 package com.mybatisflex.core.util;
 
+import com.mybatisflex.annotation.Column;
 import org.apache.ibatis.reflection.Reflector;
 
 import java.lang.reflect.*;
@@ -27,6 +28,7 @@ public class FieldWrapper {
     public static Map<Class<?>, Map<String, FieldWrapper>> cache = new ConcurrentHashMap<>();
 
     private Field field;
+    private boolean isIgnore = false;
     private Class<?> fieldType;
     private Class<?> mappingType;
     private Class<?> keyType;
@@ -51,7 +53,7 @@ public class FieldWrapper {
                 if (fieldWrapper == null) {
                     Field findField = ClassUtil.getFirstField(clazz, field -> field.getName().equals(fieldName));
                     if (findField == null) {
-                        throw new IllegalStateException("Can not find field \"" + fieldName + "\" in class: " + clazz);
+                        throw new IllegalStateException("Can not find field \"" + fieldName + "\" in class: " + clazz.getName());
                     }
 
                     String setterName = "set" + StringUtil.firstCharToUpperCase(fieldName);
@@ -60,15 +62,15 @@ public class FieldWrapper {
                             && Modifier.isPublic(method.getModifiers())
                             && method.getName().equals(setterName));
 
-                    if (setter == null) {
-                        throw new IllegalStateException("Can not find method \"set" + StringUtil.firstCharToUpperCase(fieldName) + "\" in class: " + clazz);
-                    }
-
                     fieldWrapper = new FieldWrapper();
                     fieldWrapper.field = findField;
                     fieldWrapper.fieldType = findField.getType();
                     initMappingTypeAndKeyType(clazz, findField, fieldWrapper);
 
+                    Column column = findField.getAnnotation(Column.class);
+                    if (column != null && column.ignore()) {
+                        fieldWrapper.isIgnore = true;
+                    }
 
                     fieldWrapper.setterMethod = setter;
 
@@ -99,7 +101,12 @@ public class FieldWrapper {
             Type genericType = field.getGenericType();
             if (genericType instanceof ParameterizedType) {
                 fieldWrapper.keyType = (Class<?>) ((ParameterizedType) genericType).getActualTypeArguments()[0];
-                fieldWrapper.mappingType = (Class<?>) ((ParameterizedType) genericType).getActualTypeArguments()[1];
+                Type actualTypeArgument = ((ParameterizedType) genericType).getActualTypeArguments()[1];
+                if (actualTypeArgument instanceof ParameterizedType) {
+                    fieldWrapper.mappingType = (Class<?>) ((ParameterizedType) actualTypeArgument).getRawType();
+                } else {
+                    fieldWrapper.mappingType = (Class<?>) actualTypeArgument;
+                }
             }
         } else {
             fieldWrapper.mappingType = fieldType;
@@ -109,6 +116,9 @@ public class FieldWrapper {
 
     public void set(Object value, Object to) {
         try {
+            if (setterMethod == null) {
+                throw new IllegalStateException("Can not find method \"set" + StringUtil.firstCharToUpperCase(field.getName()) + "\" in class: " + to.getClass().getName());
+            }
             setterMethod.invoke(to, value);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -117,6 +127,10 @@ public class FieldWrapper {
 
     public Object get(Object target) {
         try {
+            if (getterMethod == null) {
+                throw new IllegalStateException("Can not find method \"get" + StringUtil.firstCharToUpperCase(field.getName()) + ", is"
+                    + StringUtil.firstCharToUpperCase(field.getName()) + "\" in class: " + target.getClass().getName());
+            }
             return getterMethod.invoke(target);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -137,5 +151,9 @@ public class FieldWrapper {
 
     public Field getField() {
         return field;
+    }
+
+    public boolean isIgnore() {
+        return isIgnore;
     }
 }

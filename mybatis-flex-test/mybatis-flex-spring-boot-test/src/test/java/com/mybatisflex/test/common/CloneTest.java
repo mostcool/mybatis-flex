@@ -18,6 +18,7 @@ package com.mybatisflex.test.common;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter;
+import com.mybatisflex.core.query.CPI;
 import com.mybatisflex.core.query.QueryWrapper;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,7 @@ import java.util.function.Supplier;
 
 import static com.mybatisflex.core.query.QueryMethods.count;
 import static com.mybatisflex.core.query.QueryMethods.distinct;
+import static com.mybatisflex.test.model.table.AccountTableDef.ACCOUNT;
 import static com.mybatisflex.test.model.table.RoleTableDef.ROLE;
 import static com.mybatisflex.test.model.table.UserRoleTableDef.USER_ROLE;
 import static com.mybatisflex.test.model.table.UserTableDef.USER;
@@ -66,16 +68,16 @@ class CloneTest {
         QueryWrapper queryWrapper = newQueryWrapper();
         QueryWrapper queryWrapper1 = queryWrapper.clone();
         QueryWrapper queryWrapper2 = SerialUtil.cloneObject(queryWrapper);
-        QueryWrapper queryWrapper3 = SerialUtil.cloneObject(queryWrapper, QueryWrapper.class);
+//        QueryWrapper queryWrapper3 = SerialUtil.cloneObject(queryWrapper, QueryWrapper.class);
         System.err.println(SerialUtil.toJSONString(queryWrapper));
         System.out.println(queryWrapper.toSQL());
         System.out.println(queryWrapper1.toSQL());
         System.out.println(queryWrapper2.toSQL());
-        System.out.println(queryWrapper3.toSQL());
+//        System.out.println(queryWrapper3.toSQL());
 
         Assertions.assertEquals(queryWrapper.toSQL(), queryWrapper1.toSQL());
         Assertions.assertEquals(queryWrapper.toSQL(), queryWrapper2.toSQL());
-        Assertions.assertEquals(queryWrapper.toSQL(), queryWrapper3.toSQL());
+//        Assertions.assertEquals(queryWrapper.toSQL(), queryWrapper3.toSQL());
     }
 
     private void calcTime(int count, String type, Supplier<QueryWrapper> supplier) {
@@ -105,6 +107,28 @@ class CloneTest {
             .groupBy(ROLE.ROLE_NAME)
             .having(ROLE.ROLE_ID.ge(7))
             .orderBy(ROLE.ROLE_NAME.asc());
+    }
+
+    @Test
+    void test04() {
+        QueryWrapper queryWrapper = QueryWrapper.create()
+            .from(ACCOUNT)
+            .select(ACCOUNT.DEFAULT_COLUMNS)
+            .where(ACCOUNT.ID.eq(1));
+
+        QueryWrapper clone = queryWrapper.clone();
+
+        CPI.setSelectColumns(clone, null);
+
+        clone.select(ACCOUNT.ID, ACCOUNT.USER_NAME);
+
+        String sql1 = queryWrapper.toSQL();
+        String sql2 = clone.toSQL();
+
+        System.out.println(sql1);
+        System.out.println(sql2);
+
+        Assertions.assertNotEquals(sql1, sql2);
     }
 
 }

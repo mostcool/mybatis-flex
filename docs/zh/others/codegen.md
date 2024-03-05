@@ -10,14 +10,13 @@
 <dependency>
     <groupId>com.mybatis-flex</groupId>
     <artifactId>mybatis-flex-codegen</artifactId>
-    <version>1.5.6</version>
+    <version>1.8.1</version>
 </dependency>
 ```
 
 同时需要添加数据源的 Maven 依赖和 jdbc 驱动依赖：
 
 ```xml
-
 <dependency>
     <groupId>com.zaxxer</groupId>
     <artifactId>HikariCP</artifactId>
@@ -68,6 +67,8 @@ public class Codegen {
         //设置生成 entity 并启用 Lombok
         globalConfig.setEntityGenerateEnable(true);
         globalConfig.setEntityWithLombok(true);
+        //设置项目的JDK版本，项目的JDK为14及以上时建议设置该项，小于14则可以不设置
+        globalConfig.setJdkVersion(17);
 
         //设置生成 mapper
         globalConfig.setMapperGenerateEnable(true);
@@ -97,7 +98,8 @@ public class Codegen {
 
         //设置生成 entity 并启用 Lombok
         globalConfig.enableEntity()
-                .setWithLombok(true);
+                .setWithLombok(true)
+                .setJdkVersion(17);
 
         //设置生成 mapper
         globalConfig.enableMapper();
@@ -196,17 +198,18 @@ globalConfig.enableEntity()
 
 ## 注释配置 `JavadocConfig`
 
-| 配置                              | 描述              | 默认值                             |
-|---------------------------------|-----------------|---------------------------------|
-| setAuthor(String)               | 作者              | System.getProperty("user.name") |
-| setSince(String)                | 自               | 日期（yyyy-MM-dd）                  |
-| setTableCommentFormat(Function) | 表名格式化           | 原表名                             |
-| setEntityPackage(String)        | Entity 包注释      | "实体类层（Entity）软件包。"              |
-| setMapperPackage(String)        | Mapper 包注释      | "映射层（Mapper）软件包。"               |
-| setServicePackage(String)       | Service 包注释     | "服务层（Service）软件包。"              |
-| setServiceImplPackage(String)   | ServiceImpl 包注释 | "服务层实现（ServiceImpl）软件包。"        |
-| setControllerPackage(String)    | Controller 包注释  | "控制层（Controller）软件包。"           |
-| setTableDefPackage(String)      | TableDef 包注释    | "表定义层（TableDef）软件包。"            |
+| 配置                               | 描述              | 默认值                             |
+|----------------------------------|-----------------|---------------------------------|
+| setAuthor(String)                | 作者              | System.getProperty("user.name") |
+| setSince(String)                 | 自               | 日期（yyyy-MM-dd）                  |
+| setTableCommentFormat(Function)  | 表注释格式化          | 原表注释                            |
+| setColumnCommentFormat(Function) | 字段注释格式化         | 原字段注释                           |
+| setEntityPackage(String)         | Entity 包注释      | "实体类层（Entity）软件包。"              |
+| setMapperPackage(String)         | Mapper 包注释      | "映射层（Mapper）软件包。"               |
+| setServicePackage(String)        | Service 包注释     | "服务层（Service）软件包。"              |
+| setServiceImplPackage(String)    | ServiceImpl 包注释 | "服务层实现（ServiceImpl）软件包。"        |
+| setControllerPackage(String)     | Controller 包注释  | "控制层（Controller）软件包。"           |
+| setTableDefPackage(String)       | TableDef 包注释    | "表定义层（TableDef）软件包。"            |
 
 ```java
 globalConfig.getJavadocConfig()
@@ -216,17 +219,17 @@ globalConfig.getJavadocConfig()
 
 ## 包配置 `PackageConfig`
 
-| 配置                            | 描述             | 默认值                                               |
-|-------------------------------|----------------|---------------------------------------------------|
-| setSourceDir(String)          | 文件输出目录         | System.getProperty("user.dir") + "/src/main/java" |
-| setBasePackage(String)        | 根包名            | "com.mybatisflex"                                 |
-| setEntityPackage(String)      | Entity 包名      | getBasePackage() + ".entity"                      |                      |
-| setMapperPackage(String)      | Mapper 包名      | getBasePackage() + ".mapper"                      |                      |
-| setServicePackage(String)     | Service 包名     | getBasePackage() + ".service"                     |                      |
-| setServiceImplPackage(String) | ServiceImpl 包名 | getBasePackage() + ".service.impl"                |                      |
-| setControllerPackage(String)  | Controller 包名  | getBasePackage() + ".controller"                  |                      |
-| setTableDefPackage(String)    | TableDef 包名    | getEntityPackage() + ".tables"                    |                      |
-| setMapperXmlPath(String)      | MapperXml 路径   | getSourceDir() + "/resources/mapper"              |                      |
+| 配置                            | 描述             | 默认值                                                           |
+|-------------------------------|----------------|---------------------------------------------------------------|
+| setSourceDir(String)          | 文件输出目录         | System.getProperty("user.dir") + "/src/main/java"             |
+| setBasePackage(String)        | 根包名            | "com.mybatisflex"                                             |
+| setEntityPackage(String)      | Entity 包名      | getBasePackage() + ".entity"                                  |                      |
+| setMapperPackage(String)      | Mapper 包名      | getBasePackage() + ".mapper"                                  |                      |
+| setServicePackage(String)     | Service 包名     | getBasePackage() + ".service"                                 |                      |
+| setServiceImplPackage(String) | ServiceImpl 包名 | getBasePackage() + ".service.impl"                            |                      |
+| setControllerPackage(String)  | Controller 包名  | getBasePackage() + ".controller"                              |                      |
+| setTableDefPackage(String)    | TableDef 包名    | getEntityPackage() + ".tables"                                |                      |
+| setMapperXmlPath(String)      | MapperXml 路径   | System.getProperty("user.dir") + "/src/main/resources/mapper" |                      |
 
 ```java
 globalConfig.getPackageConfig()
@@ -243,10 +246,11 @@ globalConfig.getPackageConfig()
 | setVersionColumn(String)       | 乐观锁的字段名称               | null  |
 | setGenerateForView(boolean)    | 是否生成视图映射               | false |
 | setTableConfig(TableConfig)    | 单独为某张表添加独立的配置          | null  |
-| setGenerateSchema(String)      | 生成哪个schema下的表          | null  |
 | setColumnConfig(ColumnConfig)  | 设置某个列的全局配置             | null  |
+| setGenerateSchema(String)      | 生成哪个schema下的表          | null  |
 | setGenerateTables(String...)   | 生成哪些表，白名单              | null  |
 | setUnGenerateTables(String...) | 不生成哪些表，黑名单             | null  |
+| setIgnoreColumns(String...)    | 需要忽略的列，父类定义的字段         | null  |
 
 ```java
 globalConfig.getStrategyConfig()
@@ -278,14 +282,20 @@ globalConfig.getTemplateConfig()
 
 ## Entity 生成配置 `EntityConfig`
 
-| 配置                          | 描述                               | 默认值                |
-|-----------------------------|----------------------------------|--------------------|
-| setClassPrefix(String)      | Entity 类的前缀                      | ""                 |
-| setClassSuffix(String)      | Entity 类的后缀                      | ""                 |
-| setSuperClass(Class)       | Entity 类的父类，可以自定义一些 BaseEntity 类 | null               |
-| setOverwriteEnable(boolean) | 是否覆盖之前生成的文件                      | false              |
-| setImplInterfaces(Class[])  | Entity 默认实现的接口                   | Serializable.class |
-| setWithLombok(boolean)      | Entity 是否使用 Lombok 注解            | false              |
+| 配置                                           | 描述                                                | 默认值                |
+|----------------------------------------------|---------------------------------------------------|--------------------|
+| setClassPrefix(String)                       | Entity 类的前缀                                       | ""                 |
+| setClassSuffix(String)                       | Entity 类的后缀                                       | ""                 |
+| setSuperClass(Class)                         | Entity 类的父类，可以自定义一些 BaseEntity 类                  | null               |
+| setSuperClassFactory(Function<Table, Class>) | Entity 类的父类工厂，可以用于对特定的 Class 设置父类，而非全部 Entity 的父类 | null               |
+| setOverwriteEnable(boolean)                  | 是否覆盖之前生成的文件                                       | false              |
+| setImplInterfaces(Class[])                   | Entity 默认实现的接口                                    | Serializable.class |
+| setWithLombok(boolean)                       | Entity 是否使用 Lombok 注解                             | false              |
+| setWithSwagger(boolean)                      | Entity 是否使用 Swagger 注解                            | false              |
+| setSwaggerVersion(EntityConfig.SwaggerVersion) | Swagger 注解版本                                      | SwaggerVersion.FOX |
+| setWithActiveRecord(boolean)                 | 是否生成 Active Record 模式的 Entity                     | false              |
+| setDataSource(String)                        | 统一使用的数据源                                          | null               |
+| setJdkVersion(int)                           | 设置项目的jdk版本                                        | 0                  |
 
 ```java
 globalConfig.getEntityConfig()
@@ -295,14 +305,30 @@ globalConfig.getEntityConfig()
         .setSuperClass(BaseEntity.class);
 ```
 
+**注意：** `setSuperClassFactory(Function<Table, Class>)` 的优先级要大于 `setSuperClass(Class)`，当两者同时配置时，`setSuperClass(Class)`
+的配置无效。
+
+
+**setEntitySuperClassFactory** 示例代码：
+
+```java
+globalConfig.setEntitySuperClassFactory(table -> {
+
+    // 在这里，可以通过 table 来指定对应 SuperClass
+    // 返回 null，则表示不需要设置父类
+    return null;
+});
+```
+
 ## Mapper 生成配置 `MapperConfig`
 
-| 配置                          | 描述          | 默认值              |
-|-----------------------------|-------------|------------------|
-| setClassPrefix(String)      | Mapper 类的前缀 | ""               |
-| setClassSuffix(String)      | Mapper 类的后缀 | "Mapper"         |
-| setSuperClass(Class)       | Mapper 类的父类 | BaseMapper.class |
-| setOverwriteEnable(boolean) | 是否覆盖之前生成的文件 | false            |
+| 配置                           | 描述              | 默认值              |
+|------------------------------|-----------------|------------------|
+| setClassPrefix(String)       | Mapper 类的前缀     | ""               |
+| setClassSuffix(String)       | Mapper 类的后缀     | "Mapper"         |
+| setSuperClass(Class)         | Mapper 类的父类     | BaseMapper.class |
+| setOverwriteEnable(boolean)  | 是否覆盖之前生成的文件     | false            |
+| setMapperAnnotation(boolean) | 是否生成 @Mapper 注解 | false            |
 
 ```java
 globalConfig.getMapperConfig()
@@ -317,7 +343,7 @@ globalConfig.getMapperConfig()
 |-----------------------------|--------------|----------------|
 | setClassPrefix(String)      | Service 类的前缀 | ""             |
 | setClassSuffix(String)      | Service 类的后缀 | "Service"      |
-| setSuperClass(Class)       | Service 类的父类 | IService.class |
+| setSuperClass(Class)        | Service 类的父类 | IService.class |
 | setOverwriteEnable(boolean) | 是否覆盖之前生成的文件  | false          |
 
 ```java
@@ -333,7 +359,7 @@ globalConfig.getServiceConfig()
 |-----------------------------|------------------|-------------------|
 | setClassPrefix(String)      | ServiceImpl 类的前缀 | ""                |
 | setClassSuffix(String)      | ServiceImpl 类的后缀 | "ServiceImpl"     |
-| setSuperClass(Class)       | ServiceImpl 类的父类 | ServiceImpl.class |
+| setSuperClass(Class)        | ServiceImpl 类的父类 | ServiceImpl.class |
 | setOverwriteEnable(boolean) | 是否覆盖之前生成的文件      | false             |
 | setCacheExample(boolean)    | 是否添加缓存示例代码       | false             |
 
@@ -350,7 +376,7 @@ globalConfig.getServiceImplConfig()
 |-----------------------------|---------------------|--------------|
 | setClassPrefix(String)      | Controller 类的前缀     | ""           |
 | setClassSuffix(String)      | Controller 类的后缀     | "Controller" |
-| setSuperClass(Class)       | Controller 类的父类     | null         |
+| setSuperClass(Class)        | Controller 类的父类     | null         |
 | setOverwriteEnable(boolean) | 是否覆盖之前生成的文件         | false        |
 | setRestStyle(boolean)       | REST 风格的 Controller | true         |
 
@@ -366,7 +392,7 @@ globalConfig.getControllerConfig()
 | 配置                                               | 描述             | 默认值                                       |
 |--------------------------------------------------|----------------|-------------------------------------------|
 | setClassPrefix(String)                           | TableDef 类的前缀  | ""                                        |
-| setClassSuffix(String)                           | TableDef 类的后缀  | "TableDef"                                     |
+| setClassSuffix(String)                           | TableDef 类的后缀  | "TableDef"                                |
 | setOverwriteEnable(boolean)                      | 是否覆盖之前生成的文件    | false                                     |
 | setPropertiesNameStyle(TableDefConfig.NameStyle) | 生成辅助类的字段风格     | TableDefConfig.NameStyle.LOWER_CAMEL_CASE |
 | setInstanceSuffix(String)                        | 生成辅助类常量对应的变量后缀 | ""                                        |
@@ -398,26 +424,46 @@ TableConfig 支持的配置如下：
 ```java
 public class TableConfig {
 
+    /**
+     * 表名。
+     */
     private String tableName;
 
     /**
-     * 数据库的 schema（模式）
+     * 数据库的 schema（模式）。
      */
     private String schema;
 
     /**
-     * 默认为 驼峰属性 转换为 下划线字段
+     * 默认为 驼峰属性 转换为 下划线字段。
      */
     private Boolean camelToUnderline;
 
-
+    /**
+     * 监听 entity 的 insert 行为。
+     */
     private Class<? extends InsertListener> insertListenerClass;
 
-
+    /**
+     * 监听 entity 的 update 行为。
+     */
     private Class<? extends UpdateListener> updateListenerClass;
 
-    // 是否启用ATP生成Mapper
+    /**
+     * 监听 entity 的查询数据的 set 行为。
+     */
+    private Class<? extends SetListener> setListenerClass;
+
+    /**
+     * 对应列的配置。
+     */
+    private Map<String, ColumnConfig> columnConfigMap;
+
+    /**
+     * 是否开启 Mapper 生成。
+     */
     private Boolean mapperGenerateEnable = Boolean.TRUE;
+
 }
 ```
 
@@ -428,51 +474,125 @@ ColumnConfig 支持的配置如下：
 ```java
 public class ColumnConfig implements Serializable {
 
-    private String onInsertValue;
-    private String onUpdateValue;
-
-    private Boolean isLarge;
-    private Boolean isLogicDelete;
-    private Boolean version;
-
-    private JdbcType jdbcType;
-    private Class<? extends TypeHandler> typeHandler;
-
-    private String mask;
-
-    private boolean isPrimaryKey = false;
-    private KeyType keyType;
-    private String keyValue;
-    private Boolean keyBefore;
-
-    // 是否是租户列
-    private Boolean tenantId;
+    /**
+     * 字段名称。
+     */
+    private String columnName;
 
     /**
-     * 属性的类型。
-     * 原始类型直接写类型名称，例：int/long/float/double/boolean
-     * 对象类型请写对应类的全限定名，例：java.lang.String/com.abc.def.enums.Gender
+     * insert 的时候默认值，这个值会直接被拼接到 sql 而不通过参数设置。
+     */
+    private String onInsertValue;
+
+    /**
+     * update 的时候自动赋值，这个值会直接被拼接到 sql 而不通过参数设置。
+     */
+    private String onUpdateValue;
+
+    /**
+     * 是否是大字段，大字段 APT 不会生成到 DEFAULT_COLUMNS 里。
+     */
+    private Boolean isLarge;
+
+    /**
+     * 是否是逻辑删除字段，一张表中只能存在 1 一个逻辑删除字段。
+     */
+    private Boolean isLogicDelete;
+
+    /**
+     * 是否为乐观锁字段。
+     */
+    private Boolean version;
+
+    /**
+     * 配置的 jdbcType。
+     */
+    private JdbcType jdbcType;
+
+    /**
+     * <p>属性的类型。
+     *
+     * <p>原始类型直接写类型名称，例如：int/long/float/double/boolean<br/>
+     * 对象类型请写对应类的全限定名，例如：java.lang.String/com.example.enums.Gender
      */
     private String propertyType;
 
     /**
-     * 属性的默认值, 例：long类型默认值：0L，枚举类型默认值：Gender.MALE
+     * 属性的默认值，例如：long 类型默认值：0L，枚举类型默认值：Gender.MALE。
      */
     private String propertyDefaultValue;
+
+    /**
+     * 自定义 TypeHandler。
+     */
+    private Class<? extends TypeHandler> typeHandler;
+
+    /**
+     * 脱敏方式。
+     */
+    private String mask;
+
+    /**
+     * 字段是否为主键。
+     */
+    private boolean isPrimaryKey = false;
+
+    /**
+     * ID 生成策略。
+     */
+    private KeyType keyType;
+
+    /**
+     * ID 生成器值。
+     */
+    private String keyValue;
+
+    /**
+     * sequence 序列执行顺序。
+     */
+    private Boolean keyBefore;
+
+    /**
+     * 是否是租户 ID。
+     */
+    private Boolean tenantId;
+
 }
 ```
 
 
 ## 自定义属性类型
 
+**方式 1：通过 JdbcTypeMapping**
+
 MyBatis-Flex 内置了一个名为：`JdbcTypeMapping` 的 java 类，我们可以用其配置映射 Jdbc 驱动的数据类型为自定义的
 数据类型，在开始生成代码之前，可以先调用其进行配置，例如：
 
 ```java
-JdbcTypeMapping.registerMapping(LocalDateTime.class,Date.class);
+JdbcTypeMapping.registerMapping(LocalDateTime.class, Date.class);
 ```
 
 那么，当我们生成代码的时候，发现 JDBC 驱动的数据类型为 `LocalDateTime`，则 Entity 对应的属性类型为 `Date`。
+
+**方式 2：使用 ColumnConfig 定义**
+
+如下方示例代码所示：
+
+```java 4
+ColumnConfig columnConfig = new ColumnConfig();
+
+//定义该属性的类型为 java.util.List<String>
+columnConfig.setPropertyType("java.util.List<String>");
+columnConfig.setTypeHandler(CommaSplitTypeHandler.class);
+columnConfig.setColumnName("your_column_name");
+
+GlobalConfig globalConfig = new GlobalConfig();
+globalConfig.setColumnConfig("your_table_name", columnConfig);
+
+Generator generator = new Generator(dataSource, globalConfig);
+generator.generate();
+```
+
 
 ## 自定义代码模板
 
@@ -514,7 +634,7 @@ public class EnjoyTemplate implements ITemplate {
 ```
 
 ## 自定义数据方言
-在 MyBatis-Flex 的代码生成器中，已经内置了 4 中方言，他们分别是：
+在 MyBatis-Flex 的代码生成器中，已经内置了 4 种方言，他们分别是：
 
 - 默认方言
 - MySQL 方言
@@ -536,7 +656,7 @@ generator.generate();
 
 MyDialect.java
 ```java
-class MyDialect implements IDialect{
+class MyDialect implements IDialect {
    //重写相关构建方法
 }
 ```
@@ -605,4 +725,35 @@ public class HtmlGenerator implements IGenerator {
 
 ```java
 GeneratorFactory.registerGenerator("html",new HtmlGenerator());
+```
+
+## 注意事项！！！
+
+在 MySQL 或者 Oracle 的某些版本中，代码生成器可能无法获取 `表` 或者 `字段` 的注释内容，我们在数据源配置时，注意添加如下的配置信息：
+
+**MySQL**
+
+JdbcUrl 上注意添加 `useInformationSchema=true` 配置，如下代码所示：
+
+```java
+HikariDataSource dataSource = new HikariDataSource();
+
+//注意：url 需添加上 useInformationSchema=true 才能正常获取表的注释
+dataSource.setJdbcUrl("jdbc:mysql://127.0.0.1:3306/db?useInformationSchema=true&characterEncoding=utf-8");
+dataSource.setUsername("username");
+dataSource.setPassword("password");
+```
+
+
+
+**Oracle**
+
+JdbcUrl 上注意添加 `remarksReporting=true` 配置，如下代码所示：
+```java
+HikariDataSource dataSource = new HikariDataSource();
+
+//注意：url 需添加上 remarksReporting=true 才能正常获取表的注释
+dataSource.setJdbcUrl("jdbc:oracle:thin:@localhost:1521:orcl?remarksReporting=true");
+dataSource.setUsername("username");
+dataSource.setPassword("password");
 ```

@@ -15,6 +15,7 @@
  */
 package com.mybatisflex.core.datasource;
 
+import com.mybatisflex.core.exception.FlexExceptions;
 import com.mybatisflex.core.util.ClassUtil;
 import org.apache.ibatis.logging.LogFactory;
 
@@ -36,10 +37,25 @@ public class DataSourceManager {
         DataSourceManager.decipher = decipher;
     }
 
+    private static DataSourceShardingStrategy dataSourceShardingStrategy;
+
+    public static DataSourceShardingStrategy getDataSourceShardingStrategy() {
+        return dataSourceShardingStrategy;
+    }
+
+    public static void setDataSourceShardingStrategy(DataSourceShardingStrategy dataSourceShardingStrategy) {
+        DataSourceManager.dataSourceShardingStrategy = dataSourceShardingStrategy;
+    }
 
     public static void decryptDataSource(DataSource dataSource) {
         if (decipher == null) {
             return;
+        }
+
+        try {
+            restartDataSource(dataSource);
+        } catch (Exception ignored) {
+            // do nothing here.
         }
 
         for (DataSourceProperty property : DataSourceProperty.values()) {
@@ -57,6 +73,18 @@ public class DataSourceManager {
         }
     }
 
+    static void restartDataSource(DataSource dataSource) {
+        Method restartMethod = ClassUtil.getFirstMethod(ClassUtil.getUsefulClass(dataSource.getClass())
+            , method -> "restart".equals(method.getName()) && method.getParameterCount() == 0);
+        if (restartMethod != null) {
+            try {
+                restartMethod.invoke(dataSource);
+            } catch (Exception e) {
+                throw FlexExceptions.wrap(e);
+            }
+        }
+    }
+
 
     static String invokeMethod(Method method, Object object, Object... params) {
         try {
@@ -68,4 +96,7 @@ public class DataSourceManager {
     }
 
 
+    static String getByShardingStrategy(String dataSource, Object mapper, Method method, Object[] args) {
+        return dataSourceShardingStrategy != null ? dataSourceShardingStrategy.doSharding(dataSource, mapper, method, args) : null;
+    }
 }

@@ -29,109 +29,96 @@ import java.util.Map;
 /**
  * @author michael
  */
-public interface UpdateWrapper extends Serializable {
+public interface UpdateWrapper<T> extends PropertySetter<UpdateWrapper<T>>, Serializable {
 
     default Map<String, Object> getUpdates() {
         ModifyAttrsRecordHandler handler = (ModifyAttrsRecordHandler) ((ProxyObject) this).getHandler();
         return handler.getUpdates();
     }
 
-    default UpdateWrapper set(String property, Object value, boolean condition) {
-        if (condition) {
-            return set(property, value);
+    @Override
+    default UpdateWrapper<T> set(String property, Object value, boolean isEffective) {
+        if (isEffective) {
+            if (value instanceof QueryWrapper
+                    || value instanceof QueryColumn
+                    || value instanceof QueryCondition) {
+                getUpdates().put(property, new RawValue(value));
+            } else {
+                getUpdates().put(property, value);
+            }
         }
         return this;
     }
 
-    default UpdateWrapper set(String property, Object value) {
-        if (value instanceof QueryWrapper || value instanceof QueryCondition || value instanceof QueryColumn) {
-            setRaw(property, value);
-        } else {
-            getUpdates().put(property, value);
+    @Override
+    default UpdateWrapper<T> set(QueryColumn property, Object value, boolean isEffective) {
+        if (isEffective) {
+            if (value instanceof QueryWrapper
+                    || value instanceof QueryColumn
+                    || value instanceof QueryCondition) {
+                getUpdates().put(property.getName(), new RawValue(value));
+            } else {
+                getUpdates().put(property.getName(), value);
+            }
         }
         return this;
     }
 
-    default <T> UpdateWrapper set(LambdaGetter<T> getter, Object value, boolean condition) {
-        if (condition) {
-            return set(getter, value);
+    @Override
+    default <E> UpdateWrapper<T> set(LambdaGetter<E> property, Object value, boolean isEffective) {
+        if (isEffective) {
+            if (value instanceof QueryWrapper
+                    || value instanceof QueryColumn
+                    || value instanceof QueryCondition) {
+                getUpdates().put(LambdaUtil.getFieldName(property), new RawValue(value));
+            } else {
+                getUpdates().put(LambdaUtil.getFieldName(property), value);
+            }
         }
         return this;
     }
 
-    default <T> UpdateWrapper set(LambdaGetter<T> getter, Object value) {
-        if (value instanceof QueryWrapper || value instanceof QueryCondition || value instanceof QueryColumn) {
-            setRaw(getter, value);
-        } else {
-            getUpdates().put(LambdaUtil.getFieldName(getter), value);
-        }
-
-        return this;
-    }
-
-    default <T> UpdateWrapper set(QueryColumn queryColumn, Object value, boolean condition) {
-        if (condition) {
-            return set(queryColumn, value);
-        }
-        return this;
-    }
-
-    default <T> UpdateWrapper set(QueryColumn queryColumn, Object value) {
-        if (value instanceof QueryWrapper || value instanceof QueryCondition || value instanceof QueryColumn) {
-            setRaw(queryColumn, value);
-        } else {
-            getUpdates().put(queryColumn.getName(), value);
-        }
-        return this;
-    }
-
-
-    default UpdateWrapper setRaw(String property, Object value, boolean condition) {
-        if (condition) {
-            return setRaw(property, value);
+    @Override
+    default UpdateWrapper<T> setRaw(String property, Object value, boolean isEffective) {
+        if (isEffective) {
+            getUpdates().put(property, new RawValue(value));
         }
         return this;
     }
 
 
-    default UpdateWrapper setRaw(String property, Object value) {
-        getUpdates().put(property, new RawValue(value));
+    @Override
+    default UpdateWrapper<T> setRaw(QueryColumn property, Object value, boolean isEffective) {
+        if (isEffective) {
+            getUpdates().put(property.getName(), new RawValue(value));
+        }
         return this;
     }
 
-    default <T> UpdateWrapper setRaw(LambdaGetter<T> getter, Object value, boolean condition) {
-        if (condition) {
-            return setRaw(getter, value);
+    @Override
+    default <E> UpdateWrapper<T> setRaw(LambdaGetter<E> property, Object value, boolean isEffective) {
+        if (isEffective) {
+            getUpdates().put(LambdaUtil.getFieldName(property), new RawValue(value));
         }
         return this;
     }
 
 
-    default <T> UpdateWrapper setRaw(LambdaGetter<T> getter, Object value) {
-        getUpdates().put(LambdaUtil.getFieldName(getter), new RawValue(value));
-        return this;
-    }
-
-
-    default <T> UpdateWrapper setRaw(QueryColumn queryColumn, Object value, boolean condition) {
-        if (condition) {
-            return setRaw(queryColumn, value);
-        }
-        return this;
-    }
-
-    default <T> UpdateWrapper setRaw(QueryColumn queryColumn, Object value) {
-        getUpdates().put(queryColumn.getName(), new RawValue(value));
-        return this;
-    }
-
-
-    static UpdateWrapper of(Object entity) {
+    static <T> UpdateWrapper<T> of(T entity) {
         if (entity instanceof UpdateWrapper) {
-            return (UpdateWrapper) entity;
+            return (UpdateWrapper<T>) entity;
         } else {
-            return (UpdateWrapper) UpdateEntity.ofNotNull(entity);
+            return (UpdateWrapper<T>) UpdateEntity.ofNotNull(entity);
         }
+    }
+
+    static <T> UpdateWrapper<T> of(Class<T> tClass) {
+        return (UpdateWrapper<T>) UpdateEntity.of(tClass);
+    }
+
+
+    default T toEntity() {
+        return (T) this;
     }
 
 }

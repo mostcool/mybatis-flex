@@ -32,9 +32,10 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.List;
+import java.util.Map;
 
 @RestController
-@UseDataSource("ds3333")
+@UseDataSource("ds1")
 public class AccountController {
 
     @Resource
@@ -55,13 +56,24 @@ public class AccountController {
     @PostMapping("/account/add")
     @Transactional
     public String add(@RequestBody Account account) {
-        jdbcTemplate.queryForObject("select count(*) from tb_account",Integer.class);
+        Integer count1 = jdbcTemplate.queryForObject("select count(*) from tb_account", Integer.class);
+        System.out.println(">>>>count1: " + count1);
+
         DataSourceKey.use("ds2");
-        jdbcTemplate.update("INSERT INTO `flex_test`.`tb_account` ( `user_name`, `age`, `birthday`, `gender`, `is_delete`) VALUES ( '王五', 18, '2023-07-04 15:00:26', NULL, 000);");
-        DataSourceKey.use("ds3333");
+        int update1 = jdbcTemplate.update("INSERT INTO `flex_test`.`tb_account` ( `user_name`, `age`, `birthday`, `is_delete`) VALUES ( '王五', 18, '2023-07-04 15:00:26', 0);");
+        System.out.println(">>>>>>>>>update1: " + update1);
+
+        DataSourceKey.use("ds1");
         accountMapper.insert(account);
+
         DataSourceKey.use("ds2");
         accountMapper.insert(account);
+
+//        if (true) {
+//            throw new RuntimeException("ex");
+//        }
+
+
         return "add ok!";
     }
 
@@ -105,8 +117,14 @@ public class AccountController {
         account.setUserName("haha1111");
         accountMapper.update(account);
 
-        //嵌套事务
-        accountService.update2();
+        try {
+            //嵌套事务
+            accountService.update2();
+        }catch (Exception e){
+//            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            System.out.println(">>>>>>e"+e);
+        }
+
 
         return accountMapper.selectOneById(id);
     }
@@ -128,6 +146,29 @@ public class AccountController {
     @UseDataSource("ds2222")
     public String ds() {
         return ">>>>>ds: " + DataSourceKey.get();
+    }
+
+
+    @GetMapping("/multids")
+    @Transactional
+    @UseDataSource("ds1")
+    public String multids(){
+        Db.selectAll("tb_account");
+
+        DataSourceKey.use("ds2");
+
+        Db.selectAll("tb_account");
+
+        Db.updateById("tb_account",Row.ofKey("id",1).set("user_name","newUserName"));
+        return "ok";
+    }
+
+
+
+    @GetMapping("/map/{id}")
+//    @Transactional
+    public Map map(@PathVariable("id") Long id) {
+        return myAccountMapper.selectMapById(id);
     }
 
 }

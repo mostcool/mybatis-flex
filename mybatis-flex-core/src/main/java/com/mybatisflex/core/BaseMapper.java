@@ -49,6 +49,7 @@ import static com.mybatisflex.core.query.QueryMethods.count;
  * @author 王帅
  * @author yangs
  * @author lhzsdnu
+ * @author 王超
  */
 @SuppressWarnings({"varargs", "unchecked", "unused"})
 public interface BaseMapper<T> {
@@ -193,6 +194,19 @@ public interface BaseMapper<T> {
     }
 
     // === 删（delete） ===
+
+    /**
+     * 根据实体主键来删除数据。
+     *
+     * @param entity 实体对象，必须包含有主键
+     * @return 受影响的行数
+     */
+    default int delete(T entity) {
+        FlexAssert.notNull(entity, "entity can not be null");
+        TableInfo tableInfo = TableInfoFactory.ofEntityClass(entity.getClass());
+        Object[] pkArgs = tableInfo.buildPkSqlArgs(entity);
+        return deleteById(pkArgs);
+    }
 
     /**
      * 根据主键删除数据。如果是多个主键的情况下，需要传入数组，例如：{@code new Integer[]{100,101}}。
@@ -364,55 +378,21 @@ public interface BaseMapper<T> {
     @UpdateProvider(type = EntitySqlProvider.class, method = "updateByQuery")
     int updateByQuery(@Param(FlexConsts.ENTITY) T entity, @Param(FlexConsts.IGNORE_NULLS) boolean ignoreNulls, @Param(FlexConsts.QUERY) QueryWrapper queryWrapper);
 
-    /**
-     * 执行类似 {@code update table set field = field + 1 where ... } 的场景。
-     * TODO: 2023/7/27  该方法将在 v1.6.0 被删除
-     *
-     * @param fieldName    字段名
-     * @param value        值（大于等于 0 加，小于 0 减）
-     * @param queryWrapper 条件
-     * @return 受影响的行数
-     * @see EntitySqlProvider#updateNumberAddByQuery(Map, ProviderContext)
-     */
-    @Deprecated
-    @UpdateProvider(type = EntitySqlProvider.class, method = "updateNumberAddByQuery")
-    int updateNumberAddByQuery(@Param(FlexConsts.FIELD_NAME) String fieldName, @Param(FlexConsts.VALUE) Number value, @Param(FlexConsts.QUERY) QueryWrapper queryWrapper);
-
-    /**
-     * 执行类似 {@code update table set field = field + 1 where ... } 的场景。
-     * TODO: 该方法将在 v1.6.0 被删除
-     *
-     * @param column       字段名
-     * @param value        值（大于等于 0 加，小于 0 减）
-     * @param queryWrapper 条件
-     * @return 受影响的行数
-     * @see EntitySqlProvider#updateNumberAddByQuery(Map, ProviderContext)
-     */
-    @Deprecated
-    default int updateNumberAddByQuery(QueryColumn column, Number value, QueryWrapper queryWrapper) {
-        FlexAssert.notNull(value, "value");
-        return updateNumberAddByQuery(column.getName(), value, queryWrapper);
-    }
-
-    /**
-     * 执行类似 {@code update table set field = field + 1 where ... } 的场景。
-     * TODO: 该方法将在 v1.6.0 被删除
-     *
-     * @param fn           字段名
-     * @param value        值（大于等于 0 加，小于 0 减）
-     * @param queryWrapper 条件
-     * @return 受影响的行数
-     * @see EntitySqlProvider#updateNumberAddByQuery(Map, ProviderContext)
-     */
-    @Deprecated
-    default int updateNumberAddByQuery(LambdaGetter<T> fn, Number value, QueryWrapper queryWrapper) {
-        FlexAssert.notNull(value, "value");
-        TableInfo tableInfo = TableInfoFactory.ofMapperClass(ClassUtil.getUsefulClass(getClass()));
-        String column = tableInfo.getColumnByProperty(LambdaUtil.getFieldName(fn));
-        return updateNumberAddByQuery(column, value, queryWrapper);
-    }
 
     // === 查（select） ===
+
+    /**
+     * 根据实体主键查询数据。
+     *
+     * @param entity 实体对象，必须包含有主键
+     * @return 实体类数据
+     */
+    default T selectOneByEntityId(T entity) {
+        FlexAssert.notNull(entity, "entity can not be null");
+        TableInfo tableInfo = TableInfoFactory.ofEntityClass(entity.getClass());
+        Object[] pkArgs = tableInfo.buildPkSqlArgs(entity);
+        return selectOneById(pkArgs);
+    }
 
     /**
      * 根据主键查询数据。
@@ -432,7 +412,7 @@ public interface BaseMapper<T> {
      */
     default T selectOneByMap(Map<String, Object> whereConditions) {
         FlexAssert.notEmpty(whereConditions, "whereConditions");
-        return selectOneByQuery(QueryWrapper.create().where(whereConditions).limit(1L));
+        return selectOneByQuery(QueryWrapper.create().where(whereConditions));
     }
 
     /**
@@ -443,7 +423,7 @@ public interface BaseMapper<T> {
      */
     default T selectOneByCondition(QueryCondition whereConditions) {
         FlexAssert.notNull(whereConditions, "whereConditions");
-        return selectOneByQuery(QueryWrapper.create().where(whereConditions).limit(1L));
+        return selectOneByQuery(QueryWrapper.create().where(whereConditions));
     }
 
     /**
@@ -453,7 +433,13 @@ public interface BaseMapper<T> {
      * @return 实体类数据
      */
     default T selectOneByQuery(QueryWrapper queryWrapper) {
-        return MapperUtil.getSelectOneResult(selectListByQuery(queryWrapper));
+        Long limitRows = CPI.getLimitRows(queryWrapper);
+        try {
+            queryWrapper.limit(1);
+            return MapperUtil.getSelectOneResult(selectListByQuery(queryWrapper));
+        } finally {
+            CPI.setLimitRows(queryWrapper, limitRows);
+        }
     }
 
     /**
@@ -464,7 +450,13 @@ public interface BaseMapper<T> {
      * @return 实体类数据
      */
     default <R> R selectOneByQueryAs(QueryWrapper queryWrapper, Class<R> asType) {
-        return MapperUtil.getSelectOneResult(selectListByQueryAs(queryWrapper, asType));
+        Long limitRows = CPI.getLimitRows(queryWrapper);
+        try {
+            queryWrapper.limit(1);
+            return MapperUtil.getSelectOneResult(selectListByQueryAs(queryWrapper, asType));
+        } finally {
+            CPI.setLimitRows(queryWrapper, limitRows);
+        }
     }
 
     /**
@@ -475,7 +467,7 @@ public interface BaseMapper<T> {
      */
     default T selectOneWithRelationsByMap(Map<String, Object> whereConditions) {
         FlexAssert.notEmpty(whereConditions, "whereConditions");
-        return selectOneWithRelationsByQuery(QueryWrapper.create().where(whereConditions).limit(1L));
+        return selectOneWithRelationsByQuery(QueryWrapper.create().where(whereConditions));
     }
 
     /**
@@ -486,7 +478,7 @@ public interface BaseMapper<T> {
      */
     default T selectOneWithRelationsByCondition(QueryCondition whereConditions) {
         FlexAssert.notNull(whereConditions, "whereConditions");
-        return selectOneWithRelationsByQuery(QueryWrapper.create().where(whereConditions).limit(1L));
+        return selectOneWithRelationsByQuery(QueryWrapper.create().where(whereConditions));
     }
 
     /**
@@ -496,7 +488,13 @@ public interface BaseMapper<T> {
      * @return 实体类数据
      */
     default T selectOneWithRelationsByQuery(QueryWrapper queryWrapper) {
-        return MapperUtil.queryRelations(this, MapperUtil.getSelectOneResult(selectListByQuery(queryWrapper)));
+        Long limitRows = CPI.getLimitRows(queryWrapper);
+        try {
+            queryWrapper.limit(1);
+            return MapperUtil.queryRelations(this, MapperUtil.getSelectOneResult(selectListByQuery(queryWrapper)));
+        } finally {
+            CPI.setLimitRows(queryWrapper, limitRows);
+        }
     }
 
     /**
@@ -1154,10 +1152,10 @@ public interface BaseMapper<T> {
                     countSelectId = mapperClassName + "." + countSelectId;
                 }
                 Number number = sqlSession.selectOne(countSelectId, preparedParams);
-                page.setTotalRow(number);
+                page.setTotalRow(number == null ? Page.INIT_VALUE : number.longValue());
             }
 
-            if (!page.isEmpty()) {
+            if (page.hasRecords()) {
                 List<E> entities = sqlSession.selectList(dataSelectId, preparedParams);
                 page.setRecords(entities);
             }

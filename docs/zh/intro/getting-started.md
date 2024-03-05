@@ -12,11 +12,14 @@
 
 
 
-## Hello World 视频教程
+## 本章节视频教程
+
 
 <iframe width="100%" height="400px" src="//player.bilibili.com/player.html?aid=955526987&bvid=BV1yW4y1Z74j&cid=1187300793&page=1&autoplay=no" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
 
-MyBatis-Flex 视频系列详情：https://www.bilibili.com/video/BV1yW4y1Z74j
+> MyBatis-Flex 视频系列：https://www.bilibili.com/video/BV1yW4y1Z74j
+
+
 
 ## Hello World 文档
 
@@ -46,12 +49,11 @@ VALUES (1, '张三', 18, '2020-01-11'),
 需要添加的 Maven 主要依赖示例：
 
 ```xml
-
 <dependencies>
     <dependency>
         <groupId>com.mybatis-flex</groupId>
         <artifactId>mybatis-flex-spring-boot-starter</artifactId>
-        <version>1.5.6</version>
+        <version>1.8.1</version>
     </dependency>
     <dependency>
         <groupId>com.mysql</groupId>
@@ -70,6 +72,35 @@ VALUES (1, '张三', 18, '2020-01-11'),
     </dependency>
 </dependencies>
 ```
+
+**注意**： 如果您当前使用的是 SpringBoot v3.x 版本，需要把依赖 `mybatis-flex-spring-boot-starter` 修改为：`mybatis-flex-spring-boot3-starter`,
+如下代码所示：
+
+```xml 4
+<dependencies>
+    <dependency>
+        <groupId>com.mybatis-flex</groupId>
+        <artifactId>mybatis-flex-spring-boot3-starter</artifactId>
+        <version>1.8.1</version>
+    </dependency>
+    <dependency>
+        <groupId>com.mysql</groupId>
+        <artifactId>mysql-connector-j</artifactId>
+        <scope>runtime</scope>
+    </dependency>
+    <dependency>
+        <groupId>com.zaxxer</groupId>
+        <artifactId>HikariCP</artifactId>
+    </dependency>
+    <!-- for test only -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+        <scope>test</scope>
+    </dependency>
+</dependencies>
+```
+
 
 **第 3 步：对 Spring Boot 项目进行配置**
 

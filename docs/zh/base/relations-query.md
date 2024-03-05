@@ -230,7 +230,129 @@ public class Account implements Serializable {
 
 > 多对多注解 `@RelationManyToMany` 也是如此。
 
+**selfValueSplitBy 分割查询** <Badge type="tip" text="^ v1.6.8" />
 
+若 `selfField` 的值是一个 `由字符拼接而成的列表（如: "1,2,3" )`，那么，我们可以通过配置 `selfValueSplitBy` 来指定使用 `selfField` 的值根据字符切割后查询，
+如下代码所示：
+
+```java 8
+@Table(value = "tb_patient")
+public class PatientVO1 implements Serializable {
+    private static final long serialVersionUID = -2298625009592638988L;
+
+    /**
+     * ID
+     */
+    @Id
+    private Integer patientId;
+
+    /**
+     * 姓名
+     */
+    private String name;
+
+    /**
+     * 所患病症(对应字符串类型) 英文逗号 分割
+     */
+    private String diseaseIds;
+
+    /**
+     * 患者标签(对应数字类型) / 分割
+     */
+    private String tagIds;
+
+    @RelationOneToMany(
+        selfField = "diseaseIds",
+        selfValueSplitBy = ",", //使用 "," 对 diseaseIds 的值进行分割
+        targetTable = "tb_disease", //只获取某个字段值需要填入目标表名
+        targetField = "diseaseId", //测试目标字段是字符串类型是否正常转换
+        valueField = "name" //测试只获取某个字段值是否正常
+    )
+    private List<String> diseaseNameList;
+
+    @RelationOneToMany(
+        selfField = "tagIds",
+        selfValueSplitBy = "/", //使用 "/" 对 tagIds 的值进行分割
+        targetField = "tagId" //测试目标字段是数字类型是否正常转换
+    )
+    private List<Tag> tagList;
+
+    @RelationOneToMany(
+        selfField = "diseaseIds",
+        selfValueSplitBy = ",", //使用 "," 对 diseaseIds 的值进行分割
+        targetField = "diseaseId", //测试目标字段是字符串类型是否正常转换
+        mapKeyField = "diseaseId" //测试Map映射
+    )
+    private Map<String, Disease> diseaseMap;
+
+    //getter setter toString
+}
+```
+
+进行查询
+```java
+QueryWrapper qw = QueryWrapper.create().orderBy(PatientVO1::getPatientId, false).limit(1)
+PatientVO1 patientVO1 = patientMapper.selectOneWithRelationsByQueryAs(qw, PatientVO1.class);
+System.out.println(JSON.toJSONString(patientVO1));
+```
+
+其执行的 SQL 如下：
+
+```sql
+SELECT `patient_id`, `name`, `disease_ids`, `tag_ids` FROM `tb_patient` ORDER BY `patient_id` DESC LIMIT 1;
+
+SELECT disease_id, name FROM `tb_disease` WHERE `disease_id` IN ('1', '2', '3', '4');
+SELECT `tag_id`, `name` FROM `tb_tag` WHERE `tag_id` IN (1, 2, 3);
+SELECT `disease_id`, `name` FROM `tb_disease` WHERE `disease_id` IN ('1', '2', '3', '4');
+```
+
+查询结果：
+```json
+{
+  "patientId": 4,
+  "name": "赵六",
+  "diseaseIds": "1,2,3,4",
+  "tagIds": "1/2/3",
+  "diseaseNameList": [
+    "心脑血管疾病",
+    "消化系统疾病",
+    "神经系统疾病",
+    "免疫系统疾病"
+  ],
+  "tagList": [
+    {
+      "name": "VIP",
+      "tagId": 1
+    },
+    {
+      "name": "JAVA开发",
+      "tagId": 2
+    },
+    {
+      "name": "Web开发",
+      "tagId": 3
+    }
+  ],
+  "diseaseMap": {
+    "1": {
+      "diseaseId": "1",
+      "name": "心脑血管疾病"
+    },
+    "2": {
+      "diseaseId": "2",
+      "name": "消化系统疾病"
+    },
+    "3": {
+      "diseaseId": "3",
+      "name": "神经系统疾病"
+    },
+    "4": {
+      "diseaseId": "4",
+      "name": "免疫系统疾病"
+    }
+  }
+}
+```
 
 ## 多对一 `@RelationManyToOne`
 
@@ -350,6 +472,92 @@ public class Account implements Serializable {
 
     //getter setter
 }
+```
+
+## 只查询一个字段值 <Badge type="tip" text="v1.6.6" />
+
+`RelationOneToOne`、`RelationOneToMany`、`RelationManyToOne`、`RelationManyToMany`新增属性`valueField`
+```java 7
+/**
+ * 目标对象的关系实体类的属性绑定
+ * <p>
+ * 当字段不为空串时,只进行某个字段赋值(使用对应字段类型接收)
+ * @return 属性名称
+ */
+String valueField() default "";
+```
+> 注解其他属性配置使用不变，当配置了`valueField`值时，只提取目标对象关系实体类的该属性
+>
+> **使用场景**：例如，操作日志中有个 `createBy` (操作人)字段，此时在日志信息中需要显示操作人名称，且只需要这一个字段，此时使用实体接收会导致不必要的字段出现，接口文档也会变得混乱。
+
+
+
+假设一个账户实体类 `UserVO5.java`
+- 每个账户有一个唯一对应的`id_number`列在表`tb_id_card`中
+- 一个账户可以有多个角色，一个角色也可以分配给多个账户，他们通过中间表`tb_user_role`进行关系映射
+
+```java {12,21,29}
+@Table("tb_user")
+public class UserVO5 {
+    @Id
+    private Integer userId;
+    private String userName;
+    private String password;
+
+    @RelationOneToOne(
+            selfField = "userId",
+            targetTable = "tb_id_card",
+            targetField = "id",
+            valueField = "idNumber"
+    )
+    //该处可以定义其他属性名，不一定要是目标对象的字段名
+    private String idNumberCustomFieldName;
+
+
+    @RelationManyToMany(
+            selfField = "userId",
+            targetTable = "tb_role",
+            targetField = "roleId",
+            valueField = "roleName",
+            joinTable = "tb_user_role",
+            joinSelfColumn = "user_id",
+            joinTargetColumn = "role_id"
+    )
+    private List<String> roleNameList;
+
+    //getter setter toString
+}
+```
+进行查询
+```java
+List<UserVO5> userVO5List = userMapper.selectListWithRelationsByQueryAs(QueryWrapper.create(), UserVO5.class);
+System.out.println(JSON.toJSONString(userVO5List));
+```
+输出结果
+```json {6,7,13,14,20,21}
+[
+    {
+        userId = 1,
+        userName = '张三',
+        password = '12345678',
+        idNumberCustomFieldName = 'F281C807-C40B-472D-82F5-6130199C6328',
+        roleNameList = [普通用户]
+    },
+    {
+        userId = 2,
+        userName = '李四',
+        password = '87654321',
+        idNumberCustomFieldName = '6176E9AD-36EF-4201-A5F7-CCE89B254952',
+        roleNameList = [普通用户, 贵族用户]
+    },
+    {
+        userId = 3,
+        userName = '王五',
+        password = '09897654',
+        idNumberCustomFieldName = 'A038E6EA-1FDE-4191-AA41-06F78E91F6C2',
+        roleNameList = [普通用户, 贵族用户, 超级贵族用户]
+    }
+]
 ```
 
 ## 父子关系查询
@@ -517,9 +725,54 @@ List<Account> accounts = accountMapper.selectAllWithRelations();
 > 那么我们需要添加上类名的前缀，例如：`addIgnoreRelations("A.x")`。
 
 
+## 只查询部分 Relation 注解
+
+和【忽略部分注解】相反，如下代码中配置了多个 `@Relation***` 修饰的字段：
+
+```java
+@Table(value = "tb_account")
+public class Account implements Serializable {
+
+    @Id(keyType = KeyType.Auto)
+    private Long id;
+
+    private String userName;
+
+    @RelationOneToOne(targetField = "accountId")
+    private IDCard idCard;
 
 
-## 附加条件
+    @RelationOneToMany(targetField = "accountId")
+    private List<Book> books;
+
+
+    @RelationManyToMany(
+            joinTable = "tb_role_mapping",
+            joinSelfColumn = "account_id",
+            joinTargetColumn = "role_id"
+    )
+    private List<Role> roles;
+
+    //getter setter
+}
+```
+
+假设我们只想查询 `books` 和 `roles` 字段，而忽略其他所有  `@Relation***` 修饰的字段，可以通过如下的配置：
+
+```java
+RelationManager.addQueryRelations("books","roles");
+List<Account> accounts = accountMapper.selectAllWithRelations();
+```
+
+这个有一个好处是：以后 Account 代码无论如何变动，比如添加了新的 `@Relation***` 修饰的字段，那么都不会影响到原来的业务。
+
+**注意：**
+
+> `RelationManager` 的 `addIgnoreRelations` （忽略）配置优先于 `addQueryRelations`（查询），假设 `addIgnoreRelations` 和 `addQueryRelations`
+> 都配置了相同的字段，那么这个字段将会被忽略。
+
+
+## 配置额外的附加条件
 
 在一对多（`@RelationOneToMany`）、多对多（`@RelationManyToMany`） 的场景中，除了通过其关联字段查询结果以外，可能还会要求添加一些额外的条件。
 此时，我们可以通过添加 `extraCondition` 配置来满足这种场景，例如：

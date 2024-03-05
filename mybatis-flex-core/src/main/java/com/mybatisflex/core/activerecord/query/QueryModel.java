@@ -16,7 +16,7 @@
 
 package com.mybatisflex.core.activerecord.query;
 
-import com.mybatisflex.annotation.Column;
+import com.mybatisflex.core.constant.SqlConnector;
 import com.mybatisflex.core.constant.SqlConsts;
 import com.mybatisflex.core.query.*;
 import com.mybatisflex.core.table.TableDef;
@@ -39,7 +39,6 @@ import com.mybatisflex.core.util.LambdaUtil;
 @SuppressWarnings({"unused", "unchecked"})
 public abstract class QueryModel<T extends QueryModel<T>> {
 
-    @Column(ignore = true)
     private QueryWrapper queryWrapper;
 
     protected QueryWrapper queryWrapper() {
@@ -72,7 +71,12 @@ public abstract class QueryModel<T extends QueryModel<T>> {
         return (T) this;
     }
 
-    public <E> T select(LambdaGetter<E>... columns) {
+    public T select(Iterable<QueryColumn> queryColumns) {
+        queryWrapper().select(queryColumns);
+        return (T) this;
+    }
+    @SafeVarargs
+    public final <E> T select(LambdaGetter<E>... columns) {
         queryWrapper().select(columns);
         return (T) this;
     }
@@ -340,8 +344,8 @@ public abstract class QueryModel<T extends QueryModel<T>> {
         queryWrapper().groupBy(columns);
         return (T) this;
     }
-
-    public <E> T groupBy(LambdaGetter<E>... columns) {
+    @SafeVarargs
+    public final  <E> T groupBy(LambdaGetter<E>... columns) {
         queryWrapper().groupBy(columns);
         return (T) this;
     }
@@ -356,13 +360,28 @@ public abstract class QueryModel<T extends QueryModel<T>> {
         return (T) this;
     }
 
+    public T orderBy(QueryColumn column, Boolean asc) {
+        queryWrapper().orderBy(column, asc);
+        return (T) this;
+    }
+
     public T orderBy(String... orderBys) {
         queryWrapper().orderBy(orderBys);
         return (T) this;
     }
 
+    public T orderBy(String column, Boolean asc) {
+        queryWrapper().orderBy(column, asc);
+        return (T) this;
+    }
+
     public <E> OrderByBuilder<T> orderBy(LambdaGetter<E> column) {
         return new OrderByBuilder<>((T) this, column);
+    }
+
+    public <E> T orderBy(LambdaGetter<E> column, Boolean asc) {
+        queryWrapper().orderBy(column, asc);
+        return (T) this;
     }
 
     public T limit(Number rows) {

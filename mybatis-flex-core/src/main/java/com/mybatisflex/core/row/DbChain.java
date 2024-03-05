@@ -22,6 +22,7 @@ import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.query.QueryWrapperAdapter;
 import com.mybatisflex.core.table.*;
+import com.mybatisflex.core.update.PropertySetter;
 import com.mybatisflex.core.util.LambdaGetter;
 import com.mybatisflex.core.util.SqlUtil;
 
@@ -37,14 +38,11 @@ import java.util.stream.Collectors;
  * @author 王帅
  * @since 2023-07-22
  */
-public class DbChain extends QueryWrapperAdapter<DbChain> {
+public class DbChain extends QueryWrapperAdapter<DbChain> implements PropertySetter<DbChain> {
 
     private String schema;
-    private String tableName;
+    private final String tableName;
     private Row rowData;
-
-    private DbChain() {
-    }
 
     private DbChain(String tableName) {
         this.tableName = tableName;
@@ -55,22 +53,12 @@ public class DbChain extends QueryWrapperAdapter<DbChain> {
         this.tableName = tableName;
     }
 
-    /**
-     * 覆盖 {@link QueryWrapper} 的静态方法，仅用于查询，必须使用 {@code from(...)} 方法指定表。
-     *
-     * @deprecated 使用 {@code table(...)} 方法创建
-     */
-    @Deprecated
     public static DbChain create() {
-        return new DbChain();
+        throw new UnsupportedOperationException("Please use DbChain#table(...) to replace DbChain.create()");
     }
 
-    /**
-     * @deprecated 覆盖 {@link QueryWrapper} 的静态方法
-     */
-    @Deprecated
     public static DbChain create(Object entity) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("Please use DbChain#table(...) to replace DbChain.create(entity)");
     }
 
     public static DbChain table(String tableName) {
@@ -108,18 +96,39 @@ public class DbChain extends QueryWrapperAdapter<DbChain> {
         return this;
     }
 
-    public DbChain set(String column, Object value) {
-        getRow().set(column, value);
+    @Override
+    public DbChain set(String property, Object value, boolean isEffective) {
+        getRow().set(property, value, isEffective);
         return this;
     }
 
-    public DbChain set(QueryColumn column, Object value) {
-        getRow().set(column, value);
+    @Override
+    public DbChain set(QueryColumn property, Object value, boolean isEffective) {
+        getRow().set(property, value, isEffective);
         return this;
     }
 
-    public <T> DbChain set(LambdaGetter<T> column, Object value) {
-        getRow().set(column, value);
+    @Override
+    public <T> DbChain set(LambdaGetter<T> property, Object value, boolean isEffective) {
+        getRow().set(property, value, isEffective);
+        return this;
+    }
+
+    @Override
+    public DbChain setRaw(String property, Object value, boolean isEffective) {
+        getRow().setRaw(property, value, isEffective);
+        return this;
+    }
+
+    @Override
+    public DbChain setRaw(QueryColumn property, Object value, boolean isEffective) {
+        getRow().setRaw(property, value, isEffective);
+        return this;
+    }
+
+    @Override
+    public <T> DbChain setRaw(LambdaGetter<T> property, Object value, boolean isEffective) {
+        getRow().setRaw(property, value, isEffective);
         return this;
     }
 

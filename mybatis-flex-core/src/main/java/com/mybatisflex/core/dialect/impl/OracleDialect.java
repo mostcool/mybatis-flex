@@ -155,7 +155,7 @@ public class OracleDialect extends CommonsDialectImpl {
          */
         StringBuilder fields = new StringBuilder();
         Row firstRow = rows.get(0);
-        Set<String> attrs = RowCPI.getModifyAttrs(firstRow);
+        Set<String> attrs = RowCPI.getInsertAttrs(firstRow);
         int index = 0;
         for (String column : attrs) {
             fields.append(wrap(column));
@@ -168,9 +168,10 @@ public class OracleDialect extends CommonsDialectImpl {
         StringBuilder sql = new StringBuilder();
         sql.append(INSERT_ALL);
 
+        String table = getRealTable(tableName);
         String tableNameWrap = StringUtil.isNotBlank(schema)
-            ? wrap(getRealSchema(schema)) + REFERENCE + wrap(getRealTable(tableName))
-            : wrap(getRealTable(tableName));
+            ? wrap(getRealSchema(schema,table)) + REFERENCE + wrap(table)
+            : wrap(table);
         String questionStrings = SqlUtil.buildSqlParamPlaceholder(attrs.size());
 
         for (int i = 0; i < rows.size(); i++) {

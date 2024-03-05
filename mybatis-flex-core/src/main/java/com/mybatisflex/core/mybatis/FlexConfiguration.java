@@ -15,7 +15,9 @@
  */
 package com.mybatisflex.core.mybatis;
 
+import com.mybatisflex.annotation.Table;
 import com.mybatisflex.core.FlexConsts;
+import com.mybatisflex.core.handler.CompositeEnumTypeHandler;
 import com.mybatisflex.core.keygen.MultiEntityKeyGenerator;
 import com.mybatisflex.core.keygen.MultiRowKeyGenerator;
 import com.mybatisflex.core.keygen.MybatisKeyGeneratorUtil;
@@ -23,8 +25,6 @@ import com.mybatisflex.core.keygen.RowKeyGenerator;
 import com.mybatisflex.core.mybatis.executor.FlexBatchExecutor;
 import com.mybatisflex.core.mybatis.executor.FlexReuseExecutor;
 import com.mybatisflex.core.mybatis.executor.FlexSimpleExecutor;
-import com.mybatisflex.core.row.RowMapper;
-import com.mybatisflex.core.table.EntityWrapperFactory;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
 import com.mybatisflex.core.util.StringUtil;
@@ -48,35 +48,29 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * @author michael
+ * @author life
+ */
 public class FlexConfiguration extends Configuration {
 
     private static final Map<String, MappedStatement> dynamicMappedStatementCache = new ConcurrentHashMap<>();
 
+    public FlexConfiguration() {
+        setObjectWrapperFactory(new FlexWrapperFactory());
+        setDefaultEnumTypeHandler(CompositeEnumTypeHandler.class);
+    }
+
+
     public FlexConfiguration(Environment environment) {
         super(environment);
-        setMapUnderscoreToCamelCase(true);
-        setObjectWrapperFactory(new EntityWrapperFactory());
-        initDefaultMappers();
+        setObjectWrapperFactory(new FlexWrapperFactory());
+        setDefaultEnumTypeHandler(CompositeEnumTypeHandler.class);
     }
-
-    public FlexConfiguration() {
-        setMapUnderscoreToCamelCase(true);
-        setObjectWrapperFactory(new EntityWrapperFactory());
-        initDefaultMappers();
-    }
-
-
-    /**
-     * 设置 mybatis-flex 默认的 Mapper
-     * 当前只有 RowMapper {@link RowMapper}
-     */
-    private void initDefaultMappers() {
-        addMapper(RowMapper.class);
-    }
-
 
     /**
      * 为原生 sql 设置参数
@@ -91,7 +85,7 @@ public class FlexConfiguration extends Configuration {
         if (!mappedStatementId.endsWith(SelectKeyGenerator.SELECT_KEY_SUFFIX)
             && parameterObject instanceof Map
             && ((Map<?, ?>) parameterObject).containsKey(FlexConsts.SQL_ARGS)) {
-            SqlArgsParameterHandler sqlArgsParameterHandler = new SqlArgsParameterHandler(mappedStatement, (Map) parameterObject, boundSql);
+            SqlArgsParameterHandler sqlArgsParameterHandler = new SqlArgsParameterHandler(mappedStatement, parameterObject, boundSql);
             return (ParameterHandler) interceptorChain.pluginAll(sqlArgsParameterHandler);
         } else {
             return super.newParameterHandler(mappedStatement, parameterObject, boundSql);
@@ -173,9 +167,30 @@ public class FlexConfiguration extends Configuration {
         else if (StringUtil.endsWithAny(ms.getId(), "selectOneById", "selectListByIds"
             , "selectListByQuery", "selectCursorByQuery")) {
             ms = replaceResultMap(ms, getTableInfo(ms));
+        } else {
+            List<ResultMap> resultMaps = ms.getResultMaps();
+            //根据 resultMap 里面的 class 进行判断
+            for (ResultMap resultMap : resultMaps) {
+                //获取结果的类型
+                Class<?> clazz = resultMap.getType();
+                //判断是否为表实体类
+                if (clazz.getDeclaredAnnotation(Table.class) != null && isDefaultResultMap(ms.getId(), resultMap.getId())) {
+                    TableInfo tableInfo = TableInfoFactory.ofEntityClass(clazz);
+                    ms = replaceResultMap(ms, tableInfo);
+                }
+            }
         }
-
         super.addMappedStatement(ms);
+    }
+
+    /**
+     * 是否为默认的 resultMap，也就是未配置 resultMap
+     *
+     * @return
+     */
+    private boolean isDefaultResultMap(String statementId, String resultMapId) {
+        // 参考 {@code  MapperBuilderAssistant.getStatementResultMaps}
+        return resultMapId.equals(statementId + "-Inline");
     }
 
 
@@ -240,7 +255,8 @@ public class FlexConfiguration extends Configuration {
             .fetchSize(ms.getFetchSize())
             .timeout(ms.getTimeout())
             .statementType(ms.getStatementType())
-            .keyGenerator(keyGenerator) // 替换主键生成器
+            // 替换主键生成器
+            .keyGenerator(keyGenerator)
             .keyProperty(ms.getKeyProperties() == null ? null : String.join(",", ms.getKeyProperties()))
             .keyColumn(ms.getKeyColumns() == null ? null : String.join(",", ms.getKeyColumns()))
             .databaseId(databaseId)
@@ -283,7 +299,8 @@ public class FlexConfiguration extends Configuration {
             .fetchSize(ms.getFetchSize())
             .timeout(ms.getTimeout())
             .statementType(ms.getStatementType())
-            .keyGenerator(keyGenerator) // 替换主键生成器
+            // 替换主键生成器
+            .keyGenerator(keyGenerator)
             .keyProperty(tableInfo.getKeyProperties())
             .keyColumn(tableInfo.getKeyColumns())
             .databaseId(databaseId)
