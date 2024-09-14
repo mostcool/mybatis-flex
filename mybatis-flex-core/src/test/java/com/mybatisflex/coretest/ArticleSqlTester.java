@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -24,8 +24,8 @@ import com.mybatisflex.core.table.TableInfoFactory;
 import com.mybatisflex.core.util.CollectionUtil;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
 import static com.mybatisflex.coretest.table.ArticleTableDef.ARTICLE;
+import static org.junit.Assert.assertEquals;
 
 
 public class ArticleSqlTester {
@@ -68,8 +68,7 @@ public class ArticleSqlTester {
         TableInfo tableInfo = TableInfoFactory.ofEntityClass(Article.class);
         String sql = dialect.forInsertEntity(tableInfo, article, true);
         System.out.println(sql);
-        assertEquals("INSERT INTO `tb_article`(`uuid`, `account_id`, `content`, `created`, `modified`) " +
-            "VALUES (?, ?, ?, now(), now())", sql);
+        assertEquals("INSERT INTO `tb_article`(`account_id`, `content`, `created`, `modified`) VALUES (?, ?, now(), now())", sql);
     }
 
 

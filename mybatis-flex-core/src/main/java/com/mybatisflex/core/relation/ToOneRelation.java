@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import com.mybatisflex.core.util.FieldWrapper;
 import java.lang.reflect.Field;
 import java.util.List;
 
-class ToOneRelation<SelfEntity> extends AbstractRelation<SelfEntity> {
+public class ToOneRelation<SelfEntity> extends AbstractRelation<SelfEntity> {
 
 
     public ToOneRelation(String selfField, String targetSchema, String targetTable, String targetField, String valueField,

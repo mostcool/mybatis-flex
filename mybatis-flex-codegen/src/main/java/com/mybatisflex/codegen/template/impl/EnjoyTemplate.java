@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -41,12 +41,17 @@ public class EnjoyTemplate implements ITemplate {
     public EnjoyTemplate() {
         Engine engine = Engine.use(engineName);
         if (engine == null) {
-            engine = Engine.create(engineName, e -> {
-                e.addSharedStaticMethod(StringUtil.class);
-                e.setSourceFactory(new FileAndClassPathSourceFactory());
-            });
-            // 以下配置将支持 user.girl 表达式去调用 user 对象的 boolean isGirl() 方法
-            Engine.addFieldGetterToFirst(new FieldGetters.IsMethodFieldGetter());
+            synchronized (EnjoyTemplate.class) {
+                engine = Engine.use(engineName);
+                if (engine == null) {
+                    engine = Engine.create(engineName, e -> {
+                        e.addSharedStaticMethod(StringUtil.class);
+                        e.setSourceFactory(new FileAndClassPathSourceFactory());
+                    });
+                    // 以下配置将支持 user.girl 表达式去调用 user 对象的 boolean isGirl() 方法
+                    Engine.addFieldGetterToFirst(new FieldGetters.IsMethodFieldGetter());
+                }
+            }
         }
         this.engine = engine;
     }

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package com.mybatisflex.core.query;
 
 import com.mybatisflex.core.dialect.IDialect;
+import com.mybatisflex.core.dialect.OperateType;
 import com.mybatisflex.core.util.StringUtil;
 
 import java.util.Objects;
@@ -36,7 +37,7 @@ public class RawQueryTable extends QueryTable {
     }
 
     @Override
-    public String toSql(IDialect dialect) {
+    public String toSql(IDialect dialect, OperateType operateType) {
         return this.content + WrapperUtil.buildAlias(alias, dialect);
     }
 

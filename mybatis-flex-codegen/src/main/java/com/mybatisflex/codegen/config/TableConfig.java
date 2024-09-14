@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -71,6 +71,7 @@ public class TableConfig implements Serializable {
      * 对应列的配置。
      */
     private Map<String, ColumnConfig> columnConfigMap;
+
 
     public static TableConfig create() {
         return new TableConfig();

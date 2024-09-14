@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package com.mybatisflex.codegen.config;
 import com.mybatisflex.codegen.entity.Table;
 
 import java.io.Serializable;
+import java.lang.reflect.TypeVariable;
 import java.util.function.Function;
 
 /**
@@ -30,6 +31,7 @@ import java.util.function.Function;
 public class EntityConfig implements Serializable {
 
     private static final long serialVersionUID = -6790274333595436008L;
+
     /**
      * 代码生成目录，当未配置时，使用 PackageConfig 的配置
      */
@@ -93,7 +95,6 @@ public class EntityConfig implements Serializable {
      */
     private int jdkVersion;
 
-
     /**
      * 当开启这个配置后，Entity 会生成两个类，比如 Account 表会生成 Account.java 以及 AccountBase.java
      * 这样的好处是，自动生成的 getter setter 字段等都在 Base 类里，而开发者可以在 Account.java 中添加自己的业务代码
@@ -111,13 +112,28 @@ public class EntityConfig implements Serializable {
      */
     private String withBasePackage;
 
+    /**
+     * 是否支持把 comment 添加到 @column 注解里
+     */
+    private boolean columnCommentEnable;
+
+    /**
+     * 是否总是生成 @Column 注解。
+     */
+    private boolean alwaysGenColumnAnnotation;
+
+    /**
+     * 继承的父类是否添加泛型
+     */
+    private boolean superClassGenericity = false;
 
     public String getSourceDir() {
         return sourceDir;
     }
 
-    public void setSourceDir(String sourceDir) {
+    public EntityConfig setSourceDir(String sourceDir) {
         this.sourceDir = sourceDir;
+        return this;
     }
 
     /**
@@ -162,7 +178,22 @@ public class EntityConfig implements Serializable {
      */
     public EntityConfig setSuperClass(Class<?> superClass) {
         this.superClass = superClass;
+        superClassGenericity = hasGenericity(superClass);
         return this;
+    }
+
+    private boolean hasGenericity(Class<?> clazz){
+        if (clazz == null){
+            return false;
+        }
+        TypeVariable<? extends Class<?>>[] typeParameters = clazz.getTypeParameters();
+        if (typeParameters.length > 1) {
+            throw new UnsupportedOperationException("暂不支持父类泛型数量 >1 的代码生成");
+        }else if (typeParameters.length > 0 ){
+            return true;
+        }else {
+            return false;
+        }
     }
 
 
@@ -177,8 +208,9 @@ public class EntityConfig implements Serializable {
         return superClassFactory;
     }
 
-    public void setSuperClassFactory(Function<Table, Class<?>> superClassFactory) {
+    public EntityConfig setSuperClassFactory(Function<Table, Class<?>> superClassFactory) {
         this.superClassFactory = superClassFactory;
+        return this;
     }
 
     /**
@@ -307,31 +339,59 @@ public class EntityConfig implements Serializable {
         return withBaseClassEnable;
     }
 
-    public void setWithBaseClassEnable(boolean withBaseClassEnable) {
+    public EntityConfig setWithBaseClassEnable(boolean withBaseClassEnable) {
         this.withBaseClassEnable = withBaseClassEnable;
+        return this;
     }
 
     public String getWithBaseClassSuffix() {
         return withBaseClassSuffix;
     }
 
-    public void setWithBaseClassSuffix(String withBaseClassSuffix) {
+    public EntityConfig setWithBaseClassSuffix(String withBaseClassSuffix) {
         this.withBaseClassSuffix = withBaseClassSuffix;
+        return this;
     }
-
 
     public String getWithBasePackage() {
         return withBasePackage;
     }
 
-    public void setWithBasePackage(String withBasePackage) {
+    public EntityConfig setWithBasePackage(String withBasePackage) {
         this.withBasePackage = withBasePackage;
+        return this;
+    }
+
+    public boolean isColumnCommentEnable() {
+        return columnCommentEnable;
+    }
+
+    public EntityConfig setColumnCommentEnable(boolean columnCommentEnable) {
+        this.columnCommentEnable = columnCommentEnable;
+        return this;
+    }
+
+    public boolean isAlwaysGenColumnAnnotation() {
+        return alwaysGenColumnAnnotation;
+    }
+
+    public EntityConfig setAlwaysGenColumnAnnotation(boolean alwaysGenColumnAnnotation) {
+        this.alwaysGenColumnAnnotation = alwaysGenColumnAnnotation;
+        return this;
+    }
+
+    public boolean isSuperClassGenericity(Table table) {
+        if (this.superClassFactory != null){
+            return hasGenericity(superClassFactory.apply(table));
+        }
+        return superClassGenericity;
     }
 
     public enum SwaggerVersion {
 
         FOX("FOX"),
         DOC("DOC");
+
         private final String name;
 
         SwaggerVersion(String name) {

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import com.mybatisflex.core.row.Row;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableManager;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -31,12 +32,12 @@ public interface IDialect {
 
     String wrapColumnAlias(String keyword);
 
-    default String getRealTable(String table) {
-        return TableManager.getRealTable(table);
+    default String getRealTable(String table, OperateType operateType) {
+        return TableManager.getRealTable(table, operateType);
     }
 
-    default String getRealSchema(String schema, String table) {
-        return TableManager.getRealSchema(schema, table);
+    default String getRealSchema(String schema, String table, OperateType operateType) {
+        return TableManager.getRealSchema(schema, table, operateType);
     }
 
     String forHint(String hintString);
@@ -75,7 +76,7 @@ public interface IDialect {
 
     String forInsertEntityWithPk(TableInfo tableInfo, Object entity, boolean ignoreNulls);
 
-    String forInsertEntityBatch(TableInfo tableInfo, List<?> entities);
+    String forInsertEntityBatch(TableInfo tableInfo, Collection<?> entities);
 
     String forDeleteEntityById(TableInfo tableInfo);
 
@@ -95,7 +96,7 @@ public interface IDialect {
      * 权限处理
      *
      * @param queryWrapper queryWrapper
-     * @param operateType 操作类型
+     * @param operateType  操作类型
      */
     default void prepareAuth(QueryWrapper queryWrapper, OperateType operateType) {
     }
@@ -103,9 +104,9 @@ public interface IDialect {
     /**
      * 权限处理
      *
-     * @param schema    schema
-     * @param tableName 表名
-     * @param sql       sql
+     * @param schema      schema
+     * @param tableName   表名
+     * @param sql         sql
      * @param operateType 操作类型
      */
     default void prepareAuth(String schema, String tableName, StringBuilder sql, OperateType operateType) {
@@ -113,8 +114,9 @@ public interface IDialect {
 
     /**
      * 权限处理
-     * @param tableInfo tableInfo
-     * @param sql sql
+     *
+     * @param tableInfo   tableInfo
+     * @param sql         sql
      * @param operateType 操作类型
      */
     default void prepareAuth(TableInfo tableInfo, StringBuilder sql, OperateType operateType) {

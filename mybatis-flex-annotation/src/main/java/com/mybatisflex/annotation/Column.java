@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -85,5 +85,10 @@ public @interface Column {
      * 自定义 TypeHandler。
      */
     Class<? extends TypeHandler> typeHandler() default UnknownTypeHandler.class;
+
+    /**
+     * 数据字段注释，在 AI 时代，注释的内容往往可用于 AI 辅助对话
+     */
+    String comment() default "";
 
 }

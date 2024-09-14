@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package com.mybatisflex.core.audit;
 
 import com.mybatisflex.core.FlexConsts;
+import com.mybatisflex.core.FlexGlobalConfig;
 import com.mybatisflex.core.datasource.DataSourceKey;
 import com.mybatisflex.core.util.StringUtil;
 import org.apache.ibatis.mapping.BoundSql;
@@ -102,9 +103,12 @@ public class AuditManager {
             return supplier.execute();
         }
         String key = DataSourceKey.get();
-        if (StringUtil.isNotBlank(key)) {
-            auditMessage.setDsName(key);
+        if (StringUtil.isBlank(key)) {
+            key = FlexGlobalConfig.getDefaultConfig()
+                .getDataSource()
+                .getDefaultDataSourceKey();
         }
+        auditMessage.setDsName(key);
         auditMessage.setQueryTime(clock.getTick());
         try {
             T result = supplier.execute();
@@ -159,9 +163,7 @@ public class AuditManager {
 
     @FunctionalInterface
     public interface AuditRunnable<T> {
-
         T execute() throws SQLException;
-
     }
 
 }

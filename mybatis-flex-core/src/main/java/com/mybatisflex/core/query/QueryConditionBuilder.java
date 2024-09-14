@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -444,6 +444,18 @@ public class QueryConditionBuilder<Wrapper extends QueryWrapper> implements Cond
     }
 
     @Override
+    public Wrapper between(Object[] values) {
+        addWhereQueryCondition(queryColumn.between(values));
+        return queryWrapper;
+    }
+
+    @Override
+    public Wrapper between(Object[] values, boolean isEffective) {
+        addWhereQueryCondition(queryColumn.between(values, isEffective));
+        return queryWrapper;
+    }
+
+    @Override
     public Wrapper between(Object start, Object end) {
         addWhereQueryCondition(queryColumn.between(start, end));
         return queryWrapper;
@@ -464,6 +476,18 @@ public class QueryConditionBuilder<Wrapper extends QueryWrapper> implements Cond
     @Override
     public <S, E> Wrapper between(S start, E end, BiPredicate<S, E> isEffective) {
         addWhereQueryCondition(queryColumn.between(start, end, isEffective));
+        return queryWrapper;
+    }
+
+    @Override
+    public Wrapper notBetween(Object[] values) {
+        addWhereQueryCondition(queryColumn.notBetween(values));
+        return queryWrapper;
+    }
+
+    @Override
+    public Wrapper notBetween(Object[] values, boolean isEffective) {
+        addWhereQueryCondition(queryColumn.notBetween(values, isEffective));
         return queryWrapper;
     }
 

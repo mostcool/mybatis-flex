@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -24,9 +24,9 @@ import java.sql.SQLException;
 
 public class TypeHandlerObject implements Serializable {
 
-    private TypeHandler typeHandler;
-    private Object value;
-    private JdbcType jdbcType;
+    private final TypeHandler typeHandler;
+    private final Object value;
+    private final JdbcType jdbcType;
 
     public TypeHandlerObject(TypeHandler typeHandler, Object value, JdbcType jdbcType) {
         this.typeHandler = typeHandler;
@@ -36,6 +36,18 @@ public class TypeHandlerObject implements Serializable {
 
     public void setParameter(PreparedStatement ps, int i) throws SQLException {
         typeHandler.setParameter(ps, i, value, jdbcType);
+    }
+
+    public Object getValue() {
+        return value;
+    }
+
+    @Override
+    public String toString() {
+        return "TypeHandlerObject{"
+            + "value=" + value
+            + ", typeHandler=" + typeHandler.getClass().getSimpleName()
+            + '}';
     }
 
 }

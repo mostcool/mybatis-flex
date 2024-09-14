@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -54,6 +54,11 @@ public class ColumnInfo {
     protected String property;
 
     /**
+     * 数据库字段注释，在 AI 时代，注释的内容往往可用于 AI 辅助对话
+     */
+    protected String comment;
+
+    /**
      * 属性类型。
      */
     protected Class<?> propertyType;
@@ -106,6 +111,14 @@ public class ColumnInfo {
 
     public void setProperty(String property) {
         this.property = property;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
     }
 
     public Class<?> getPropertyType() {

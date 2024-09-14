@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package com.mybatisflex.core.mybatis;
 
 import com.mybatisflex.core.FlexConsts;
 import com.mybatisflex.core.exception.FlexExceptions;
+import com.mybatisflex.core.util.EnumWrapper;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.scripting.defaults.DefaultParameterHandler;
@@ -25,7 +26,6 @@ import org.apache.ibatis.type.TypeHandlerRegistry;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.Map;
 
 /**
@@ -54,8 +54,11 @@ public class SqlArgsParameterHandler extends DefaultParameterHandler {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     private void doSetParameters(PreparedStatement ps) throws SQLException {
-        Object[] sqlArgs = (Object[]) ((Map) getParameterObject()).get(FlexConsts.SQL_ARGS);
-        if (sqlArgs == null || sqlArgs.length == 0) {
+        Object[] sqlArgs;
+        Map parameters = (Map) getParameterObject();
+        if (parameters.containsKey(FlexConsts.RAW_ARGS)
+            || (sqlArgs = (Object[]) parameters.get(FlexConsts.SQL_ARGS)) == null
+            || sqlArgs.length == 0) {
             super.setParameters(ps);
             return;
         }

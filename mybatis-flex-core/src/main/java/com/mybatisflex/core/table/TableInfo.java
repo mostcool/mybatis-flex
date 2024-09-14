@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -25,10 +25,13 @@ import com.mybatisflex.core.FlexGlobalConfig;
 import com.mybatisflex.core.constant.SqlConsts;
 import com.mybatisflex.core.constant.SqlOperator;
 import com.mybatisflex.core.dialect.IDialect;
+import com.mybatisflex.core.dialect.OperateType;
 import com.mybatisflex.core.exception.FlexExceptions;
 import com.mybatisflex.core.exception.locale.LocalizedFormats;
 import com.mybatisflex.core.logicdelete.LogicDeleteManager;
 import com.mybatisflex.core.mybatis.TypeHandlerObject;
+import com.mybatisflex.core.optimisticlock.OptimisticLockManager;
+import com.mybatisflex.core.query.Brackets;
 import com.mybatisflex.core.query.CPI;
 import com.mybatisflex.core.query.Join;
 import com.mybatisflex.core.query.QueryColumn;
@@ -50,6 +53,7 @@ import com.mybatisflex.core.util.CollectionUtil;
 import com.mybatisflex.core.util.ConvertUtil;
 import com.mybatisflex.core.util.EnumWrapper;
 import com.mybatisflex.core.util.FieldWrapper;
+import com.mybatisflex.core.util.MapUtil;
 import com.mybatisflex.core.util.ObjectUtil;
 import com.mybatisflex.core.util.SqlUtil;
 import com.mybatisflex.core.util.StringUtil;
@@ -61,7 +65,6 @@ import org.apache.ibatis.reflection.Reflector;
 import org.apache.ibatis.reflection.ReflectorFactory;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.type.TypeHandler;
-import org.apache.ibatis.util.MapUtil;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
@@ -82,7 +85,6 @@ import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static com.mybatisflex.core.constant.SqlConsts.AND;
 import static com.mybatisflex.core.constant.SqlConsts.EQUALS_PLACEHOLDER;
@@ -90,54 +92,45 @@ import static com.mybatisflex.core.constant.SqlConsts.IN;
 
 public class TableInfo {
 
-    private String schema; //schema
-    private String tableName; //表名
-    private Class<?> entityClass; //实体类
+    // column 和 java 属性的称的关系映射
+    private final Map<String, ColumnInfo> columnInfoMapping = new HashMap<>();
+    // property:column
+    private final Map<String, String> propertyColumnMapping = new LinkedHashMap<>();
+    private String schema; // schema
     private boolean camelToUnderline = true;
     private String dataSource;
 
-    //逻辑删除数据库列名
+    private String comment;
+    private String tableName; // 表名
+    private Class<?> entityClass; // 实体类
+    // 逻辑删除数据库列名
     private String logicDeleteColumn;
-
-    //乐观锁字段
+    // 乐观锁字段
     private String versionColumn;
-
-    //租户ID 字段
+    // 租户ID 字段
     private String tenantIdColumn;
-
-    //数据插入时，默认插入数据字段
+    // 数据插入时，默认插入数据字段
     private Map<String, String> onInsertColumns;
 
-    //数据更新时，默认更新内容的字段
-    private Map<String, String> onUpdateColumns;
-
-    //大字段列
-    private String[] largeColumns = new String[0];
-
     private String[] allColumns = new String[0];
-
-    //所有的字段，但除了主键的列
-    private String[] columns = new String[0];
-
-    //主键字段
-    private String[] primaryColumns = new String[0];
+    // 数据更新时，默认更新内容的字段
+    private Map<String, String> onUpdateColumns;
+    // 大字段列
+    private String[] largeColumns = new String[0];
 
     // 默认查询列，排除 large 等字段
     private String[] defaultQueryColumns = new String[0];
-
-    //在插入数据的时候，支持主动插入的主键字段，自增字段不需要主动插入
-    //但通过自定义生成器生成 或者 Sequence 在 before 生成的时候，是需要主动插入数据的
-    private String[] insertPrimaryKeys;
+    // 所有的字段，但除了主键的列
+    private String[] columns = new String[0];
 
     private List<ColumnInfo> columnInfoList;
     private List<IdInfo> primaryKeyList;
-
-    //column 和 java 属性的称的关系映射
-    private final Map<String, ColumnInfo> columnInfoMapping = new HashMap<>();
+    // 主键字段
+    private String[] primaryColumns = new String[0];
     private final Map<String, QueryColumn> columnQueryMapping = new HashMap<>();
-
-    //property:column
-    private final Map<String, String> propertyColumnMapping = new LinkedHashMap<>();
+    // 在插入数据的时候，支持主动插入的主键字段，自增字段不需要主动插入
+    // 但通过自定义生成器生成 或者 Sequence 在 before 生成的时候，是需要主动插入数据的
+    private String[] insertPrimaryKeys;
 
     private List<InsertListener> onInsertListeners;
     private List<UpdateListener> onUpdateListeners;
@@ -160,7 +153,7 @@ public class TableInfo {
             return getReflector();
         }
     };
-    private Reflector reflector; //反射工具
+    private Reflector reflector; // 反射工具
 
     public String getSchema() {
         return schema;
@@ -168,6 +161,10 @@ public class TableInfo {
 
     public void setSchema(String schema) {
         this.schema = schema;
+    }
+
+    public Map<String, String> getPropertyColumnMapping() {
+        return this.propertyColumnMapping;
     }
 
     public String getTableName() {
@@ -178,12 +175,12 @@ public class TableInfo {
         return StringUtil.buildSchemaWithTable(schema, tableName);
     }
 
-    public String getWrapSchemaAndTableName(IDialect dialect) {
+    public String getWrapSchemaAndTableName(IDialect dialect, OperateType operateType) {
         if (StringUtil.isNotBlank(schema)) {
-            String table = dialect.getRealTable(tableName);
-            return dialect.wrap(dialect.getRealSchema(schema, table)) + "." + dialect.wrap(table);
+            String table = dialect.getRealTable(tableName, operateType);
+            return dialect.wrap(dialect.getRealSchema(schema, table, operateType)) + "." + dialect.wrap(table);
         } else {
-            return dialect.wrap(dialect.getRealTable(tableName));
+            return dialect.wrap(dialect.getRealTable(tableName, operateType));
         }
     }
 
@@ -225,6 +222,14 @@ public class TableInfo {
         this.dataSource = dataSource;
     }
 
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
+
     public String getLogicDeleteColumnOrSkip() {
         return LogicDeleteManager.getLogicDeleteColumn(logicDeleteColumn);
     }
@@ -235,6 +240,10 @@ public class TableInfo {
 
     public void setLogicDeleteColumn(String logicDeleteColumn) {
         this.logicDeleteColumn = logicDeleteColumn;
+    }
+
+    public String getOptimisticLockColumnOrSkip() {
+        return OptimisticLockManager.getOptimisticLockColumn(versionColumn);
     }
 
     public String getVersionColumn() {
@@ -361,6 +370,16 @@ public class TableInfo {
 
     public String getColumnByProperty(String property) {
         String column = propertyColumnMapping.get(property);
+        // 用于兼容字段MM不规范的情况
+        // fix https://gitee.com/mybatis-flex/mybatis-flex/issues/I9PDYO
+        if (column == null) {
+            for (Map.Entry<String, String> entry : propertyColumnMapping.entrySet()) {
+                if (property.equalsIgnoreCase(entry.getKey())) {
+                    column = entry.getValue();
+                    break;
+                }
+            }
+        }
         return StringUtil.isNotBlank(column) ? column : property;
     }
 
@@ -399,7 +418,7 @@ public class TableInfo {
         List<String> columnNames = new ArrayList<>();
         for (int i = 0; i < columnInfoList.size(); i++) {
             ColumnInfo columnInfo = columnInfoList.get(i);
-            //真正的字段（没有做忽略标识）
+            // 真正的字段（没有做忽略标识）
             if (!columnInfo.isIgnore()) {
                 columnNames.add(columnInfo.column);
 
@@ -460,10 +479,11 @@ public class TableInfo {
 
         Map<String, RawValue> rawValueMap = obtainUpdateRawValueMap(entity);
 
-        List<Object> values = new ArrayList<>(insertColumns.length);
+        List<Object> values = new ArrayList<>();
         for (String insertColumn : insertColumns) {
             if (onInsertColumns == null || !onInsertColumns.containsKey(insertColumn)) {
                 if (rawValueMap.containsKey(insertColumn)) {
+                    values.addAll(Arrays.asList(rawValueMap.remove(insertColumn).getParams()));
                     continue;
                 }
                 Object value = buildColumnSqlArg(metaObject, insertColumn);
@@ -473,6 +493,10 @@ public class TableInfo {
                 values.add(value);
             }
         }
+        values.addAll(rawValueMap.values()
+            .stream()
+            .flatMap(e -> Arrays.stream(e.getParams()))
+            .collect(Collectors.toList()));
         return values.toArray();
     }
 
@@ -591,7 +615,7 @@ public class TableInfo {
      */
     public Set<String> obtainUpdateColumns(Object entity, boolean ignoreNulls, boolean includePrimary) {
         MetaObject metaObject = EntityMetaObject.forObject(entity, reflectorFactory);
-        Set<String> columns = new LinkedHashSet<>(); //需使用 LinkedHashSet 保证 columns 的顺序
+        Set<String> columns = new LinkedHashSet<>(); // 需使用 LinkedHashSet 保证 columns 的顺序
         if (entity instanceof UpdateWrapper) {
             Map<String, Object> updates = ((UpdateWrapper) entity).getUpdates();
             if (updates.isEmpty()) {
@@ -605,7 +629,7 @@ public class TableInfo {
                     continue;
                 }
 
-                //过滤乐观锁字段 和 租户字段
+                // 过滤乐观锁字段 和 租户字段
                 if (ObjectUtil.equalsAny(column, versionColumn, tenantIdColumn)) {
                     continue;
                 }
@@ -623,14 +647,14 @@ public class TableInfo {
                 columns.add(column);
             }
         }
-        //not ModifyAttrsRecord
+        // not ModifyAttrsRecord
         else {
             for (String column : this.columns) {
                 if (onUpdateColumns != null && onUpdateColumns.containsKey(column)) {
                     continue;
                 }
 
-                //过滤乐观锁字段 和 租户字段
+                // 过滤乐观锁字段 和 租户字段
                 if (ObjectUtil.equalsAny(column, versionColumn, tenantIdColumn)) {
                     continue;
                 }
@@ -667,7 +691,7 @@ public class TableInfo {
                 if (onUpdateColumns != null && onUpdateColumns.containsKey(column)) {
                     continue;
                 }
-                //过滤乐观锁字段 和 租户字段
+                // 过滤乐观锁字段 和 租户字段
                 if (ObjectUtil.equalsAny(column, versionColumn, tenantIdColumn)) {
                     continue;
                 }
@@ -678,6 +702,7 @@ public class TableInfo {
 
                 Object value = updates.get(property);
                 if (value instanceof RawValue) {
+                    values.addAll(Arrays.asList(((RawValue) value).getParams()));
                     continue;
                 }
 
@@ -693,11 +718,7 @@ public class TableInfo {
                     // fixed: https://gitee.com/mybatis-flex/mybatis-flex/issues/I7TFBK
                     if (value.getClass().isEnum()) {
                         EnumWrapper enumWrapper = EnumWrapper.of(value.getClass());
-                        if (enumWrapper.hasEnumValueAnnotation()) {
-                            value = enumWrapper.getEnumValue((Enum) value);
-                        } else {
-                            value = ((Enum<?>) value).name();
-                        }
+                        value = enumWrapper.getEnumValue((Enum) value);
                     }
                 }
 
@@ -718,7 +739,7 @@ public class TableInfo {
                     continue;
                 }
 
-                //过滤乐观锁字段 和 租户字段
+                // 过滤乐观锁字段 和 租户字段
                 if (ObjectUtil.equalsAny(column, versionColumn, tenantIdColumn)) {
                     continue;
                 }
@@ -767,13 +788,13 @@ public class TableInfo {
      * @return 主键值，有多个主键时返回数组
      */
     public Object getPkValue(Object entity) {
-        //绝大多数情况为 1 个主键
+        // 绝大多数情况为 1 个主键
         if (primaryColumns.length == 1) {
             MetaObject metaObject = EntityMetaObject.forObject(entity, reflectorFactory);
             ColumnInfo columnInfo = columnInfoMapping.get(primaryColumns[0]);
             return getPropertyValue(metaObject, columnInfo.property);
         }
-        //多个主键
+        // 多个主键
         else if (primaryColumns.length > 1) {
             MetaObject metaObject = EntityMetaObject.forObject(entity, reflectorFactory);
             Object[] values = new Object[primaryColumns.length];
@@ -783,7 +804,7 @@ public class TableInfo {
             }
             return values;
         }
-        //无主键
+        // 无主键
         else {
             return null;
         }
@@ -795,7 +816,7 @@ public class TableInfo {
             return null;
         }
 
-        return TenantManager.getTenantIds();
+        return TenantManager.getTenantIds(tableName);
     }
 
 
@@ -845,7 +866,7 @@ public class TableInfo {
             CPI.putContext(queryWrapper, APPEND_CONDITIONS_FLAG, Boolean.TRUE);
         }
 
-        //select xxx.id,(select..) from xxx
+        // select xxx.id,(select..) from xxx
         List<QueryColumn> selectColumns = CPI.getSelectColumns(queryWrapper);
         if (selectColumns != null && !selectColumns.isEmpty()) {
             for (QueryColumn queryColumn : selectColumns) {
@@ -856,7 +877,7 @@ public class TableInfo {
             }
         }
 
-        //select * from (select ... from ) 中的子查询处理
+        // select * from (select ... from ) 中的子查询处理
         List<QueryTable> queryTables = CPI.getQueryTables(queryWrapper);
         if (queryTables != null && !queryTables.isEmpty()) {
             for (QueryTable queryTable : queryTables) {
@@ -867,8 +888,8 @@ public class TableInfo {
             }
         }
 
-        //添加乐观锁条件，只有在 update 的时候进行处理
-        if (StringUtil.isNotBlank(versionColumn) && entity != null) {
+        // 添加乐观锁条件，只有在 update 的时候进行处理
+        if (StringUtil.isNotBlank(getOptimisticLockColumnOrSkip()) && entity != null) {
             Object versionValue = buildColumnSqlArg(entity, versionColumn);
             if (versionValue == null) {
                 throw FlexExceptions.wrap(LocalizedFormats.ENTITY_VERSION_NULL, entity);
@@ -876,17 +897,25 @@ public class TableInfo {
             queryWrapper.and(QueryCondition.create(schema, tableName, versionColumn, SqlConsts.EQUALS, versionValue));
         }
 
-        //逻辑删除
+        // 逻辑删除
         if (StringUtil.isNotBlank(getLogicDeleteColumnOrSkip())) {
+            // 逻辑删除时 保证前面的条件被括号包裹
+            // fix:https://gitee.com/mybatis-flex/mybatis-flex/issues/I9163G
+            QueryCondition whereCondition = CPI.getWhereQueryCondition(queryWrapper);
+            if (whereCondition != null && !(whereCondition instanceof Brackets)) {
+                QueryCondition wrappedCondition = new Brackets(whereCondition);
+                CPI.setWhereQueryCondition(queryWrapper, wrappedCondition);
+            }
+
             String joinTableAlias = CPI.getContext(queryWrapper, "joinTableAlias");
             LogicDeleteManager.getProcessor().buildQueryCondition(queryWrapper, this, joinTableAlias);
         }
 
-        //多租户
+        // 多租户
         buildTenantCondition(queryWrapper);
 
 
-        //子查询
+        // 子查询
         List<QueryWrapper> childSelects = CPI.getChildSelect(queryWrapper);
         if (CollectionUtil.isNotEmpty(childSelects)) {
             for (QueryWrapper childQueryWrapper : childSelects) {
@@ -895,18 +924,21 @@ public class TableInfo {
         }
 
 
-        //join
+        // join
         List<Join> joins = CPI.getJoins(queryWrapper);
         if (CollectionUtil.isNotEmpty(joins)) {
             for (Join join : joins) {
+                if (!join.checkEffective()) {
+                    continue;
+                }
                 QueryTable joinQueryTable = CPI.getJoinQueryTable(join);
 
-                //join select
+                // join select
                 if (joinQueryTable instanceof SelectQueryTable) {
                     QueryWrapper childQuery = ((SelectQueryTable) joinQueryTable).getQueryWrapper();
                     doAppendConditions(entity, childQuery);
                 }
-                //join table
+                // join table
                 else {
                     String nameWithSchema = joinQueryTable.getNameWithSchema();
                     if (StringUtil.isNotBlank(nameWithSchema)) {
@@ -925,7 +957,7 @@ public class TableInfo {
             }
         }
 
-        //union
+        // union
         List<UnionWrapper> unions = CPI.getUnions(queryWrapper);
         if (CollectionUtil.isNotEmpty(unions)) {
             for (UnionWrapper union : unions) {
@@ -975,11 +1007,23 @@ public class TableInfo {
             }
             Object value = metaObject.getValue(property);
             if (value != null && !"".equals(value)) {
-                QueryColumn queryColumn = buildQueryColumn(column);
-                if (operators != null && operators.containsKey(property)) {
+                QueryColumn queryColumn = Arrays.stream(queryColumns)
+                    .filter(e -> e.getName().equals(column))
+                    .findFirst()
+                    .orElse(QueryMethods.column(getTableNameWithSchema(), column));
+                if (operators != null) {
                     SqlOperator operator = operators.get(property);
+                    if (operator == null) {
+                        operator = SqlOperator.EQUALS;
+                    } else if (operator == SqlOperator.IGNORE) {
+                        return;
+                    }
                     if (operator == SqlOperator.LIKE || operator == SqlOperator.NOT_LIKE) {
                         value = "%" + value + "%";
+                    } else if (operator == SqlOperator.LIKE_LEFT || operator == SqlOperator.NOT_LIKE_LEFT) {
+                        value = value + "%";
+                    } else if (operator == SqlOperator.LIKE_RIGHT || operator == SqlOperator.NOT_LIKE_RIGHT) {
+                        value = "%" + value;
                     }
                     queryWrapper.and(QueryCondition.create(queryColumn, operator, value));
                 } else {
@@ -989,17 +1033,6 @@ public class TableInfo {
         });
         return queryWrapper;
     }
-
-
-    public QueryColumn buildQueryColumn(String column) {
-        String tableNameWithSchema = getTableNameWithSchema();
-        QueryColumn queryColumn = TableDefs.getQueryColumn(entityClass, tableNameWithSchema, column);
-        if (queryColumn == null) {
-            queryColumn = QueryMethods.column(tableNameWithSchema, column);
-        }
-        return queryColumn;
-    }
-
 
     public String getKeyProperties() {
         StringJoiner joiner = new StringJoiner(",");
@@ -1024,18 +1057,35 @@ public class TableInfo {
             .collect(Collectors.toList());
     }
 
+    private void getCombinedColumns(List<Class<?>> existedEntities, Class<?> entityClass, List<String> combinedColumns) {
+        if (existedEntities.contains(entityClass)) {
+            return;
+        }
+
+        existedEntities.add(entityClass);
+
+        TableInfo tableInfo = TableInfoFactory.ofEntityClass(entityClass);
+
+        combinedColumns.addAll(Arrays.asList(tableInfo.allColumns));
+
+        if (tableInfo.collectionType != null) {
+            tableInfo.collectionType.values()
+                .forEach(e -> getCombinedColumns(existedEntities, e, combinedColumns));
+        }
+
+        if (tableInfo.associationType != null) {
+            tableInfo.associationType.values()
+                .forEach(e -> getCombinedColumns(existedEntities, e, combinedColumns));
+        }
+    }
 
     public ResultMap buildResultMap(Configuration configuration) {
-        // 所有的嵌套类对象引用
-        Stream<Class<?>> ct = collectionType == null ? Stream.empty() : collectionType.values().stream();
-        Stream<Class<?>> at = associationType == null ? Stream.empty() : associationType.values().stream();
+        List<String> combinedColumns = new ArrayList<>();
 
-        Stream<String> nestedColumns = Stream.concat(at, ct)
-            .map(TableInfoFactory::ofEntityClass)
-            .flatMap(e -> Arrays.stream(e.allColumns));
+        getCombinedColumns(new ArrayList<>(), entityClass, combinedColumns);
 
         // 预加载所有重复列，用于判断重名属性
-        List<String> existedColumns = Stream.concat(Arrays.stream(allColumns), nestedColumns)
+        List<String> existedColumns = combinedColumns.stream()
             .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
             .entrySet()
             .stream()
@@ -1272,7 +1322,7 @@ public class TableInfo {
                 }
             }
         });
-        //noinspection unchecked
+        // noinspection unchecked
         return (T) instance;
     }
 
@@ -1282,10 +1332,10 @@ public class TableInfo {
         TypeHandler<?> typeHandler = columnInfo.buildTypeHandler(null);
         if (typeHandler != null) {
             try {
-                //通过 typeHandler 转换数据
+                // 通过 typeHandler 转换数据
                 rowValue = typeHandler.getResult(getResultSet(rowValue), 0);
             } catch (SQLException e) {
-                //ignore
+                // ignore
             }
         }
         if (rowValue != null && !metaObject.getSetterType(columnInfo.property).isAssignableFrom(rowValue.getClass())) {
@@ -1332,12 +1382,12 @@ public class TableInfo {
         }
 
         MetaObject metaObject = EntityMetaObject.forObject(entityObject, reflectorFactory);
-        Object[] tenantIds = TenantManager.getTenantIds();
+        Object[] tenantIds = TenantManager.getTenantIds(tableName);
         if (tenantIds == null || tenantIds.length == 0) {
             return;
         }
 
-        //默认使用第一个作为插入的租户ID
+        // 默认使用第一个作为插入的租户ID
         Object tenantId = tenantIds[0];
         if (tenantId != null) {
             String property = columnInfoMapping.get(tenantIdColumn).property;

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -13,40 +13,51 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
+
 package com.mybatisflex.core.table;
 
 import com.mybatisflex.core.query.QueryTable;
+import com.mybatisflex.core.util.MapUtil;
 
-import java.io.Serializable;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 /**
- * @author michael
+ * 表定义，内包含字段。
+ *
+ * @author 王帅
+ * @since 2024-03-11
  */
-public class TableDef implements Serializable {
+public class TableDef extends QueryTable {
 
-    private String schema;
-    private final String tableName;
+    private static final Map<String, TableDef> CACHE = new ConcurrentHashMap<>();
 
-    public TableDef(String schema, String tableName) {
-        this.schema = schema;
-        this.tableName = tableName;
+    @SuppressWarnings("unchecked")
+    protected static <V extends TableDef> V getCache(String key, Function<String, V> mappingFunction) {
+        return MapUtil.computeIfAbsent((Map<String, V>) CACHE, key, mappingFunction);
     }
 
-    public TableDef(String tableName) {
-        this.tableName = tableName;
+    protected TableDef(String schema, String tableName) {
+        super(schema, tableName);
     }
 
+    protected TableDef(String schema, String tableName, String alias) {
+        super(schema, tableName, alias);
+    }
+
+    /**
+     * 兼容方法，与 {@link #getName()} 相同。
+     *
+     * @return 表名
+     */
     public String getTableName() {
-        return tableName;
+        return name;
     }
 
-    public String getSchema() {
-        return schema;
+    public TableDef as(String alias) {
+        String key = getNameWithSchema() + "." + alias;
+        return getCache(key, k -> new TableDef(this.schema, this.name, alias));
     }
-
-    public QueryTable as(String alias) {
-        return new QueryTable(schema, tableName, alias);
-    }
-
 
 }

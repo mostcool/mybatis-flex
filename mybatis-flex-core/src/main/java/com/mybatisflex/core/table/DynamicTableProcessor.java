@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,8 +15,19 @@
  */
 package com.mybatisflex.core.table;
 
+import com.mybatisflex.core.dialect.OperateType;
+
 public interface DynamicTableProcessor {
 
+    /**
+     * @deprecated 使用 {@link #process(String, OperateType)} 方法代替。
+     */
+    @Deprecated
+    @SuppressWarnings("DeprecatedIsStillUsed")
     String process(String tableName);
+
+    default String process(String tableName, OperateType operateType) {
+        return process(tableName);
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -46,6 +46,11 @@ public @interface Table {
      * 默认使用哪个数据源，若系统找不到该指定的数据源时，默认使用第一个数据源。
      */
     String dataSource() default "";
+
+    /**
+     * 数据库表注释，在 AI 时代，注释的内容往往可用于 AI 辅助对话
+     */
+    String comment() default "";
 
     /**
      * 监听 entity 的 insert 行为。

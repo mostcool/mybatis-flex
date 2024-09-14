@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,8 +17,12 @@
 package com.mybatisflex.test.mapper;
 
 import com.mybatisflex.core.logicdelete.LogicDeleteManager;
+import com.mybatisflex.core.paginate.Page;
+import com.mybatisflex.core.query.QueryMethods;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.row.Db;
+import com.mybatisflex.core.update.UpdateWrapper;
+import com.mybatisflex.core.util.UpdateEntity;
 import com.mybatisflex.test.model.Account;
 import com.mybatisflex.test.model.AccountVO;
 import com.mybatisflex.test.model.AccountVO2;
@@ -26,6 +30,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.UncategorizedSQLException;
 
 import java.util.Date;
 
@@ -47,6 +52,33 @@ class AccountMapperTest {
 
     @Autowired
     private AccountMapper accountMapper;
+
+    @Autowired
+    private MyAccountMapper myAccountMapper;
+
+    @Test
+    void testAppendCondition() {
+        QueryWrapper queryWrapper = QueryWrapper.create()
+            .where(ACCOUNT.ID.ge(0));
+        Page<Object> page = Page.of(1, 10);
+        myAccountMapper.xmlPaginate("selectByName", page, queryWrapper);
+        Assertions.assertTrue(page.getRecords().size() > 0);
+    }
+
+    @Test
+    void testInsertRaw() {
+        Account account = UpdateEntity.of(Account.class);
+        account.setUserName("I'm a joker.");
+        account.setBirthday(new Date());
+        UpdateWrapper<Account> wrapper = (UpdateWrapper<Account>) account;
+        QueryWrapper queryWrapper = QueryWrapper.create()
+            .select(ACCOUNT.AGE)
+            .from(ACCOUNT)
+            .where(ACCOUNT.ID.eq(1));
+        wrapper.set(ACCOUNT.AGE, queryWrapper);
+        wrapper.set(ACCOUNT.BIRTHDAY, QueryMethods.now());
+        Assertions.assertThrows(UncategorizedSQLException.class, () -> accountMapper.insert(account));
+    }
 
     @Test
     void testCount() {

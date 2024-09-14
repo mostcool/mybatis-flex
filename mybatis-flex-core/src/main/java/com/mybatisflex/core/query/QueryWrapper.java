@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -20,23 +20,11 @@ import com.mybatisflex.core.constant.SqlConnector;
 import com.mybatisflex.core.constant.SqlConsts;
 import com.mybatisflex.core.constant.SqlOperator;
 import com.mybatisflex.core.dialect.DialectFactory;
-import com.mybatisflex.core.table.TableDef;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
-import com.mybatisflex.core.util.ArrayUtil;
-import com.mybatisflex.core.util.ClassUtil;
-import com.mybatisflex.core.util.CollectionUtil;
-import com.mybatisflex.core.util.LambdaGetter;
-import com.mybatisflex.core.util.LambdaUtil;
-import com.mybatisflex.core.util.SqlUtil;
-import com.mybatisflex.core.util.StringUtil;
+import com.mybatisflex.core.util.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -91,6 +79,18 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
         return create().where(map, operators);
     }
 
+    /**
+     * <p>判断当前 {@link QueryWrapper} 是否包含 {@code WHERE} 查询条件。
+     *
+     * <p>需要判断的查询条件，只包括主动构建的查询条件，不包括追加的条件，例如：逻辑删除功能自动添加的
+     * {@code is_delete = 0} 不会包含在检查条件内。
+     *
+     * @return {@code true} 包含条件，{@code false} 不包含条件。
+     */
+    public boolean hasCondition() {
+        QueryCondition c;
+        return (c = whereQueryCondition) != null && (c.checkEffective() || c.getNextEffectiveCondition() != null);
+    }
 
     @SuppressWarnings("unchecked")
     public <Q extends QueryWrapper> WithBuilder<Q> with(String name) {
@@ -188,13 +188,6 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
         return this;
     }
 
-    public QueryWrapper from(TableDef... tableDefs) {
-        for (TableDef tableDef : tableDefs) {
-            from(new QueryTable(tableDef));
-        }
-        return this;
-    }
-
     public QueryWrapper from(Class<?>... entityClasses) {
         for (Class<?> entityClass : entityClasses) {
             TableInfo tableInfo = TableInfoFactory.ofEntityClass(entityClass);
@@ -241,22 +234,23 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
         if (CollectionUtil.isEmpty(queryTables)) {
             throw new IllegalArgumentException("query table must not be empty.");
         }
-        queryTables.get(queryTables.size() - 1).alias = alias;
+        int index = queryTables.size() - 1;
+        queryTables.set(index, queryTables.get(index).as(alias));
         return this;
     }
 
     public QueryWrapper where(QueryCondition queryCondition) {
-        this.setWhereQueryCondition(queryCondition);
+        this.addWhereQueryCondition(queryCondition);
         return this;
     }
 
     public QueryWrapper where(String sql) {
-        this.setWhereQueryCondition(new RawQueryCondition(sql));
+        this.addWhereQueryCondition(new RawQueryCondition(sql));
         return this;
     }
 
     public QueryWrapper where(String sql, Object... params) {
-        this.setWhereQueryCondition(new RawQueryCondition(sql, params));
+        this.addWhereQueryCondition(new RawQueryCondition(sql, params));
         return this;
     }
 
@@ -369,7 +363,7 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
     }
 
     public QueryWrapper or(Map<String, Object> whereConditions, SqlOperators operators, SqlConnector innerConnector) {
-        return connectMap(whereConditions, operators, SqlConnector.OR, SqlConnector.AND);
+        return connectMap(whereConditions, operators, SqlConnector.OR, innerConnector);
     }
 
     protected QueryWrapper connectMap(Map<String, Object> mapConditions, SqlOperators operators, SqlConnector outerConnector, SqlConnector innerConnector) {
@@ -382,8 +376,18 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
                 SqlOperator operator = operators.get(entry.getKey());
                 if (operator == null) {
                     operator = SqlOperator.EQUALS;
+                } else if (operator == SqlOperator.IGNORE) {
+                    continue;
                 }
-                QueryCondition cond = QueryCondition.create(new QueryColumn(entry.getKey()), operator.getValue(), entry.getValue());
+                Object value = entry.getValue();
+                if (operator == SqlOperator.LIKE || operator == SqlOperator.NOT_LIKE) {
+                    value = "%" + value + "%";
+                } else if (operator == SqlOperator.LIKE_LEFT || operator == SqlOperator.NOT_LIKE_LEFT) {
+                    value = value + "%";
+                } else if (operator == SqlOperator.LIKE_RIGHT || operator == SqlOperator.NOT_LIKE_RIGHT) {
+                    value = "%" + value;
+                }
+                QueryCondition cond = QueryCondition.create(new QueryColumn(entry.getKey()), operator, value);
                 if (condition == null) {
                     condition = cond;
                 } else {
@@ -399,6 +403,9 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
         return this;
     }
 
+    public <Q extends QueryWrapper> Joiner<Q> leftJoin(QueryTable table) {
+        return joining(SqlConsts.LEFT_JOIN, table, true);
+    }
 
     public <Q extends QueryWrapper> Joiner<Q> leftJoin(String table) {
         return joining(SqlConsts.LEFT_JOIN, new QueryTable(table), true);
@@ -416,20 +423,16 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
         return joining(SqlConsts.LEFT_JOIN, entityClass, when);
     }
 
-    public <Q extends QueryWrapper> Joiner<Q> leftJoin(TableDef table) {
-        return joining(SqlConsts.LEFT_JOIN, new QueryTable(table), true);
-    }
-
-    public <Q extends QueryWrapper> Joiner<Q> leftJoin(TableDef table, boolean when) {
-        return joining(SqlConsts.LEFT_JOIN, new QueryTable(table), when);
-    }
-
     public <Q extends QueryWrapper> Joiner<Q> leftJoin(QueryWrapper table) {
         return joining(SqlConsts.LEFT_JOIN, table, true);
     }
 
     public <Q extends QueryWrapper> Joiner<Q> leftJoin(QueryWrapper table, boolean when) {
         return joining(SqlConsts.LEFT_JOIN, table, when);
+    }
+
+    public <Q extends QueryWrapper> Joiner<Q> rightJoin(QueryTable table) {
+        return joining(SqlConsts.RIGHT_JOIN, table, true);
     }
 
     public <Q extends QueryWrapper> Joiner<Q> rightJoin(String table) {
@@ -448,20 +451,16 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
         return joining(SqlConsts.RIGHT_JOIN, entityClass, when);
     }
 
-    public <Q extends QueryWrapper> Joiner<Q> rightJoin(TableDef table) {
-        return joining(SqlConsts.RIGHT_JOIN, new QueryTable(table), true);
-    }
-
-    public <Q extends QueryWrapper> Joiner<Q> rightJoin(TableDef table, boolean when) {
-        return joining(SqlConsts.RIGHT_JOIN, new QueryTable(table), when);
-    }
-
     public <Q extends QueryWrapper> Joiner<Q> rightJoin(QueryWrapper table) {
         return joining(SqlConsts.RIGHT_JOIN, table, true);
     }
 
     public <Q extends QueryWrapper> Joiner<Q> rightJoin(QueryWrapper table, boolean when) {
         return joining(SqlConsts.RIGHT_JOIN, table, when);
+    }
+
+    public <Q extends QueryWrapper> Joiner<Q> innerJoin(QueryTable table) {
+        return joining(SqlConsts.INNER_JOIN, table, true);
     }
 
     public <Q extends QueryWrapper> Joiner<Q> innerJoin(String table) {
@@ -480,20 +479,16 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
         return joining(SqlConsts.INNER_JOIN, entityClass, when);
     }
 
-    public <Q extends QueryWrapper> Joiner<Q> innerJoin(TableDef table) {
-        return innerJoin(table, true);
-    }
-
-    public <Q extends QueryWrapper> Joiner<Q> innerJoin(TableDef table, boolean when) {
-        return joining(SqlConsts.INNER_JOIN, new QueryTable(table), when);
-    }
-
     public <Q extends QueryWrapper> Joiner<Q> innerJoin(QueryWrapper table) {
         return joining(SqlConsts.INNER_JOIN, table, true);
     }
 
     public <Q extends QueryWrapper> Joiner<Q> innerJoin(QueryWrapper table, boolean when) {
         return joining(SqlConsts.INNER_JOIN, table, when);
+    }
+
+    public <Q extends QueryWrapper> Joiner<Q> fullJoin(QueryTable table) {
+        return joining(SqlConsts.FULL_JOIN, table, true);
     }
 
     public <Q extends QueryWrapper> Joiner<Q> fullJoin(String table) {
@@ -512,20 +507,16 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
         return joining(SqlConsts.FULL_JOIN, entityClass, when);
     }
 
-    public <Q extends QueryWrapper> Joiner<Q> fullJoin(TableDef table) {
-        return joining(SqlConsts.FULL_JOIN, new QueryTable(table), true);
-    }
-
-    public <Q extends QueryWrapper> Joiner<Q> fullJoin(TableDef table, boolean when) {
-        return joining(SqlConsts.FULL_JOIN, new QueryTable(table), when);
-    }
-
     public <Q extends QueryWrapper> Joiner<Q> fullJoin(QueryWrapper table) {
         return joining(SqlConsts.FULL_JOIN, table, true);
     }
 
     public <Q extends QueryWrapper> Joiner<Q> fullJoin(QueryWrapper table, boolean when) {
         return joining(SqlConsts.FULL_JOIN, table, when);
+    }
+
+    public <Q extends QueryWrapper> Joiner<Q> crossJoin(QueryTable table) {
+        return joining(SqlConsts.CROSS_JOIN, table, true);
     }
 
     public <Q extends QueryWrapper> Joiner<Q> crossJoin(String table) {
@@ -544,20 +535,16 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
         return joining(SqlConsts.CROSS_JOIN, entityClass, when);
     }
 
-    public <Q extends QueryWrapper> Joiner<Q> crossJoin(TableDef table) {
-        return joining(SqlConsts.CROSS_JOIN, new QueryTable(table), true);
-    }
-
-    public <Q extends QueryWrapper> Joiner<Q> crossJoin(TableDef table, boolean when) {
-        return joining(SqlConsts.CROSS_JOIN, new QueryTable(table), when);
-    }
-
     public <Q extends QueryWrapper> Joiner<Q> crossJoin(QueryWrapper table) {
         return joining(SqlConsts.CROSS_JOIN, table, true);
     }
 
     public <Q extends QueryWrapper> Joiner<Q> crossJoin(QueryWrapper table, boolean when) {
         return joining(SqlConsts.CROSS_JOIN, table, when);
+    }
+
+    public <Q extends QueryWrapper> Joiner<Q> join(QueryTable table) {
+        return joining(SqlConsts.JOIN, table, true);
     }
 
     public <Q extends QueryWrapper> Joiner<Q> join(String table) {
@@ -574,14 +561,6 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
 
     public <Q extends QueryWrapper> Joiner<Q> join(Class<?> entityClass, boolean when) {
         return joining(SqlConsts.JOIN, entityClass, when);
-    }
-
-    public <Q extends QueryWrapper> Joiner<Q> join(TableDef table) {
-        return joining(SqlConsts.JOIN, new QueryTable(table), true);
-    }
-
-    public <Q extends QueryWrapper> Joiner<Q> join(TableDef table, boolean when) {
-        return joining(SqlConsts.JOIN, new QueryTable(table), when);
     }
 
     public <Q extends QueryWrapper> Joiner<Q> join(QueryWrapper table) {
@@ -671,6 +650,7 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
         addGroupByColumns(LambdaUtil.getQueryColumn(column));
         return this;
     }
+
     public <T> QueryWrapper groupBy(LambdaGetter<T>... columns) {
         for (LambdaGetter<T> column : columns) {
             groupBy(LambdaUtil.getQueryColumn(column));
@@ -771,8 +751,8 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
     }
 
     public QueryWrapper orderBy(String... orderBys) {
-        if (orderBys == null || orderBys.length == 0) {
-            //ignore
+        if (orderBys == null || orderBys[0] == null) {
+            // ignore
             return this;
         }
         for (String queryOrderBy : orderBys) {
@@ -782,6 +762,19 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
         }
         return this;
     }
+
+    public QueryWrapper orderByUnSafely(String... rawOrderBy) {
+        if (rawOrderBy == null || rawOrderBy[0] == null) {
+            return this;
+        }
+        for (String queryOrderBy : rawOrderBy) {
+            if (StringUtil.isNotBlank(queryOrderBy)) {
+                addOrderBy(new RawQueryOrderBy(queryOrderBy, false));
+            }
+        }
+        return this;
+    }
+
 
     public QueryWrapper limit(Number rows) {
         if (rows != null) {
@@ -2311,7 +2304,7 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
             }
         }
 
-        //select 子查询的参数：select * from (select ....)
+        // select 子查询的参数：select * from (select ....)
         List<Object> tableValues = null;
         List<QueryTable> queryTables = getQueryTables();
         if (CollectionUtil.isNotEmpty(queryTables)) {
@@ -2326,7 +2319,7 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
             }
         }
 
-        //join 子查询的参数：left join (select ...)
+        // join 子查询的参数：left join (select ...)
         List<Object> joinValues = null;
         List<Join> joins = getJoins();
         if (CollectionUtil.isNotEmpty(joins)) {
@@ -2350,15 +2343,25 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
             }
         }
 
-        //where 参数
+        // where 参数
         Object[] whereValues = WrapperUtil.getValues(whereQueryCondition);
 
-        //having 参数
+        // having 参数
         Object[] havingValues = WrapperUtil.getValues(havingQueryCondition);
 
         Object[] paramValues = ArrayUtil.concat(whereValues, havingValues);
 
-        //unions 参数
+        // orderBy 参数
+        if (CollectionUtil.isNotEmpty(orderBys)) {
+            for (QueryOrderBy orderBy : orderBys) {
+                QueryColumn orderByColumn = orderBy.queryColumn;
+                if (orderByColumn != null && orderByColumn instanceof HasParamsColumn) {
+                    paramValues = ArrayUtil.concat(paramValues, ((HasParamsColumn) orderByColumn).getParamValues());
+                }
+            }
+        }
+
+        // unions 参数
         if (CollectionUtil.isNotEmpty(unions)) {
             for (UnionWrapper union : unions) {
                 QueryWrapper queryWrapper = union.getQueryWrapper();
@@ -2381,7 +2384,7 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
      * 在构建 sql 的时候，需要保证 where 在 having 的前面
      */
     Object[] getJoinValueArray() {
-        //join 子查询的参数：left join (select ...)
+        // join 子查询的参数：left join (select ...)
         List<Object> joinValues = null;
         List<Join> joins = getJoins();
         if (CollectionUtil.isNotEmpty(joins)) {
@@ -2414,15 +2417,15 @@ public class QueryWrapper extends BaseQueryWrapper<QueryWrapper> {
      * 在构建 sql 的时候，需要保证 where 在 having 的前面
      */
     Object[] getConditionValueArray() {
-        //where 参数
+        // where 参数
         Object[] whereValues = WrapperUtil.getValues(whereQueryCondition);
 
-        //having 参数
+        // having 参数
         Object[] havingValues = WrapperUtil.getValues(havingQueryCondition);
 
         Object[] paramValues = ArrayUtil.concat(whereValues, havingValues);
 
-        //unions 参数
+        // unions 参数
         if (CollectionUtil.isNotEmpty(unions)) {
             for (UnionWrapper union : unions) {
                 QueryWrapper queryWrapper = union.getQueryWrapper();

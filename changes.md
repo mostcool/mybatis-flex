@@ -3,6 +3,204 @@
 查看 [全部代码贡献者](/zh/intro/what-is-mybatisflex.html#贡献者)。
 
 
+## v1.9.7 20240828
+- 新增：增加 updateBatch 方法是否忽略 null 字段的可配置性，感谢 @wqdTryBest
+- 新增：支持在 APT 中通过表达式选择 package 层级
+- 修复：修复使用 insertBatchSelective 方法抛异常的问题
+- 修复：修复 union sql 的分页查询问题
+- 修复：RelationManyToMany 注解同时通过 selectOneWithRelationsByIdAs 查询报错的问题
+
+
+
+## v1.9.6 20240818
+- 新增：Mapper 新增 insertBatchSelective 方法
+- 新增：新增 SQL SERVER 返回当前日期和时间，感谢 @macy0122
+- 优化：Mapper 的批量操作方法，由 List 修改为 Collection
+- 修复：Sql Server 多表关联查询，主表去重，执行SQL异常，感谢 @macy0122
+- 修复：processor 回退到 v1.9.3
+- 修复：TableInfoFactory 在某些极端的使用场景可能出现 NPE 的问题
+- 修复：修复分页包含 having 语句时，语法依然被优化问题，感谢 @cearnach
+- 测试：优化一些测试的 DbType 冲突的问题
+
+
+
+## v1.9.5 20240801
+- 新增：ID 主键生成策略新增 ULID 算法，感谢 @dh-free
+- 优化：SqlServer 方言转义 scheme、table、colums 根据 . 分割后分别包装，感谢 @macy0122
+- 优化：SQL SERVER Limit 的细节优化 ，感谢 @macy0122
+- 修复：驼峰转下划线规则不一致问题 @zuojl
+- 修复：当使用 RowKey.AUTO 生成自增主键时，会导致 RowKeyGenerator 错误的问题 https://gitee.com/mybatis-flex/mybatis-flex/issues/IAFGDE
+- 修复：SnowFlakeIDKeyGenerator 在某些极端情况下出现 UnknownHostException 的问题
+
+
+
+## v1.9.4 20240722
+- 新增：支持在 APT 中通过表达式选择 package 层级，感谢 @fangzhengjin
+- 新增：添加 QueryWrapper.orderByUnSafely 支持自定义 SQL 进行 orderBy
+- 新增：为 clickhouse 添加独立方言，进一步适配 clickhouse 更新和删除，感谢 @老唐
+- 新增：添加分页时每页显示的数据数量最大限制，感谢 @Leo
+- 优化：kotlin 代码生成器 entity 类定义及属性设置为 open，感谢 @lemonbx
+- 优化：FieldWrapper 获取 Collection 泛型类型时增加友好错误提。，感谢 @lemonbx
+- 修复：修复实体类的父类含有泛型时，转换报错 https://github.com/mybatis-flex/mybatis-flex/issues/354 感谢 @zuihou111
+- 修复：解决 orderBy 时传入的变量参数时失效问题，感谢 @kamo-sama
+- 修复：在某些情况下会出现 NotSerializableException 错误的问题 https://gitee.com/mybatis-flex/mybatis-flex/issues/IAAXMH
+- 修复：达梦数据库某些场景下 SQL 关键字识别不正确的问题
+- 文档：修正文档快速开始示例代码使用错误的方法名的问题，感谢 @Frank_HL
+- 文档：添加APT设置增加表达式用法说明，感谢 @fangzhengjin
+- 文档：更新use-in-kotlin.md对于插件配置、演示示例等提醒描述，感谢 @kamo-sama
+- 文档：修正多租户下的一些文档错误问题，感谢 @lovealiang
+- 文档：修正增删改下的一些文档错误问题，感谢 @dragon_haoge
+
+
+
+## v1.9.3 20240618
+- 新增：代码生成器添加生成 Java、Kotlin 两种代码的支持，感谢 @Suomm
+- 新增：QueryMethods 添加 mysql date 函数，感谢 @bigtian99
+- 优化：代码生成器自动检测父类是否包含泛型，感谢 @rainybx
+- 优化：ClassUtil 优化抽取遍历父类的逻辑减少递归，感谢 @KAMO030
+- 优化：优化 AbstractRelation，当配置错误时给出更加明确的错误信息
+- 优化：APT 支持在 Resources 目录进行配置，感谢 @ruansheng8
+- 修复：java 代码生成器 base 类缺少 import，感谢 @rainybx
+- 修复：SQL Server 添加 KeywordWrap 无反义区分大小写处理
+- 修复：修复多个 SqlSessionFactory 共存时，FlexGlobalConfig 被最后一个覆盖的问题，感谢 @witt-bit
+- 文档：优化多数据源的示例代码，感谢 @jesee030
+
+
+
+## v1.9.2 20240604
+- 新增：代码生成器新增 PostgreSQL 方言的实现，感谢 @StringKe
+- 修复：当 FunctionQueryColumn 中存在 table，会导致分页查询时 SQL 优化错误的问题，感谢 @98Kming
+- 修复：修复 v1.9.0 由于重构 Mapper 导致 dsKey 获取可能出现错误的问题
+
+
+
+## v1.9.1 20240602
+- 修复：修复 v1.9.0 由于重构 Mapper 导致 solon 无法注册 mapper 的问题
+- 优化：优化 FlexMapperProxy 数据源的处理逻辑
+
+
+
+## v1.9.0 20240530
+- 优化：重构 Mapper 的获取，使之减少一层代理从而获得更高性能
+- 优化：优化 LambdaUtil 的性能
+- 优化：优化代码生成器 Controller 代码生成的主键类型，感谢 @Suomm
+- 优化：优化代码生成器的 JdbcTypeMapping
+- 优化：优化 QueryColumn 的 between 对于数组支持的灵活性，感谢 @kamo-sama
+- 优化：当 Entity 中的字段命名不规范时可能无法通过 Lambda 获取属性的问题 #I9P66C
+- 优化：优化 StringUtil.camelToUnderline 用于处理某些字段命名不规范的问题
+- 修复：在 Kotlin 中，LambdaUtil 无法通过 lambda 表达式正确获取到对象的属性值 #I9ONI4 ，感谢 @cnscoo
+
+
+
+## v1.8.9 20240510
+- 新增：QueryColumn 的 between 增加数组参数，感谢 @CrazyAirhead
+- 新增：代码生成器生成的Controller配置@RequestMapping前缀路径，感谢 @yfxuwork
+- 优化：调整 ServiceImpl#getMapper 返回 Mapper 类型特化，感谢 @Clownsw
+- 修复：ClassUtil.newInstance 无法生成实例问题修复，感谢 @SnobbyVirus1973
+- 修复：QueryWrapper.as() 可能在某些自定义生成 TableDef 下出错的问题
+- 修复：修复 Map 传参审计打印 SQL 不正确的问题，感谢 @Suomm
+- 修复：QueryCondition.create value传入List，执行select报错的问题 #I9JRAT
+- 修复：未生效的 JOIN 跳过拼接逻辑删除的问题，感谢 @Suomm
+
+
+
+## v1.8.8 20240418
+- 新增：新增支持全局注册多个监听器的功能，感谢 @Suomm
+- 修复：TableInfo 的 comment 构建错误的问题
+- 修复：由 case 构建查询条件参数丢失问题，感谢 @Suomm
+- 修复：TableRef 解析 VO 之后覆盖 tableInfoMap 缓存中原有 Entity 的问题，感谢 @Suomm
+- 修复：重名字段查找不全问题，感谢 @Suomm #I9FW4O
+- 优化：消除 Joiner 的 idea IDEA 警告，感谢 @Suomm
+- 优化：TableInfo 提供实体类与数据库字段字段映射内容，感谢 @gswy
+- 优化：调整关联查询相关功能模块访问级别，感谢 @ruansheng
+- 优化：代码生成器移除模板中多余的前导空格，感谢 @cida
+- 优化：代码生成器将 buildAnnotations 方法中，与模板统一格式，感谢 @cida
+- 优化：代码生成器将 GeneratorFactory.generators 的类型替换为 LinkedHashMap，感谢 @cida
+- 优化：在 Entity 无法初始化时给出异常原因，感谢 @Suomm #I9HL0K
+- 文档：添加 VO 类重名映射说明，感谢 @Suomm
+
+
+
+## v1.8.7 20240410
+- 新增：添加 `@TableRef` 注解标记 VO 类和 Entity 绑定，方便关联查询直接转换为 VO，感谢 @Suomm
+- 新增：Db + Row 支持 QueryWrapper 的原生 SQL 构建，感谢 @Suomm
+- 优化：XML 分页 #{qwSql} 参数补充逻辑删除等参数，感谢 @Suomm
+- 优化：`insertBatch(entities, size)` 和 `insertBatch(entities)` 对空 list 的处理不一致问题 #I9EGWA
+- 修复: 修正使用 MyBatis 原生工具方法 PropertyNamer#methodToProperty 可能造成无法正确获取属性的问题，感谢 @Suomm
+- 修复：修复当 APT 配置多个 ignoreSuffix 时，可能导致生成的类名不正确的问题 #I9ED9N
+- 修复：QueryWrapper 通过 Map 构造查询条件，并传入 SqlOperators 时，Like 不能正确拼接 % 的问题 #I9F8HO
+- 修复：代码生成器的 EnjoyTemplate 在并发下可能出现异常的问题
+- 测试：添加 Db + Row 原生 SQL 子查询插入与更新测试，感谢 @Suomm
+
+
+
+## v1.8.6 20240402
+- 修复：在 QueryWrapper 中使用 is_null 时出现 sql 异常的问题，感谢 @Suomm
+
+
+
+## v1.8.5 20240401:
+- 新增：Join ON 增加 lambda 重载方法，简化使用，感谢 @robor.luo
+- 新增：Db + Row 添加支持 MyBatis 原生 SQL 及参数的方法，感谢 @Suomm
+- 新增：新增不忽略 null 值时拼接 null 参数的相关功能，感谢 @Suomm
+- 新增：代码生成添加 “总是生成 @Column 注解” 选项，感谢 @Suomm
+- 优化：EnumWrapper 的 getEnumValue 方法如果没有注解，则使用枚举 name 返回，感谢 @robor.luo
+- 优化：代码生成器 EntityConfig 链式调用错误的优化，感谢 @Suomm
+- 修复：代码生成器无法生成内置数据脱敏处理器键（Masks）的问题，感谢 @Suomm
+- 修复：修复 ConvertUtil 等一些工具类的方法错误
+- 文档：添加 Db + Row 添加支持 MyBatis 原生 SQL 的相关文档，感谢 @Suomm
+- 文档：配置相关文档链接到 mybatis3 中文文档路径错误
+
+
+
+## v1.8.4 20240325:
+- 修复：修改 QueryWrapperAdapter 的 Join 方法返回的泛型错误的问题，感谢 @Suomm
+- 优化：优化 ActiveRecord Join 自己，感谢 @Suomm
+
+
+
+## v1.8.3 20240324:
+- 新增：QueryWrapper 添加 hasCondition 方法，感谢 @Suomm
+- 新增：添加 SqlOperator 忽略属性，用于在某些场景下忽略 entity 字段，感谢 @Suomm
+- 新增：添加 selectCursorByQueryAs 重载方法，感谢 @Suomm
+- 新增：添加 MapUtil 替代 MyBatis 官方的 MapUtil
+- 新增：DynamicTableProcessor 的 process 方法添加 OperateType 参数，感谢 @wtj
+- 新增：CPI 添加获取条件中参数的方法，感谢 @Suomm
+- 新增：添加 RawValue 获取参数的方法，感谢 @Suomm
+- 新增：多租户功能可以根据表名返回多租户条件，感谢 @Suomm
+- 新增：支持使用 UpdateWrapper 自定义插入值，感谢 @Suomm
+- 新增：代码生成器策略配置 StrategyConfig 添加支持通配符功能，感谢 @gongdonghui
+- 新增：`@Table` 和 `@Column` 注解添加 comment 配置的支持
+- 新增：代码生成器添加自动把 comment 添加到注解的相关功能支持
+- 修复：修复 MultiDataSourceAutoConfiguration 下的 druid 路径错误的问题，感谢 @Suomm
+- 修复：解决 p6spy 下多数据源获取 DbType 失败的问题，感谢 @ocoooo
+- 修复：生成代码时, 某些情况下不会添加 `@EqualsAndHashCode(callSuper = true)` 的问题
+- 修复：Relation 查询使用 Lambda 表达式无法指定类名问题，感谢 @Suomm
+- 修复：使用默认数据源获取 dsName 为 null 的错误，感谢 @Suomm
+- 优化：逻辑删除时，保证逻辑删除前面的条件被括号包裹，感谢 @swqxdba
+- 优化：重构 使用 QueryTable 类替代 TableDef 类，感谢 @Suomm
+- 优化：重命名 JdbcTypeMapping 的 mapper 为 typeMapper
+- 优化：优化 Spring 下事务管理的自动配置，防止在某些场景下被其他管理器接管的问题
+- 优化：优化 dependencies 模块的 pom.xml 方别独立发布
+- 文档：优化 `@Table` 注解文档的错别字问题，感谢 @zhaoshuli1984
+- 文档：优化事务相关文档的错别字问题，感谢 @lifejwang11
+- 文档：添加关于 JdbcTypeMapping 的 typeMapper 使用文档
+
+
+
+## v1.8.2 20240305:
+- 新增：Maven 编译添加 Javadoc 插件生成 Javadoc 的支持，感谢 @Suomm
+- 优化：优化对 SpringBoot3 下的 Druid 数据源适配，感谢 @Suomm #I94P5P
+- 优化：dependencies 模块取消继承父模块的其他依赖管理版本，感谢 @Suomm #I94RVP
+- 优化：分页在 count 之前先去掉 limit 参数，避免 count 查询错误，感谢 @ocoooo
+- 优化：优化 SqlOperators 使之代码更加严谨
+- 优化：代码生成器 Table.java 添加 containsColumn 方法的支持
+- 优化：TypeHandlerObject 添加 value 的 getter 方法，方便拦截器在某些场景下获取，感谢 @ruansheng
+- 修复：全局 TypeHandler 无法注册的问题，感谢 @Suomm
+- 修复：ConvertUtil.java 无法正确转换 Serializable 参数的问题
+
+
+
 ## v1.8.1 20240302:
 - 新增：添加 CommaSplitTypeHandler 用于对逗号分割存储映射到实体类 `List<String>` 的支持
 - 新增：代码生成器 EntityConfig 添加 superClassFactory 配置的支持

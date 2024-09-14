@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -26,7 +26,8 @@ import java.util.HashMap;
  */
 public class SqlOperators extends HashMap<String, SqlOperator> {
 
-    private final static SqlOperators EMPTY = new SqlOperators() {
+    private static final SqlOperators EMPTY = new SqlOperators() {
+        @Override
         public SqlOperator put(String key, SqlOperator value) {
             throw new IllegalArgumentException("Can not set SqlOperator for \"empty\" SqlOperators");
         }

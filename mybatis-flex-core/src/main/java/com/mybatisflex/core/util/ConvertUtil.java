@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ public class ConvertUtil {
         if (value.getClass().isAssignableFrom(targetClass)) {
             return value;
         }
-        if (targetClass == Serializable.class && ArrayUtil.contains(value.getClass().getInterfaces(), Serializable.class)) {
+        if (targetClass == Serializable.class && value instanceof Serializable) {
             return value;
         }
         if (targetClass == String.class) {

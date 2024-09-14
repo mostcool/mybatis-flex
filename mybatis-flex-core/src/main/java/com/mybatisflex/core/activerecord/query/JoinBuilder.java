@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 package com.mybatisflex.core.activerecord.query;
 
-import com.mybatisflex.core.query.CPI;
 import com.mybatisflex.core.query.Join;
 import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.core.query.RawQueryCondition;
@@ -35,11 +34,6 @@ public class JoinBuilder<R extends QueryModel<R>> {
     public JoinBuilder(R queryModel, Join join) {
         this.queryModel = queryModel;
         this.join = join;
-    }
-
-    public JoinBuilder<R> as(String alias) {
-        CPI.getJoinQueryTable(join).as(alias);
-        return this;
     }
 
     public R on(String on) {

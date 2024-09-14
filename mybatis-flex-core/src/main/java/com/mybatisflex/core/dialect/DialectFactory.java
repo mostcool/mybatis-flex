@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,17 +16,13 @@
 package com.mybatisflex.core.dialect;
 
 
+import com.mybatisflex.core.FlexGlobalConfig;
+import com.mybatisflex.core.dialect.impl.*;
+import com.mybatisflex.core.util.MapUtil;
+import com.mybatisflex.core.util.ObjectUtil;
+
 import java.util.EnumMap;
 import java.util.Map;
-
-import com.mybatisflex.core.exception.MybatisFlexException;
-import org.apache.ibatis.util.MapUtil;
-import com.mybatisflex.core.FlexGlobalConfig;
-import com.mybatisflex.core.dialect.impl.CommonsDialectImpl;
-import com.mybatisflex.core.dialect.impl.DB2105Dialect;
-import com.mybatisflex.core.dialect.impl.DmDialect;
-import com.mybatisflex.core.dialect.impl.OracleDialect;
-import com.mybatisflex.core.util.ObjectUtil;
 
 /**
  * 方言工厂类，用于创建方言
@@ -42,13 +38,10 @@ public class DialectFactory {
      * 此 map 中，用于覆盖系统的方言实现
      */
     private static final Map<DbType, IDialect> dialectMap = new EnumMap<>(DbType.class);
-
     /**
      * 通过设置当前线程的数据库类型，以达到在代码执行时随时切换方言的功能
      */
     private static final ThreadLocal<DbType> dbTypeThreadLocal = new ThreadLocal<>();
-    private static  DbType dbTypeGlobal  = null ;
-
 
     /**
      * 获取方言
@@ -56,7 +49,8 @@ public class DialectFactory {
      * @return IDialect
      */
     public static IDialect getDialect() {
-        DbType dbType = ObjectUtil.requireNonNullElse(dbTypeThreadLocal.get(), FlexGlobalConfig.getDefaultConfig().getDbType());
+        DbType dbType = ObjectUtil.requireNonNullElse(dbTypeThreadLocal.get(),
+            FlexGlobalConfig.getDefaultConfig().getDbType());
         return MapUtil.computeIfAbsent(dialectMap, dbType, DialectFactory::createDialect);
     }
 
@@ -78,19 +72,6 @@ public class DialectFactory {
         return dbTypeThreadLocal.get();
     }
 
-    public static DbType getGlobalDbType() {
-        return dbTypeGlobal;
-    }
-
-    public static void setGlobalDbType(DbType dbType) {
-        if(dbTypeGlobal == null&&dbType!=null){
-            dbTypeGlobal = dbType ;
-        }else if(dbTypeGlobal != null){
-            throw new MybatisFlexException("dbTypeGlobal is only set once");
-        }else if(dbType==null){
-            throw new MybatisFlexException("dbType can not be null");
-        }
-    }
 
     /**
      * 清除当前线程的 dbType
@@ -127,6 +108,7 @@ public class DialectFactory {
             case DORIS:
                 return new CommonsDialectImpl(KeywordWrap.BACK_QUOTE, LimitOffsetProcessor.MYSQL);
             case CLICK_HOUSE:
+                return new ClickhouseDialectImpl(KeywordWrap.NONE, LimitOffsetProcessor.MYSQL);
             case GBASE_8S:
                 return new CommonsDialectImpl(KeywordWrap.NONE, LimitOffsetProcessor.MYSQL);
             case DM:
@@ -159,15 +141,17 @@ public class DialectFactory {
             case DB2_1005:
                 return new DB2105Dialect(KeywordWrap.NONE, DB2105Dialect.DB2105LimitOffsetProcessor.DB2105);
             case SQLSERVER:
-                return new CommonsDialectImpl(KeywordWrap.SQUARE_BRACKETS, LimitOffsetProcessor.SQLSERVER);
+                return new SqlserverDialectImpl(KeywordWrap.SQUARE_BRACKETS, LimitOffsetProcessor.SQLSERVER);
             case SQLSERVER_2005:
-                return new CommonsDialectImpl(KeywordWrap.SQUARE_BRACKETS, LimitOffsetProcessor.SQLSERVER_2005);
+                return new Sqlserver2005DialectImpl(KeywordWrap.SQUARE_BRACKETS, LimitOffsetProcessor.SQLSERVER_2005);
             case INFORMIX:
                 return new CommonsDialectImpl(KeywordWrap.NONE, LimitOffsetProcessor.INFORMIX);
             case SINODB:
                 return new CommonsDialectImpl(KeywordWrap.DOUBLE_QUOTATION, LimitOffsetProcessor.SINODB);
             case SYBASE:
                 return new CommonsDialectImpl(KeywordWrap.DOUBLE_QUOTATION, LimitOffsetProcessor.SYBASE);
+            case TRINO:
+                return new CommonsDialectImpl(KeywordWrap.NONE, LimitOffsetProcessor.SQLSERVER);
             default:
                 return new CommonsDialectImpl();
         }

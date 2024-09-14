@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -38,6 +38,15 @@ class ProviderUtil {
 
     public static String getSqlString(Map params) {
         return (String) params.get(FlexConsts.SQL);
+    }
+
+    public static void flatten(Map params) {
+        Object[] o = (Object[]) params.get(FlexConsts.SQL_ARGS);
+        Object map;
+        if (o != null && o.length == 1 && (map = o[0]) instanceof Map) {
+            params.putAll((Map) map);
+            params.put(FlexConsts.RAW_ARGS, Boolean.TRUE);
+        }
     }
 
     public static void setSqlArgs(Map params, Object[] args) {
@@ -82,7 +91,7 @@ class ProviderUtil {
 
     public static QueryWrapper getQueryWrapper(Map params) {
         Object queryWrapper = params.get(FlexConsts.QUERY);
-        FlexAssert.notNull(queryWrapper,"queryWrapper");
+        FlexAssert.notNull(queryWrapper, "queryWrapper");
         return (QueryWrapper) queryWrapper;
     }
 
@@ -110,8 +119,8 @@ class ProviderUtil {
         return params.get(FlexConsts.VALUE);
     }
 
-    public static List<Object> getEntities(Map params) {
-        return (List<Object>) params.get(FlexConsts.ENTITIES);
+    public static Collection<Object> getEntities(Map params) {
+        return (Collection<Object>) params.get(FlexConsts.ENTITIES);
     }
 
     public static boolean isIgnoreNulls(Map params) {

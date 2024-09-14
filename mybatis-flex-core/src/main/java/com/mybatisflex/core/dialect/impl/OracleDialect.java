@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package com.mybatisflex.core.dialect.impl;
 import com.mybatisflex.core.constant.SqlConsts;
 import com.mybatisflex.core.dialect.KeywordWrap;
 import com.mybatisflex.core.dialect.LimitOffsetProcessor;
+import com.mybatisflex.core.dialect.OperateType;
 import com.mybatisflex.core.row.Row;
 import com.mybatisflex.core.row.RowCPI;
 import com.mybatisflex.core.table.TableInfo;
@@ -25,10 +26,7 @@ import com.mybatisflex.core.util.CollectionUtil;
 import com.mybatisflex.core.util.SqlUtil;
 import com.mybatisflex.core.util.StringUtil;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringJoiner;
+import java.util.*;
 
 import static com.mybatisflex.core.constant.SqlConsts.*;
 
@@ -99,7 +97,7 @@ public class OracleDialect extends CommonsDialectImpl {
     }
 
     @Override
-    public String forInsertEntityBatch(TableInfo tableInfo, List<?> entities) {
+    public String forInsertEntityBatch(TableInfo tableInfo, Collection<?> entities) {
         /**
          * INSERT ALL
          *    INTO t (col1, col2, col3) VALUES ('val1_1', 'val1_2', 'val1_3')
@@ -121,7 +119,7 @@ public class OracleDialect extends CommonsDialectImpl {
 
         Map<String, String> onInsertColumns = tableInfo.getOnInsertColumns();
         for (int i = 0; i < entities.size(); i++) {
-            sql.append(INTO).append(tableInfo.getWrapSchemaAndTableName(this));
+            sql.append(INTO).append(tableInfo.getWrapSchemaAndTableName(this, OperateType.INSERT));
             sql.append(BLANK).append(BRACKET_LEFT).append(StringUtil.join(DELIMITER, warpedInsertColumns)).append(BRACKET_RIGHT);
             sql.append(VALUES);
 
@@ -168,9 +166,9 @@ public class OracleDialect extends CommonsDialectImpl {
         StringBuilder sql = new StringBuilder();
         sql.append(INSERT_ALL);
 
-        String table = getRealTable(tableName);
+        String table = getRealTable(tableName, OperateType.INSERT);
         String tableNameWrap = StringUtil.isNotBlank(schema)
-            ? wrap(getRealSchema(schema,table)) + REFERENCE + wrap(table)
+            ? wrap(getRealSchema(schema, table, OperateType.INSERT)) + REFERENCE + wrap(table)
             : wrap(table);
         String questionStrings = SqlUtil.buildSqlParamPlaceholder(attrs.size());
 

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -23,10 +23,12 @@ import com.mybatisflex.annotation.UpdateListener;
 import com.mybatisflex.core.datasource.FlexDataSource;
 import com.mybatisflex.core.dialect.DbType;
 import com.mybatisflex.core.exception.FlexAssert;
+import com.mybatisflex.core.mybatis.UnMappedColumnHandler;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSessionFactory;
 
 import javax.sql.DataSource;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -66,9 +68,9 @@ public class FlexGlobalConfig {
     /**
      * entity 的监听器
      */
-    private Map<Class<?>, SetListener> entitySetListeners = new ConcurrentHashMap<>();
-    private Map<Class<?>, UpdateListener> entityUpdateListeners = new ConcurrentHashMap<>();
-    private Map<Class<?>, InsertListener> entityInsertListeners = new ConcurrentHashMap<>();
+    private Map<Class<?>, List<SetListener>> entitySetListeners = new ConcurrentHashMap<>();
+    private Map<Class<?>, List<UpdateListener>> entityUpdateListeners = new ConcurrentHashMap<>();
+    private Map<Class<?>, List<InsertListener>> entityInsertListeners = new ConcurrentHashMap<>();
 
 
     /**
@@ -81,6 +83,11 @@ public class FlexGlobalConfig {
      * 分页查询时，默认每页显示的数据数量。
      */
     private int defaultPageSize = 10;
+
+    /**
+     * 分页查询时，默认每页显示的数据数量最大限制。
+     */
+    private int defaultMaxPageSize = Integer.MAX_VALUE;
 
 
     /**
@@ -102,6 +109,11 @@ public class FlexGlobalConfig {
      * 默认的乐观锁字段，允许设置 {@code null} 忽略匹配。
      */
     private String versionColumn;
+
+    /**
+     * 未匹配列处理器
+     */
+    private static UnMappedColumnHandler unMappedColumnHandler;
 
     public boolean isPrintBanner() {
         return printBanner;
@@ -147,49 +159,49 @@ public class FlexGlobalConfig {
         this.keyConfig = keyConfig;
     }
 
-    public Map<Class<?>, SetListener> getEntitySetListeners() {
+    public Map<Class<?>, List<SetListener>> getEntitySetListeners() {
         return entitySetListeners;
     }
 
-    public void setEntitySetListeners(Map<Class<?>, SetListener> entitySetListeners) {
+    public void setEntitySetListeners(Map<Class<?>, List<SetListener>> entitySetListeners) {
         this.entitySetListeners = entitySetListeners;
     }
 
-    public Map<Class<?>, UpdateListener> getEntityUpdateListeners() {
+    public Map<Class<?>, List<UpdateListener>> getEntityUpdateListeners() {
         return entityUpdateListeners;
     }
 
-    public void setEntityUpdateListeners(Map<Class<?>, UpdateListener> entityUpdateListeners) {
+    public void setEntityUpdateListeners(Map<Class<?>, List<UpdateListener>> entityUpdateListeners) {
         this.entityUpdateListeners = entityUpdateListeners;
     }
 
-    public Map<Class<?>, InsertListener> getEntityInsertListeners() {
+    public Map<Class<?>, List<InsertListener>> getEntityInsertListeners() {
         return entityInsertListeners;
     }
 
-    public void setEntityInsertListeners(Map<Class<?>, InsertListener> entityInsertListeners) {
+    public void setEntityInsertListeners(Map<Class<?>, List<InsertListener>> entityInsertListeners) {
         this.entityInsertListeners = entityInsertListeners;
     }
 
     public void registerSetListener(SetListener listener, Class<?>... classes) {
         for (Class<?> aClass : classes) {
-            entitySetListeners.put(aClass, listener);
+            entitySetListeners.computeIfAbsent(aClass, k -> new ArrayList<>()).add(listener);
         }
     }
 
     public void registerUpdateListener(UpdateListener listener, Class<?>... classes) {
         for (Class<?> aClass : classes) {
-            entityUpdateListeners.put(aClass, listener);
+            entityUpdateListeners.computeIfAbsent(aClass, k -> new ArrayList<>()).add(listener);
         }
     }
 
     public void registerInsertListener(InsertListener listener, Class<?>... classes) {
         for (Class<?> aClass : classes) {
-            entityInsertListeners.put(aClass, listener);
+            entityInsertListeners.computeIfAbsent(aClass, k -> new ArrayList<>()).add(listener);
         }
     }
 
-    public SetListener getSetListener(Class<?> entityClass) {
+    public List<SetListener> getSetListener(Class<?> entityClass) {
         return entitySetListeners.get(entityClass);
     }
 
@@ -204,21 +216,23 @@ public class FlexGlobalConfig {
         return this.findSupportedListeners(entityClass, this.entitySetListeners);
     }
 
-    public UpdateListener getUpdateListener(Class<?> entityClass) {
+    public List<UpdateListener> getUpdateListener(Class<?> entityClass) {
         return entityUpdateListeners.get(entityClass);
     }
 
     /**
      * 查找支持该 {@code entityClass} 的监听器
+     *
      * @param entityClass 实体class
      * @param listenerMap 监听器map
+     * @param <T>         监听器类型
      * @return 符合条件的监听器
-     * @param <T> 监听器类型
      */
-    public <T extends Listener> List<T> findSupportedListeners(Class<?> entityClass, Map<Class<?>, T> listenerMap) {
-        return listenerMap.entrySet().stream()
+    public <T extends Listener> List<T> findSupportedListeners(Class<?> entityClass, Map<Class<?>, List<T>> listenerMap) {
+        return listenerMap.entrySet()
+            .stream()
             .filter(entry -> entry.getKey().isAssignableFrom(entityClass))
-            .map(Map.Entry::getValue)
+            .flatMap(e -> e.getValue().stream())
             .collect(Collectors.toList());
     }
 
@@ -234,7 +248,7 @@ public class FlexGlobalConfig {
     }
 
 
-    public InsertListener getInsertListener(Class<?> entityClass) {
+    public List<InsertListener> getInsertListener(Class<?> entityClass) {
         return entityInsertListeners.get(entityClass);
     }
 
@@ -275,6 +289,14 @@ public class FlexGlobalConfig {
         this.defaultPageSize = defaultPageSize;
     }
 
+    public int getDefaultMaxPageSize() {
+        return defaultMaxPageSize;
+    }
+
+    public void setDefaultMaxPageSize(int defaultMaxPageSize) {
+        this.defaultMaxPageSize = defaultMaxPageSize;
+    }
+
     public int getDefaultRelationQueryDepth() {
         return defaultRelationQueryDepth;
     }
@@ -305,6 +327,14 @@ public class FlexGlobalConfig {
 
     public void setVersionColumn(String versionColumn) {
         this.versionColumn = versionColumn;
+    }
+
+    public static UnMappedColumnHandler getUnMappedColumnHandler() {
+        return unMappedColumnHandler;
+    }
+
+    public void setUnMappedColumnHandler(UnMappedColumnHandler unMappedColumnHandler) {
+        this.unMappedColumnHandler = unMappedColumnHandler;
     }
 
     public FlexDataSource getDataSource() {

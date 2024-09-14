@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ public class Role implements Serializable {
         selfField = "id", joinSelfColumn = "role_id",
         targetField = "id", joinTargetColumn = "account_id"
     )
-    private List<Account> accounts;
+    private List<RelationAccount> accounts;
 
     public Long getId() {
         return id;
@@ -54,11 +54,11 @@ public class Role implements Serializable {
         this.name = name;
     }
 
-    public List<Account> getAccounts() {
+    public List<RelationAccount> getAccounts() {
         return accounts;
     }
 
-    public void setAccounts(List<Account> accounts) {
+    public void setAccounts(List<RelationAccount> accounts) {
         this.accounts = accounts;
     }
 

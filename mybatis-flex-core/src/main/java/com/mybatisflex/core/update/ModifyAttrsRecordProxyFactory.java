@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import com.mybatisflex.core.util.ClassUtil;
 import org.apache.ibatis.javassist.util.proxy.ProxyFactory;
 import org.apache.ibatis.javassist.util.proxy.ProxyObject;
 import org.apache.ibatis.logging.LogFactory;
-import org.apache.ibatis.util.MapUtil;
+import com.mybatisflex.core.util.MapUtil;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -55,6 +55,7 @@ public class ModifyAttrsRecordProxyFactory {
 
         T proxyObject = null;
         try {
+            //noinspection unchecked
             proxyObject = (T) ClassUtil.newInstance(proxyClass);
             ((ProxyObject) proxyObject).setHandler(new ModifyAttrsRecordHandler());
         } catch (Exception e) {

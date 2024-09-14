@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package com.mybatisflex.test;
 
+import com.mybatisflex.annotation.Column;
 import com.mybatisflex.annotation.ColumnMask;
 import com.mybatisflex.annotation.Id;
 import com.mybatisflex.annotation.KeyType;
@@ -37,7 +38,7 @@ public class TenantAccount {
 
     private Date birthday;
 
-//    @Column(tenantId = true)
+    @Column(tenantId = true)
     private Long tenantId;
 
     public Long getId() {

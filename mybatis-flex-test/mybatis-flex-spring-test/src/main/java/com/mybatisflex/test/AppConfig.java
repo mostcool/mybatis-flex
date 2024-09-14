@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package com.mybatisflex.test;
 
 import com.mybatisflex.core.mybatis.FlexConfiguration;
 import com.mybatisflex.spring.FlexSqlSessionFactoryBean;
+import com.mybatisflex.test.model.EnumTypeHandler;
 import org.apache.ibatis.logging.stdout.StdOutImpl;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionFactoryBean;
@@ -52,6 +53,7 @@ public class AppConfig implements ApplicationListener<ContextRefreshedEvent> {
         factoryBean.setDataSource(dataSource);
         FlexConfiguration configuration = new FlexConfiguration();
         configuration.setLogImpl(StdOutImpl.class);
+        configuration.setDefaultEnumTypeHandler(EnumTypeHandler.class);
         factoryBean.setConfiguration(configuration);
         return factoryBean.getObject();
     }

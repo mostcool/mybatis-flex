@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -44,6 +44,10 @@ public class CPI {
 
     public static Object[] getConditionValueArray(QueryWrapper queryWrapper) {
         return queryWrapper.getConditionValueArray();
+    }
+
+    public static Object[] getConditionParams(QueryCondition queryCondition) {
+        return WrapperUtil.getValues(queryCondition);
     }
 
     public static List<QueryWrapper> getChildSelect(QueryWrapper queryWrapper) {
@@ -145,9 +149,11 @@ public class CPI {
     public static QueryCondition getWhereQueryCondition(QueryWrapper queryWrapper) {
         return queryWrapper.getWhereQueryCondition();
     }
-
     public static void setWhereQueryCondition(QueryWrapper queryWrapper, QueryCondition queryCondition) {
         queryWrapper.setWhereQueryCondition(queryCondition);
+    }
+    public static void addWhereQueryCondition(QueryWrapper queryWrapper, QueryCondition queryCondition) {
+        queryWrapper.addWhereQueryCondition(queryCondition);
     }
 
     public static void addWhereQueryCondition(QueryWrapper queryWrapper, QueryCondition queryCondition, SqlConnector connector) {

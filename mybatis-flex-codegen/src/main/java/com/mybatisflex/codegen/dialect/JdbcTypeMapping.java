@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ public class JdbcTypeMapping {
     }
 
     private static final Map<String, String> mapping = new HashMap<>();
-    private static JdbcTypeMapper mapper;
+    private static JdbcTypeMapper typeMapper;
 
     static {
         registerMapping("[B", "byte[]");
@@ -52,12 +52,12 @@ public class JdbcTypeMapping {
         return mapping;
     }
 
-    public static JdbcTypeMapper getMapper() {
-        return mapper;
+    public static JdbcTypeMapper getTypeMapper() {
+        return typeMapper;
     }
 
-    public static void setMapper(JdbcTypeMapper mapper) {
-        JdbcTypeMapping.mapper = mapper;
+    public static void setTypeMapper(JdbcTypeMapper typeMapper) {
+        JdbcTypeMapping.typeMapper = typeMapper;
     }
 
     /**
@@ -70,9 +70,9 @@ public class JdbcTypeMapping {
         registerMapping("java.time.LocalDate", "java.util.Date");
     }
 
-    static String getType(String jdbcType, Table table, Column column) {
-        if (mapper != null) {
-            String type = mapper.getType(jdbcType, table, column);
+    public static String getType(String jdbcType, Table table, Column column) {
+        if (typeMapper != null) {
+            String type = typeMapper.getType(jdbcType, table, column);
             if (StringUtil.isNotBlank(type)) {
                 return type;
             }

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -31,6 +31,10 @@ public class ControllerConfig implements Serializable {
      * 代码生成目录，当未配置时，使用 PackageConfig 的配置
      */
     private String sourceDir;
+    /**
+     *  RequestMapping注解，访问路径的前缀。
+     */
+    private String requestMappingPrefix;
     /**
      * Controller 类的前缀。
      */
@@ -70,6 +74,21 @@ public class ControllerConfig implements Serializable {
 
     public void setSourceDir(String sourceDir) {
         this.sourceDir = sourceDir;
+    }
+
+    /**
+     * 获取访问路径的前缀
+     */
+    public String getRequestMappingPrefix() {
+        return requestMappingPrefix;
+    }
+
+    /**
+     * 设置访问路径的前缀
+     */
+    public ControllerConfig setRequestMappingPrefix(String requestMappingPrefix) {
+        this.requestMappingPrefix = requestMappingPrefix;
+        return this;
     }
 
     /**

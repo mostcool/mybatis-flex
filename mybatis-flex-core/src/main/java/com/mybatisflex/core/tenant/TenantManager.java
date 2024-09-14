@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -74,13 +74,20 @@ public class TenantManager {
         ignoreFlags.remove();
     }
 
-
+    /**
+     * @deprecated 使用 {@link #getTenantIds(String)} 代替。
+     */
+    @Deprecated
     public static Object[] getTenantIds() {
+        return getTenantIds(null);
+    }
+
+    public static Object[] getTenantIds(String tableName) {
         Boolean ignoreFlag = ignoreFlags.get();
         if (ignoreFlag != null && ignoreFlag) {
             return null;
         }
-        return tenantFactory != null ? tenantFactory.getTenantIds() : null;
+        return tenantFactory != null ? tenantFactory.getTenantIds(tableName) : null;
     }
 
 

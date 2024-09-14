@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -55,7 +55,8 @@ class OuterMapperTest {
                 INNER.ID,
                 INNER.TYPE)
             .from(OUTER.as("o"))
-            .leftJoin(INNER).as("i").on(INNER.ID.eq(2));
+            .leftJoin(INNER).as("i").on(INNER.ID.eq(2))
+            .limit(1);
         Outer outer = outerMapper.selectOneByQuery(queryWrapper);
         System.out.println(outer);
     }

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -22,12 +22,15 @@ import com.mybatisflex.core.keygen.MultiEntityKeyGenerator;
 import com.mybatisflex.core.keygen.MultiRowKeyGenerator;
 import com.mybatisflex.core.keygen.MybatisKeyGeneratorUtil;
 import com.mybatisflex.core.keygen.RowKeyGenerator;
+import com.mybatisflex.core.mybatis.binding.FlexMapperRegistry;
 import com.mybatisflex.core.mybatis.executor.FlexBatchExecutor;
 import com.mybatisflex.core.mybatis.executor.FlexReuseExecutor;
 import com.mybatisflex.core.mybatis.executor.FlexSimpleExecutor;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
+import com.mybatisflex.core.util.MapUtil;
 import com.mybatisflex.core.util.StringUtil;
+import org.apache.ibatis.binding.MapperRegistry;
 import org.apache.ibatis.executor.CachingExecutor;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.executor.keygen.KeyGenerator;
@@ -42,10 +45,8 @@ import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.ResultMap;
 import org.apache.ibatis.session.*;
 import org.apache.ibatis.transaction.Transaction;
-import org.apache.ibatis.util.MapUtil;
 
 import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.List;
@@ -59,6 +60,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FlexConfiguration extends Configuration {
 
     private static final Map<String, MappedStatement> dynamicMappedStatementCache = new ConcurrentHashMap<>();
+    private final MapperRegistry mapperRegistry = new FlexMapperRegistry(this);
 
     public FlexConfiguration() {
         setObjectWrapperFactory(new FlexWrapperFactory());
@@ -141,6 +143,7 @@ public class FlexConfiguration extends Configuration {
         MappedStatement ms = super.getMappedStatement(id);
         //动态 resultsMap，方法名称为：selectListByQuery
         Class<?> asType = MappedStatementTypes.getCurrentType();
+        //忽略掉查询 Rows 的方法
         if (asType != null) {
             return MapUtil.computeIfAbsent(dynamicMappedStatementCache, id + ":" + asType.getName(),
                 clazz -> replaceResultMap(ms, TableInfoFactory.ofEntityClass(asType))
@@ -345,17 +348,38 @@ public class FlexConfiguration extends Configuration {
 
         //不支持泛型类添加
         if (!isGenericInterface) {
-            super.addMapper(type);
+            mapperRegistry.addMapper(type);
+            TableInfoFactory.init(type.getPackage().getName());
         }
     }
 
 
-    @SuppressWarnings("unchecked")
+    @Override
+    public MapperRegistry getMapperRegistry() {
+        return mapperRegistry;
+    }
+
+    @Override
+    public void addMappers(String packageName, Class<?> superType) {
+        mapperRegistry.addMappers(packageName, superType);
+        TableInfoFactory.init(packageName);
+    }
+
+    @Override
+    public void addMappers(String packageName) {
+        mapperRegistry.addMappers(packageName);
+        TableInfoFactory.init(packageName);
+    }
+
     @Override
     public <T> T getMapper(Class<T> type, SqlSession sqlSession) {
-        T mapper = super.getMapper(type, sqlSession);
-        return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class[]{type}
-            , new MapperInvocationHandler(mapper, environment.getDataSource()));
+        return mapperRegistry.getMapper(type, sqlSession);
     }
+
+    @Override
+    public boolean hasMapper(Class<?> type) {
+        return mapperRegistry.hasMapper(type);
+    }
+
 
 }

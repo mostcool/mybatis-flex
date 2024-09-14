@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -21,12 +21,25 @@ import com.mybatisflex.core.field.FieldQueryBuilder;
 import com.mybatisflex.core.mybatis.MappedStatementTypes;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.provider.EntitySqlProvider;
-import com.mybatisflex.core.query.*;
+import com.mybatisflex.core.query.CPI;
+import com.mybatisflex.core.query.FunctionQueryColumn;
+import com.mybatisflex.core.query.Join;
+import com.mybatisflex.core.query.QueryColumn;
+import com.mybatisflex.core.query.QueryCondition;
+import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.core.row.Db;
 import com.mybatisflex.core.row.Row;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
-import com.mybatisflex.core.util.*;
-import org.apache.ibatis.annotations.*;
+import com.mybatisflex.core.util.ClassUtil;
+import com.mybatisflex.core.util.CollectionUtil;
+import com.mybatisflex.core.util.ConvertUtil;
+import com.mybatisflex.core.util.MapperUtil;
+import org.apache.ibatis.annotations.DeleteProvider;
+import org.apache.ibatis.annotations.InsertProvider;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.SelectProvider;
+import org.apache.ibatis.annotations.UpdateProvider;
 import org.apache.ibatis.builder.annotation.ProviderContext;
 import org.apache.ibatis.cursor.Cursor;
 import org.apache.ibatis.session.ExecutorType;
@@ -34,7 +47,12 @@ import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import static com.mybatisflex.core.query.QueryMethods.count;
@@ -133,7 +151,7 @@ public interface BaseMapper<T> {
      * @see com.mybatisflex.core.FlexConsts#METHOD_INSERT_BATCH
      */
     @InsertProvider(type = EntitySqlProvider.class, method = FlexConsts.METHOD_INSERT_BATCH)
-    int insertBatch(@Param(FlexConsts.ENTITIES) List<T> entities);
+    int insertBatch(@Param(FlexConsts.ENTITIES) Collection<T> entities);
 
     /**
      * 批量插入实体类数据，按 size 切分。
@@ -142,19 +160,65 @@ public interface BaseMapper<T> {
      * @param size     切分大小
      * @return 受影响的行数
      */
-    default int insertBatch(List<T> entities, int size) {
+    default int insertBatch(Collection<T> entities, int size) {
+
+        // 让 insertBatch(List<T> entities, int size) 和 insertBatch(List<T> entities) 保持一样的验证行为
+        // https://gitee.com/mybatis-flex/mybatis-flex/issues/I9EGWA
+        FlexAssert.notEmpty(entities, "entities");
+
         if (size <= 0) {
             size = DEFAULT_BATCH_SIZE;
         }
+
+        List<T> entityList = entities instanceof List ? (List<T>) entities : new ArrayList<>(entities);
+
         int sum = 0;
         int entitiesSize = entities.size();
         int maxIndex = entitiesSize / size + (entitiesSize % size == 0 ? 0 : 1);
         for (int i = 0; i < maxIndex; i++) {
-            List<T> list = entities.subList(i * size, Math.min(i * size + size, entitiesSize));
+            List<T> list = entityList.subList(i * size, Math.min(i * size + size, entitiesSize));
             sum += insertBatch(list);
         }
         return sum;
     }
+
+
+    /**
+     * 批量插入实体类数据，并自动忽略 null 值
+     *
+     * @param entities 插入的数据列表
+     * @return 受影响的行数
+     */
+    default int insertBatchSelective(Collection<T> entities) {
+        return insertBatchSelective(entities, DEFAULT_BATCH_SIZE);
+    }
+
+
+    /**
+     * 批量插入实体类数据，按 size 切分，并自动忽略 null 值
+     *
+     * @param entities 插入的数据列表
+     * @param size     切分大小
+     * @return 受影响的行数
+     */
+    @SuppressWarnings("rawtypes")
+    default int insertBatchSelective(Collection<T> entities, int size) {
+
+        FlexAssert.notEmpty(entities, "entities");
+
+        if (size <= 0) {
+            size = DEFAULT_BATCH_SIZE;
+        }
+
+        Class aClass = ClassUtil.getUsefulClass(this.getClass());
+        int[] batchResults = Db.executeBatch(entities, size, aClass, (BiConsumer<BaseMapper, T>) BaseMapper::insertSelective);
+        int result = 0;
+        for (int anInt : batchResults) {
+            if (anInt > 0) result += anInt;
+        }
+        return result;
+    }
+
 
     /**
      * 插入或者更新，若主键有值，则更新，若没有主键值，则插入，插入或者更新都不会忽略 {@code null} 值。
@@ -236,15 +300,16 @@ public interface BaseMapper<T> {
      * @return 受影响的行数
      * @see com.mybatisflex.core.provider.EntitySqlProvider#deleteBatchByIds(Map, ProviderContext)
      */
-    default int deleteBatchByIds(List<? extends Serializable> ids, int size) {
+    default int deleteBatchByIds(Collection<? extends Serializable> ids, int size) {
         if (size <= 0) {
             size = DEFAULT_BATCH_SIZE;
         }
         int sum = 0;
         int entitiesSize = ids.size();
         int maxIndex = entitiesSize / size + (entitiesSize % size == 0 ? 0 : 1);
+        List<? extends Serializable> idList = ids instanceof List ? (List<? extends Serializable>) ids : new ArrayList<>(ids);
         for (int i = 0; i < maxIndex; i++) {
-            List<? extends Serializable> list = ids.subList(i * size, Math.min(i * size + size, entitiesSize));
+            List<? extends Serializable> list = idList.subList(i * size, Math.min(i * size + size, entitiesSize));
             sum += deleteBatchByIds(list);
         }
         return sum;
@@ -433,6 +498,10 @@ public interface BaseMapper<T> {
      * @return 实体类数据
      */
     default T selectOneByQuery(QueryWrapper queryWrapper) {
+        List<Join> joins = CPI.getJoins(queryWrapper);
+        if (CollectionUtil.isNotEmpty(joins)) {
+            return MapperUtil.getSelectOneResult(selectListByQuery(queryWrapper));
+        }
         Long limitRows = CPI.getLimitRows(queryWrapper);
         try {
             queryWrapper.limit(1);
@@ -450,6 +519,10 @@ public interface BaseMapper<T> {
      * @return 实体类数据
      */
     default <R> R selectOneByQueryAs(QueryWrapper queryWrapper, Class<R> asType) {
+        List<Join> joins = CPI.getJoins(queryWrapper);
+        if (CollectionUtil.isNotEmpty(joins)) {
+            return MapperUtil.getSelectOneResult(selectListByQueryAs(queryWrapper, asType));
+        }
         Long limitRows = CPI.getLimitRows(queryWrapper);
         try {
             queryWrapper.limit(1);
@@ -488,6 +561,10 @@ public interface BaseMapper<T> {
      * @return 实体类数据
      */
     default T selectOneWithRelationsByQuery(QueryWrapper queryWrapper) {
+        List<Join> joins = CPI.getJoins(queryWrapper);
+        if (CollectionUtil.isNotEmpty(joins)) {
+            return MapperUtil.queryRelations(this, MapperUtil.getSelectOneResult(selectListByQuery(queryWrapper)));
+        }
         Long limitRows = CPI.getLimitRows(queryWrapper);
         try {
             queryWrapper.limit(1);
@@ -515,12 +592,14 @@ public interface BaseMapper<T> {
      * @return 实体类数据
      */
     default <R> R selectOneWithRelationsByIdAs(Serializable id, Class<R> asType) {
+        R result;
         try {
             MappedStatementTypes.setCurrentType(asType);
-            return (R) selectOneWithRelationsById(id);
+            result = (R) selectOneById(id);
         } finally {
             MappedStatementTypes.clear();
         }
+        return MapperUtil.queryRelations(this, result);
     }
 
     /**
@@ -531,7 +610,17 @@ public interface BaseMapper<T> {
      * @return 实体类数据
      */
     default <R> R selectOneWithRelationsByQueryAs(QueryWrapper queryWrapper, Class<R> asType) {
-        return MapperUtil.queryRelations(this, MapperUtil.getSelectOneResult(selectListByQueryAs(queryWrapper, asType)));
+        List<Join> joins = CPI.getJoins(queryWrapper);
+        if (CollectionUtil.isNotEmpty(joins)) {
+            return MapperUtil.queryRelations(this, MapperUtil.getSelectOneResult(selectListByQueryAs(queryWrapper, asType)));
+        }
+        Long limitRows = CPI.getLimitRows(queryWrapper);
+        try {
+            queryWrapper.limit(1);
+            return MapperUtil.queryRelations(this, MapperUtil.getSelectOneResult(selectListByQueryAs(queryWrapper, asType)));
+        } finally {
+            CPI.setLimitRows(queryWrapper, limitRows);
+        }
     }
 
     /**
@@ -624,6 +713,22 @@ public interface BaseMapper<T> {
      */
     @SelectProvider(type = EntitySqlProvider.class, method = "selectListByQuery")
     Cursor<T> selectCursorByQuery(@Param(FlexConsts.QUERY) QueryWrapper queryWrapper);
+
+    /**
+     * 根据查询条件查询游标数据，要求返回的数据为 asType 类型。该方法必须在事务中才能正常使用，非事务下无法获取数据。
+     *
+     * @param queryWrapper 条件
+     * @param asType       接收的数据类型
+     * @return 游标数据
+     */
+    default <R> Cursor<R> selectCursorByQueryAs(QueryWrapper queryWrapper, Class<R> asType) {
+        try {
+            MappedStatementTypes.setCurrentType(asType);
+            return (Cursor<R>) selectCursorByQuery(queryWrapper);
+        } finally {
+            MappedStatementTypes.clear();
+        }
+    }
 
     /**
      * 根据查询条件查询 Row 数据。
@@ -843,7 +948,7 @@ public interface BaseMapper<T> {
             }
             return MapperUtil.getLongNumber(objects);
         } finally {
-            //fixed https://github.com/mybatis-flex/mybatis-flex/issues/49
+            // fixed https://github.com/mybatis-flex/mybatis-flex/issues/49
             CPI.setSelectColumns(queryWrapper, selectColumns);
         }
     }
@@ -1141,7 +1246,7 @@ public interface BaseMapper<T> {
         ExecutorType executorType = FlexGlobalConfig.getDefaultConfig().getConfiguration().getDefaultExecutorType();
         String mapperClassName = ClassUtil.getUsefulClass(this.getClass()).getName();
 
-        Map<String, Object> preparedParams = MapperUtil.preparedParams(page, queryWrapper, otherParams);
+        Map<String, Object> preparedParams = MapperUtil.preparedParams(this, page, queryWrapper, otherParams);
         if (!dataSelectId.contains(".")) {
             dataSelectId = mapperClassName + "." + dataSelectId;
         }

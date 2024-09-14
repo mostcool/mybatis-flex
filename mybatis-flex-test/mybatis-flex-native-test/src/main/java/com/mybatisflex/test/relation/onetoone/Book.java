@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ public class Book implements Serializable {
     private String content;
 
     @RelationManyToOne(selfField = "accountId", targetField = "id")
-    private Account account;
+    private RelationAccount account;
 
     public Long getId() {
         return id;
@@ -67,11 +67,11 @@ public class Book implements Serializable {
         this.content = content;
     }
 
-    public Account getAccount() {
+    public RelationAccount getAccount() {
         return account;
     }
 
-    public void setAccount(Account account) {
+    public void setAccount(RelationAccount account) {
         this.account = account;
     }
 

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,13 +16,33 @@
 package com.mybatisflex.core.util;
 
 
+import com.mybatisflex.core.exception.FlexExceptions;
+
 import java.util.Collection;
+import java.util.Locale;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
 public class StringUtil {
 
     private StringUtil() {
+    }
+
+    /**
+     * @see org.apache.ibatis.reflection.property.PropertyNamer#methodToProperty(String)
+     */
+    public static String methodToProperty(String name) {
+        if (name.startsWith("is")) {
+            name = name.substring(2);
+        } else if (name.startsWith("get") || name.startsWith("set")) {
+            name = name.substring(3);
+        } else {
+            throw FlexExceptions.wrap("Error parsing property name '%s'.  Didn't start with 'is', 'get' or 'set'.", name);
+        }
+        if (!name.isEmpty()) {
+            name = name.substring(0, 1).toLowerCase(Locale.ENGLISH).concat(name.substring(1));
+        }
+        return name;
     }
 
 
@@ -72,7 +92,10 @@ public class StringUtil {
         for (int i = 0; i < strLen; i++) {
             char c = string.charAt(i);
             if (Character.isUpperCase(c) && i > 0) {
-                sb.append('_');
+                char prev = string.charAt(i - 1);
+                if (!Character.isUpperCase(prev) && prev != '_') {
+                    sb.append('_');
+                }
             }
             sb.append(Character.toLowerCase(c));
         }
@@ -124,6 +147,20 @@ public class StringUtil {
         return sb.toString();
     }
 
+    public static String deleteChar(String string, char deleteChar1, char deleteChar2) {
+        if (isBlank(string)) {
+            return "";
+        }
+        char[] chars = string.toCharArray();
+        StringBuilder sb = new StringBuilder(string.length());
+        for (char aChar : chars) {
+            if (aChar != deleteChar1 && aChar != deleteChar2) {
+                sb.append(aChar);
+            }
+        }
+        return sb.toString();
+    }
+
     /**
      * 字符串为 null 或者内部字符全部为 ' ', '\t', '\n', '\r' 这四类字符时返回 true
      */
@@ -161,7 +198,7 @@ public class StringUtil {
 
 
     public static boolean areNotBlank(String... strings) {
-        return !isAnyBlank();
+        return !isAnyBlank(strings);
     }
 
 

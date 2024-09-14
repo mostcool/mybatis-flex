@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -40,15 +40,10 @@ import org.springframework.transaction.annotation.TransactionManagementConfigure
 @ConditionalOnClass(Db.class)
 @ConditionalOnMissingBean(TransactionManager.class)
 @Configuration(proxyBeanMethods = false)
-@AutoConfigureOrder(FlexTransactionAutoConfiguration.PRECEDENCE)
+@AutoConfigureOrder(Ordered.HIGHEST_PRECEDENCE)
 @AutoConfigureAfter({MybatisFlexAutoConfiguration.class})
-@AutoConfigureBefore({TransactionAutoConfiguration.class, DataSourceTransactionManagerAutoConfiguration.class})
+@AutoConfigureBefore(value = {TransactionAutoConfiguration.class, DataSourceTransactionManagerAutoConfiguration.class})
 public class FlexTransactionAutoConfiguration implements TransactionManagementConfigurer {
-
-    /**
-     * 优先级
-     */
-    protected static final int PRECEDENCE = Ordered.LOWEST_PRECEDENCE - 10;
 
     /**
      * 这里使用 final 修饰属性是因为：<br>

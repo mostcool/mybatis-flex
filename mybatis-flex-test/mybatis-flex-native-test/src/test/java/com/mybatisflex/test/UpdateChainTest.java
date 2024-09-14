@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -77,6 +77,15 @@ public class UpdateChainTest implements WithAssertions {
     public void destroy() {
         this.dataSource.shutdown();
         DataSourceKey.clear();
+    }
+
+    @Test
+    public void testUpdateAll() {
+        assertThatThrownBy(() -> {
+            UpdateChain.of(accountMapper)
+                .set(Account::getAge, 11)
+                .update();
+        });
     }
 
     @Test

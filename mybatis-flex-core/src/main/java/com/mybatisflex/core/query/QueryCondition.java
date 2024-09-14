@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import com.mybatisflex.core.util.ObjectUtil;
 import com.mybatisflex.core.util.StringUtil;
 
 import java.lang.reflect.Array;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
@@ -66,29 +67,29 @@ public class QueryCondition implements CloneSupport<QueryCondition> {
 
 
     public static QueryCondition create(String schema, String table, String column, String logic, Object value) {
-        QueryCondition condition = new QueryCondition();
-        condition.setColumn(new QueryColumn(schema, table, column));
-        condition.setLogic(logic);
-        condition.setValue(value);
-        return condition;
+        return create(new QueryColumn(schema, table, column), logic, value);
     }
 
     public static QueryCondition create(QueryColumn queryColumn, Object value) {
         return create(queryColumn, SqlConsts.EQUALS, value);
     }
 
+    public static QueryCondition create(QueryColumn queryColumn, SqlOperator logic, Collection<?> values) {
+        return create(queryColumn, logic, values == null ? null : values.toArray());
+    }
+
+    public static QueryCondition create(QueryColumn queryColumn, SqlOperator logic, Object value) {
+        return create(queryColumn, logic.getValue(), value);
+    }
+
+    public static QueryCondition create(QueryColumn queryColumn, String logic, Collection<?> values) {
+        return create(queryColumn, logic, values == null ? null : values.toArray());
+    }
+
     public static QueryCondition create(QueryColumn queryColumn, String logic, Object value) {
         QueryCondition condition = new QueryCondition();
         condition.setColumn(queryColumn);
         condition.setLogic(logic);
-        condition.setValue(value);
-        return condition;
-    }
-
-    public static QueryCondition create(QueryColumn queryColumn, SqlOperator logic, Object value) {
-        QueryCondition condition = new QueryCondition();
-        condition.setColumn(queryColumn);
-        condition.setLogic(logic.getValue());
         condition.setValue(value);
         return condition;
     }
@@ -294,13 +295,29 @@ public class QueryCondition implements CloneSupport<QueryCondition> {
         if (column == null || !checkEffective()) {
             return nextContainsTable(tables);
         }
+        if (column instanceof FunctionQueryColumn) {
+            /*
+             * 连表分页查询的where中使用QueryMethods导致count查询优化错误
+             * fix https://github.com/mybatis-flex/mybatis-flex/issues/307
+             */
+            List<QueryColumn> columns = ((FunctionQueryColumn)column).getColumns();
+            for (QueryColumn queryColumn : columns) {
+                if (containsTable(queryColumn, tables)) {
+                    return true;
+                }
+            }
+        }
+        return containsTable(column, tables) || nextContainsTable(tables);
+    }
+
+    boolean containsTable(QueryColumn column, String... tables) {
         for (String table : tables) {
             String tableName = StringUtil.getTableNameWithAlias(table)[0];
             if (column.table != null && tableName.equals(column.table.name)) {
                 return true;
             }
         }
-        return nextContainsTable(tables);
+        return false;
     }
 
     boolean nextContainsTable(String... tables) {

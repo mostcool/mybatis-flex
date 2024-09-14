@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import com.mybatisflex.codegen.dialect.impl.DefaultJdbcDialect;
 import com.mybatisflex.codegen.dialect.impl.MySqlJdbcDialect;
 import com.mybatisflex.codegen.dialect.impl.OracleJdbcDialect;
 import com.mybatisflex.codegen.dialect.impl.SqliteDialect;
+import com.mybatisflex.codegen.dialect.impl.PostgreSQLJdbcDialect;
 import com.mybatisflex.codegen.entity.Table;
 
 import java.sql.Connection;
@@ -53,6 +54,11 @@ public interface IDialect {
      * Sqlite 方言。
      */
     IDialect SQLITE = new SqliteDialect();
+
+    /**
+     * PostgreSQL 方言。
+     */
+    IDialect POSTGRESQL = new PostgreSQLJdbcDialect();
 
     /**
      * 构建表和列的信息。

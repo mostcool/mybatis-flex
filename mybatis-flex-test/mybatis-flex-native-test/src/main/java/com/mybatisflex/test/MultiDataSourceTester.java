@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 
 import javax.sql.DataSource;
 import java.util.List;
-import java.util.function.Supplier;
 
 public class MultiDataSourceTester {
 
@@ -60,9 +59,9 @@ public class MultiDataSourceTester {
         AuditManager.setMessageCollector(collector);
 
         Db.tx(() -> {
-            Db.selectAll(null, "tb_account");
+            Db.selectAll("tb_account");
             DataSourceKey.use("ds2");
-            Db.selectAll(null, "tb_account");
+            Db.selectAll("tb_account");
             return true;
         });
 

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import com.mybatisflex.core.datasource.DataSourceProperty;
 import com.mybatisflex.core.mybatis.FlexConfiguration;
 import com.mybatisflex.spring.boot.ConfigurationCustomizer;
 import com.mybatisflex.spring.boot.MyBatisFlexCustomizer;
+import com.mybatisflex.test.unmapped.MyUnMappedColumnHandler;
 import org.apache.ibatis.logging.stdout.StdOutImpl;
 import org.springframework.context.annotation.Configuration;
 
@@ -55,6 +56,7 @@ public class MyConfigurationCustomizer implements ConfigurationCustomizer, MyBat
             return value;
         };
         DataSourceManager.setDecipher(decipher);
+        globalConfig.setUnMappedColumnHandler(new MyUnMappedColumnHandler());
 
     }
 }

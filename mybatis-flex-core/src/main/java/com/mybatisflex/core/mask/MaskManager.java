@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package com.mybatisflex.core.mask;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -58,6 +59,9 @@ public class MaskManager {
         processorMap.put(type, processor);
     }
 
+    public static Map<String, MaskProcessor> getProcessorMap() {
+        return Collections.unmodifiableMap(processorMap);
+    }
 
     /**
      * 跳过脱敏处理

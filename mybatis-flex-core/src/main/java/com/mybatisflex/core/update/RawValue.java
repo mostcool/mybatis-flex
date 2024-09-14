@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package com.mybatisflex.core.update;
 import com.mybatisflex.core.constant.SqlConsts;
 import com.mybatisflex.core.dialect.IDialect;
 import com.mybatisflex.core.query.CPI;
+import com.mybatisflex.core.query.HasParamsColumn;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.core.query.QueryWrapper;
@@ -54,6 +55,26 @@ public class RawValue implements Serializable {
         }
 
         return object.toString();
+    }
+
+    public Object[] getParams() {
+        if (object instanceof String) {
+            return new Object[0];
+        }
+
+        if (object instanceof QueryWrapper) {
+            return CPI.getValueArray((QueryWrapper) object);
+        }
+
+        if (object instanceof QueryCondition) {
+            return CPI.getConditionParams((QueryCondition) object);
+        }
+
+        if (object instanceof HasParamsColumn) {
+            return ((HasParamsColumn) object).getParamValues();
+        }
+
+        return new Object[0];
     }
 
 }

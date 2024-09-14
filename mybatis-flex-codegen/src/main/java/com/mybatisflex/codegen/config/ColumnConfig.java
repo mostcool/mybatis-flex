@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -111,6 +111,7 @@ public class ColumnConfig implements Serializable {
      * sequence 序列执行顺序。
      */
     private Boolean keyBefore;
+
 
     public static ColumnConfig create() {
         return new ColumnConfig();

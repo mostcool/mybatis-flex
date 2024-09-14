@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ package com.mybatisflex.core.util;
 
 import com.mybatisflex.annotation.EnumValue;
 import com.mybatisflex.core.exception.FlexExceptions;
-import org.apache.ibatis.util.MapUtil;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -89,10 +88,25 @@ public class EnumWrapper<E extends Enum<E>> {
         }
     }
 
-
+    /**
+     * 获取枚举值
+     * 顺序：
+     * 1、@EnumValue标识的get方法
+     * 2、@EnumValue标识的属性
+     * 3、没有使用@EnumValue，取枚举name
+     *
+     * @param object
+     * @return
+     */
     public Object getEnumValue(E object) {
         try {
-            return getterMethod != null ? getterMethod.invoke(object) : property.get(object);
+            if (getterMethod != null) {
+                return getterMethod.invoke(object);
+            } else if(property != null){
+                return property.get(object);
+            } else {
+                return object.name();
+            }
         } catch (Exception e) {
             throw FlexExceptions.wrap(e);
         }

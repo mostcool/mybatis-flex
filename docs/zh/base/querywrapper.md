@@ -866,34 +866,43 @@ WHERE tb_account.age >=  ?
 ## join 自己
 
 ```java
-QueryWrapper queryWrapper = QueryWrapper.create();
-queryWrapper.from(ACCOUNT)
-    .leftJoin(ACCOUNT).as("a1").on(ACCOUNT.ID.eq(ACCOUNT.PARENT_ID))
-    .leftJoin(ACCOUNT).as("a2").on(ACCOUNT.ID.eq(ACCOUNT.PARENT_ID))
-    .where(ACCOUNT.ID.ge(1));
+AccountTableDef a1 = ACCOUNT.as("a1");
+AccountTableDef a2 = ACCOUNT.as("a2");
+ArticleTableDef ar = ARTICLE.as("ar");
+
+QueryWrapper queryWrapper = new QueryWrapper()
+    .select(ar.CONTENT, a1.ID, a2.AGE)
+    .from(ar)
+    .leftJoin(a1).on(a1.ID.eq(ar.ACCOUNT_ID))
+    .leftJoin(a2).on(a2.ID.eq(ar.ACCOUNT_ID));
 ```
 
 其查询生成的 Sql 如下：
 
 ```sql
-SELECT * FROM `tb_account`
-    LEFT JOIN `tb_account` AS `a1`
-        ON `a1`.`id` = `tb_account`.`parent_id`
-    LEFT JOIN `tb_account` AS `a2`
-        ON `a2`.`id` = `tb_account`.`parent_id`
-WHERE `tb_account`.`id` >= ?
+SELECT
+    ` ar `.` content `,
+    ` a1 `.` id `,
+    ` a2 `.` age `
+FROM
+    ` tb_article ` AS ` ar `
+    LEFT JOIN ` tb_account ` AS ` a1 ` ON ` a1 `.` id ` = ` ar `.` account_id `
+    LEFT JOIN ` tb_account ` AS ` a2 ` ON ` a2 `.` id ` = ` ar `.` account_id `
 ```
 
 若 `tb_account` 表带有逻辑删除，那么其生成的 SQL 如下：
 
 ```sql
-SELECT * FROM `tb_account`
-    LEFT JOIN `tb_account` AS `a1`
-        ON `a1`.`id` = `tb_account`.`parent_id` AND `a1`.`is_delete` = ?
-    LEFT JOIN `tb_account` AS `a2`
-        ON `a2`.`id` = `tb_account`.`parent_id` AND `a2`.`is_delete` = ?
-WHERE `tb_account`.`id` >= ?
-  AND `tb_account`.`is_delete` = ?
+SELECT
+    ` ar `.` content `,
+    ` a1 `.` id `,
+    ` a2 `.` age `
+FROM
+    ` tb_article ` AS ` ar `
+    LEFT JOIN ` tb_account ` AS ` a1 ` ON (` a1 `.` id ` = ` ar `.` account_id `)
+    AND ` a1 `.` is_delete ` = 0
+    LEFT JOIN ` tb_account ` AS ` a2 ` ON (` a2 `.` id ` = ` ar `.` account_id `)
+    AND ` a2 `.` is_delete ` = 0
 ```
 
 > 关于逻辑删除更多文档请参考 [这里](../core/logic-delete.html)。
@@ -995,6 +1004,7 @@ SELECT * FROM  WHERE `id` >=  100  AND `user_name` LIKE  '%michael%'
 QueryWrapper query = QueryWrapper.create()
     .from(Article.class)
     .leftJoin(Account.class).as("a").on(
+        //无其他特殊条件可简化成：.on(Account::getId, Article::getAccountId)
         wrapper -> wrapper.where(Account::getId).eq(Article::getAccountId)
     )
     .where(Account::getId).ge(100, If::notEmpty)
@@ -1003,7 +1013,7 @@ QueryWrapper query = QueryWrapper.create()
                 .or(Account::getAge).gt(200)
                 .and(Article::getAccountId).eq(200)
                 .or(wrapper1 -> {
-                    wrapper1.where(Account::getId).like("a", If::notEmpty);
+                    wrapper1.where(Account::getId).like("a");
                 })
         ;
     });

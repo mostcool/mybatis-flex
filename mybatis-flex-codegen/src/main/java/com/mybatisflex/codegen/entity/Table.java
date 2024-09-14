@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,11 +15,27 @@
  */
 package com.mybatisflex.codegen.entity;
 
-import com.mybatisflex.codegen.config.*;
+import com.mybatisflex.codegen.config.ControllerConfig;
+import com.mybatisflex.codegen.config.EntityConfig;
+import com.mybatisflex.codegen.config.GlobalConfig;
+import com.mybatisflex.codegen.config.MapperConfig;
+import com.mybatisflex.codegen.config.MapperXmlConfig;
+import com.mybatisflex.codegen.config.ServiceConfig;
+import com.mybatisflex.codegen.config.ServiceImplConfig;
+import com.mybatisflex.codegen.config.TableConfig;
+import com.mybatisflex.codegen.config.TableDefConfig;
 import com.mybatisflex.core.util.StringUtil;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.math.BigInteger;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -57,6 +73,8 @@ public class Table {
      */
     private TableConfig tableConfig;
 
+    private EntityConfig entityConfig;
+
     /**
      * 全局配置。
      */
@@ -89,13 +107,12 @@ public class Table {
         this.comment = comment;
     }
 
-    public String getPrimaryKey() {
+    public Column getPrimaryKey() {
         // 这里默认表中一定会有字段，就不做空判断了
         return columns.stream()
             .filter(Column::isPrimaryKey)
             .findFirst()
-            .map(Column::getProperty)
-            .orElse(null);
+            .orElseThrow(() -> new NullPointerException("PrimaryKey can't be null"));
     }
 
     public Set<String> getPrimaryKeys() {
@@ -159,9 +176,26 @@ public class Table {
         }
         return false;
     }
-
+    List<String> superColumns = null;
 
     public void addColumn(Column column) {
+        if (superColumns == null){
+            superColumns = new ArrayList<>();
+            Class<?> superClass = entityConfig.getSuperClass(this);
+            //获取所有 private字段
+            if (superClass != null) {
+                Field[] fields = superClass.getDeclaredFields();
+                for (Field field : fields) {
+                    int modifiers = field.getModifiers();
+                    if(Modifier.isPrivate(modifiers)){
+                        superColumns.add(field.getName());
+                    }
+                }
+            }
+        }
+        if (superColumns.contains(column.getProperty())){
+            return;
+        }
         //主键
         if (primaryKeys != null && primaryKeys.contains(column.getName())) {
             column.setPrimaryKey(true);
@@ -175,6 +209,7 @@ public class Table {
         }
 
         column.setColumnConfig(globalConfig.getStrategyConfig().getColumnConfig(name, column.getName()));
+        column.setEntityConfig(globalConfig.getEntityConfig());
 
         columns.add(column);
     }
@@ -193,6 +228,14 @@ public class Table {
 
     public void setTableConfig(TableConfig tableConfig) {
         this.tableConfig = tableConfig;
+    }
+
+    public EntityConfig getEntityConfig() {
+        return entityConfig;
+    }
+
+    public void setEntityConfig(EntityConfig entityConfig) {
+        this.entityConfig = entityConfig;
     }
 
     // ===== 构建实体类文件 =====
@@ -277,6 +320,7 @@ public class Table {
             tableAnnotation.append(", dataSource = \"").append(dataSource).append("\"");
         }
 
+
         if (tableConfig != null) {
             if (StringUtil.isNotBlank(tableConfig.getSchema())) {
                 tableAnnotation.append(", schema = \"").append(tableConfig.getSchema()).append("\"");
@@ -297,17 +341,34 @@ public class Table {
                 tableAnnotation.append(", mapperGenerateEnable = false");
             }
         }
+
+
+        if (entityConfig != null && entityConfig.isColumnCommentEnable() && StringUtil.isNotBlank(comment)) {
+            tableAnnotation.append(", comment = \"")
+                .append(this.comment.replace("\n", "").replace("\"", "\\\"").trim())
+                .append("\"");
+        }
+
+        // @Table(value = "sys_user") -> @Table("sys_user")
+        int index = tableAnnotation.indexOf(",");
+        if (index == -1) {
+            int start = tableAnnotation.indexOf("value");
+            if (start != -1) {
+                tableAnnotation.delete(start, start + 8);
+            }
+        }
+
         return tableAnnotation.append(")\n").toString();
     }
 
     /**
      * 构建 extends 继承。
      */
-    public String buildExtends() {
+    public String buildExtends(boolean isBase) {
         EntityConfig entityConfig = globalConfig.getEntityConfig();
         Class<?> superClass = entityConfig.getSuperClass(this);
         if (superClass != null) {
-            return " extends " + superClass.getSimpleName();
+            return " extends " + superClass.getSimpleName()+(entityConfig.isSuperClassGenericity(this)?("<"+buildEntityClassName()+(isBase?entityConfig.getWithBaseClassSuffix():"")+">"):"");
         } else {
             return "";
         }
@@ -324,6 +385,32 @@ public class Table {
         } else {
             return "";
         }
+    }
+    /**
+     * 构建 kt 继承
+     */
+    public String buildKtExtends(boolean isBase){
+        EntityConfig entityConfig = globalConfig.getEntityConfig();
+        Class<?> superClass = entityConfig.getSuperClass(this);
+        List<String> s = new ArrayList<>();
+        if (superClass != null) {
+            String name = superClass.getSimpleName();
+            if (entityConfig.isSuperClassGenericity(this)){
+                name+="<"+buildEntityClassName()+(isBase?entityConfig.getWithBaseClassSuffix():"")+">";
+            }
+            name+="()";
+            s.add(name);
+        }
+        Class<?>[] entityInterfaces = globalConfig.getEntityConfig().getImplInterfaces();
+        if (entityInterfaces != null && entityInterfaces.length > 0) {
+            for (Class<?> inter : entityInterfaces) {
+                s.add(inter.getSimpleName());
+            }
+        }
+        if (s.isEmpty()){
+            return "";
+        }
+        return " :"+String.join(",", s);
     }
 
     // ===== 构建相关类名 =====
@@ -411,6 +498,14 @@ public class Table {
         return controllerConfig.getClassPrefix()
             + entityJavaFileName
             + controllerConfig.getClassSuffix();
+    }
+
+    /**
+     * 构建访问路径的前缀
+     */
+    public String buildControllerRequestMappingPrefix() {
+        String mappingPrefix = globalConfig.getControllerConfig().getRequestMappingPrefix();
+        return mappingPrefix == null ? "" : mappingPrefix.trim();
     }
 
     /**

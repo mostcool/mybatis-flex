@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 package com.mybatisflex.test.alisa;
 
 import com.mybatisflex.annotation.ColumnAlias;
+import com.mybatisflex.annotation.Id;
+import com.mybatisflex.annotation.KeyType;
 import com.mybatisflex.annotation.Table;
 
 import java.util.Date;
@@ -31,6 +33,7 @@ import java.util.List;
 @Table("sys_user")
 public class SysUser extends BaseEntity {
 
+    @Id(keyType = KeyType.Auto)
     private Integer id;
     private String userName;
     @ColumnAlias("user_age")

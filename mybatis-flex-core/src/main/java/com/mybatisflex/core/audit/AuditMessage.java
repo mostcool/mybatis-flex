@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -96,7 +96,7 @@ public class AuditMessage implements Serializable {
     private long elapsedTime;
 
     /**
-     * 数据库名称
+     * 数据库名称。
      */
     private String dsName;
 
@@ -185,7 +185,12 @@ public class AuditMessage implements Serializable {
         for (Object object : objects) {
             if (object != null && ClassUtil.isArray(object.getClass())) {
                 for (int i = 0; i < Array.getLength(object); i++) {
-                    doAddParam(statement, Array.get(object, i));
+                    Object value = Array.get(object, i);
+                    if (value instanceof Map) {
+                        ((Map<?, ?>) value).values().forEach(e -> doAddParam(statement, e));
+                    } else {
+                        doAddParam(statement, value);
+                    }
                 }
             } else {
                 doAddParam(statement, object);
@@ -204,7 +209,7 @@ public class AuditMessage implements Serializable {
                 queryParams.add(object);
             }
         } catch (SQLException e) {
-            //ignore
+            // ignore
         }
     }
 

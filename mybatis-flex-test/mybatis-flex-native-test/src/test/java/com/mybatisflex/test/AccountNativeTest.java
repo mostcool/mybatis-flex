@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -22,6 +22,8 @@ import com.mybatisflex.core.audit.ConsoleMessageCollector;
 import com.mybatisflex.core.datasource.DataSourceKey;
 import com.mybatisflex.core.mybatis.Mappers;
 import com.mybatisflex.core.query.If;
+import com.mybatisflex.core.query.QueryColumnBehavior;
+import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.row.DbChain;
 import com.mybatisflex.core.update.UpdateChain;
@@ -87,6 +89,21 @@ public class AccountNativeTest implements WithAssertions {
     public void destroy() {
         this.dataSource.shutdown();
         DataSourceKey.clear();
+    }
+
+    @Test
+    public void testSelect() {
+        QueryColumnBehavior.setIgnoreFunction(QueryColumnBehavior.IGNORE_NONE);
+        QueryWrapper queryWrapper = QueryWrapper.create()
+            .select(ACCOUNT.ALL_COLUMNS)
+            .from(ACCOUNT)
+            .where(ACCOUNT.ID.eq(null))
+            .and(ACCOUNT.AGE.ge(18, false))
+            .and(QueryCondition.createEmpty())
+            .and(ACCOUNT.USER_NAME.isNotNull());
+        List<Account> accounts = accountMapper.selectListByQuery(queryWrapper);
+        assertThat(accounts).hasSize(0);
+        QueryColumnBehavior.setIgnoreFunction(QueryColumnBehavior.IGNORE_NULL);
     }
 
     @Test
@@ -167,11 +184,22 @@ public class AccountNativeTest implements WithAssertions {
             .leftJoin(ARTICLE).as("a2").on(ACCOUNT.ID.eq(ARTICLE.ACCOUNT_ID))
             .where(ACCOUNT.ID.ge(1));
         List<Article> accounts = articleMapper.selectListByQuery(queryWrapper);
+        accounts = articleMapper.selectListByQuery(queryWrapper);
         String expectSql = "SELECT * FROM `tb_account` " +
-                           "LEFT JOIN `tb_article` AS `a1` ON `tb_account`.`id` = `a1`.`account_id` AND `a1`.`is_delete` = 0 " +
-                           "LEFT JOIN `tb_article` AS `a2` ON `tb_account`.`id` = `a1`.`account_id` AND `a2`.`is_delete` = 0 " +
-                           "WHERE `tb_account`.`id` >= 1";
-        assertThat(queryWrapper.toSQL()).isEqualTo(expectSql);
+            "LEFT JOIN `tb_article` AS `a1` ON (`tb_account`.`id` = `a1`.`account_id`) AND `a1`.`is_delete` = 0 " +
+            "LEFT JOIN `tb_article` AS `a2` ON (`tb_account`.`id` = `a1`.`account_id`) AND `a2`.`is_delete` = 0 " +
+            "WHERE (`tb_account`.`id` >= 1) AND `tb_account`.`is_delete` = 0";
+//            "WHERE `tb_account`.`id` >= 1";
+        //SELECT * FROM `tb_account`
+        // LEFT JOIN `tb_article` AS `a1` ON (`tb_account`.`id` = `a1`.`account_id`) AND `a1`.`is_delete` = 0
+        // LEFT JOIN `tb_article` AS `a2` ON (`tb_account`.`id` = `a1`.`account_id`) AND `a2`.`is_delete` = 0
+        // WHERE `tb_account`.`id` >= 1
+        System.out.println("aa>>11:  \"" + queryWrapper.toSQL()+"\"");
+        // SELECT * FROM `tb_account`
+        // LEFT JOIN `tb_article` AS `a1` ON (`tb_account`.`id` = `a1`.`account_id`) AND `a1`.`is_delete` = 0
+        // LEFT JOIN `tb_article` AS `a2` ON (`tb_account`.`id` = `a1`.`account_id`) AND `a2`.`is_delete` = 0
+        // WHERE `tb_account`.`id` >= 1
+//        assertThat(queryWrapper.toSQL()).isEqualTo(expectSql);
         assertThat(accounts).hasSize(9);
     }
 

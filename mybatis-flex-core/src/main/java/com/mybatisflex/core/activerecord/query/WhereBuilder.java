@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,7 +16,11 @@
 package com.mybatisflex.core.activerecord.query;
 
 import com.mybatisflex.core.constant.SqlConnector;
-import com.mybatisflex.core.query.*;
+import com.mybatisflex.core.query.CPI;
+import com.mybatisflex.core.query.Conditional;
+import com.mybatisflex.core.query.QueryColumn;
+import com.mybatisflex.core.query.QueryCondition;
+import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.util.LambdaGetter;
 import com.mybatisflex.core.util.LambdaUtil;
 
@@ -473,6 +477,18 @@ public class WhereBuilder<R extends QueryModel<R>> implements Conditional<R> {
         return queryModel;
     }
 
+    @Override
+    public R between(Object[] values) {
+        addWhereQueryCondition(queryColumn.between(values));
+        return queryModel;
+    }
+
+    @Override
+    public R between(Object[] values, boolean isEffective) {
+        addWhereQueryCondition(queryColumn.between(values, isEffective));
+        return queryModel;
+    }
+
     /**
      * {@code NOT IN(value)}
      */
@@ -518,6 +534,18 @@ public class WhereBuilder<R extends QueryModel<R>> implements Conditional<R> {
     @Override
     public <S, E> R between(S start, E end, BiPredicate<S, E> isEffective) {
         addWhereQueryCondition(queryColumn.between(start, end, isEffective));
+        return queryModel;
+    }
+
+    @Override
+    public R notBetween(Object[] values) {
+        addWhereQueryCondition(queryColumn.notBetween(values));
+        return queryModel;
+    }
+
+    @Override
+    public R notBetween(Object[] values, boolean isEffective) {
+        addWhereQueryCondition(queryColumn.notBetween(values, isEffective));
         return queryModel;
     }
 

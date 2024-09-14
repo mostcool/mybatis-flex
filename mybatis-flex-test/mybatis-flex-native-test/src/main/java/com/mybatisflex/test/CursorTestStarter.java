@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -72,6 +72,14 @@ public class CursorTestStarter {
             Cursor<Account> accountCursor = accountMapper.selectCursorByQuery(asWrapper);
             for (Account account : accountCursor) {
                 System.out.println(account);
+            }
+            return true;
+        });
+
+        Db.tx(() -> {
+            Cursor<AccountDTO> accountDTOS = accountMapper.selectCursorByQueryAs(QueryWrapper.create(), AccountDTO.class);
+            for (AccountDTO accountDTO : accountDTOS) {
+                System.out.println(accountDTO);
             }
             return true;
         });

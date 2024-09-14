@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -388,6 +388,21 @@ public interface Conditional<R> {
     R notIn(QueryWrapper queryWrapper, BooleanSupplier isEffective);
 
     /**
+     * {@code BETWEEN values[0] AND values[1]}
+     *
+     * @param values 范围值
+     */
+    R between(Object[] values);
+
+    /**
+     * {@code BETWEEN values[0] AND values[1]}
+     *
+     * @param values 值
+     * @param isEffective 是否有效
+     */
+    R between(Object[] values, boolean isEffective);
+
+    /**
      * {@code BETWEEN start AND end}
      *
      * @param start 开始的值
@@ -421,6 +436,21 @@ public interface Conditional<R> {
      * @param isEffective 是否有效
      */
     <S, E> R between(S start, E end, BiPredicate<S, E> isEffective);
+
+    /**
+     * {@code NOT BETWEEN values[0] AND values[1]}
+     *
+     * @param values 范围值
+     */
+    R notBetween(Object[] values);
+
+    /**
+     * {@code NOT BETWEEN values[0] AND values[1]}
+     *
+     * @param values 值
+     * @param isEffective 是否有效
+     */
+    R notBetween(Object[] values, boolean isEffective);
 
     /**
      * {@code NOT BETWEEN start AND end}

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -51,7 +51,8 @@ class ModifyAttrsRecordHandler implements MethodHandler {
                 return proxyMethod.invoke(self, args);
             }
 
-            updates.put(property, args[0]);
+            //用 fw.getField().getName() 的原因是 property 可能获取的内容不正确，比如 ID 会得到的内容为 iD
+            updates.put(fw == null ? property : fw.getField().getName(), args[0]);
         }
 
         return proxyMethod.invoke(self, args);

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,6 +19,9 @@ import com.mybatisflex.annotation.ColumnMask;
 import com.mybatisflex.annotation.Id;
 import com.mybatisflex.annotation.KeyType;
 import com.mybatisflex.codegen.config.ColumnConfig;
+import com.mybatisflex.codegen.config.EntityConfig;
+import com.mybatisflex.core.mask.MaskManager;
+import com.mybatisflex.core.mask.Masks;
 import com.mybatisflex.core.util.StringUtil;
 
 import java.util.LinkedHashSet;
@@ -65,11 +68,6 @@ public class Column {
     private boolean isAutoIncrement;
 
     /**
-     * 是否需要生成 @Column 注解。
-     */
-    private boolean needGenColumnAnnotation = false;
-
-    /**
      * 数据库的字段类型，比如 varchar/tinyint 等
      */
     private String rawType;
@@ -84,6 +82,8 @@ public class Column {
      */
     private ColumnConfig columnConfig;
 
+    private EntityConfig entityConfig;
+
     public String getName() {
         return name;
     }
@@ -91,7 +91,6 @@ public class Column {
     public void setName(String name) {
         this.name = name;
         this.property = buildPropertyName();
-        this.needGenColumnAnnotation = !name.equalsIgnoreCase(StringUtil.camelToUnderline(property));
     }
 
     public String getProperty() {
@@ -177,6 +176,14 @@ public class Column {
         this.columnConfig = columnConfig;
     }
 
+    public EntityConfig getEntityConfig() {
+        return entityConfig;
+    }
+
+    public void setEntityConfig(EntityConfig entityConfig) {
+        this.entityConfig = entityConfig;
+    }
+
     public String getterMethod() {
         return "get" + StringUtil.firstCharToUpperCase(property);
     }
@@ -198,6 +205,30 @@ public class Column {
     public String buildPropertyName() {
         String entityJavaFileName = name;
         return StringUtil.firstCharToLowerCase(StringUtil.underlineToCamel(entityJavaFileName));
+    }
+
+    /**
+     * importClass为类的全限定名
+     */
+    private static void addImportClass(Set<String> importClasses, String importClass) {
+        importClass = importClass.trim();
+
+        // java.util.List<String> >>>>> java.util.List
+        if (importClass.contains("<") && importClass.endsWith(">")) {
+            importClass = importClass.substring(0, importClass.indexOf("<"));
+        }
+
+        // 不包含“.”则认为是原始类型，不需要import
+        // lang 包不需要显式导入
+        if (importClass.contains(".") && !importClass.startsWith("java.lang.")) {
+            importClasses.add(importClass);
+        }
+    }
+
+    private void addComma(StringBuilder annotations, boolean needComma) {
+        if (needComma) {
+            annotations.append(", ");
+        }
     }
 
     public String buildAnnotations() {
@@ -225,6 +256,17 @@ public class Column {
             if (columnConfig.getKeyBefore() != null) {
                 addComma(annotations, needComma);
                 annotations.append("before = ").append(columnConfig.getKeyBefore());
+                needComma = true;
+            }
+
+
+            if (entityConfig != null && entityConfig.isColumnCommentEnable() && StringUtil.isNotBlank(comment)) {
+                addComma(annotations, needComma);
+                annotations.append("comment = \"")
+                    .append(this.comment.replace("\n", "")
+                        .replace("\"", "\\\"")
+                        .trim())
+                    .append("\"");
             }
 
             if (annotations.length() == 4) {
@@ -232,7 +274,17 @@ public class Column {
             } else {
                 annotations.append(")");
             }
+
+            if (entityConfig != null && entityConfig.isAlwaysGenColumnAnnotation()) {
+                annotations.append("\n    ");
+            }
         }
+
+        boolean needGenColumnAnnotation = (entityConfig != null && entityConfig.isAlwaysGenColumnAnnotation())
+            || !name.equalsIgnoreCase(StringUtil.camelToUnderline(property))
+            || (entityConfig != null && entityConfig.isColumnCommentEnable() && StringUtil.isNotBlank(this.comment) && annotations.length() == 0);
+
+        StringBuilder columnAnnotation = new StringBuilder("@Column(");
 
         //@Column 注解
         if (columnConfig.getOnInsertValue() != null
@@ -245,67 +297,93 @@ public class Column {
             || columnConfig.getTenantId() != null
             || needGenColumnAnnotation
         ) {
-            annotations.append("@Column(");
             boolean needComma = false;
-            if (needGenColumnAnnotation) {
-                annotations.append("value = \"").append(name).append("\"");
+            if (entityConfig != null && entityConfig.isAlwaysGenColumnAnnotation()
+                || !name.equalsIgnoreCase(StringUtil.camelToUnderline(property))) {
+                columnAnnotation.append("value = \"").append(name).append("\"");
                 needComma = true;
             }
 
             if (columnConfig.getOnInsertValue() != null) {
-                addComma(annotations, needComma);
-                annotations.append("onInsertValue = \"").append(columnConfig.getOnInsertValue()).append("\"");
+                addComma(columnAnnotation, needComma);
+                columnAnnotation.append("onInsertValue = \"").append(columnConfig.getOnInsertValue()).append("\"");
                 needComma = true;
             }
             if (columnConfig.getOnUpdateValue() != null) {
-                addComma(annotations, needComma);
-                annotations.append("onUpdateValue = \"").append(columnConfig.getOnUpdateValue()).append("\"");
+                addComma(columnAnnotation, needComma);
+                columnAnnotation.append("onUpdateValue = \"").append(columnConfig.getOnUpdateValue()).append("\"");
                 needComma = true;
             }
             if (columnConfig.getLarge() != null) {
-                addComma(annotations, needComma);
-                annotations.append("isLarge = ").append(columnConfig.getLarge());
+                addComma(columnAnnotation, needComma);
+                columnAnnotation.append("isLarge = ").append(columnConfig.getLarge());
                 needComma = true;
             }
             if (columnConfig.getLogicDelete() != null) {
-                addComma(annotations, needComma);
-                annotations.append("isLogicDelete = ").append(columnConfig.getLogicDelete());
+                addComma(columnAnnotation, needComma);
+                columnAnnotation.append("isLogicDelete = ").append(columnConfig.getLogicDelete());
                 needComma = true;
             }
             if (columnConfig.getVersion() != null) {
-                addComma(annotations, needComma);
-                annotations.append("version = ").append(columnConfig.getVersion());
+                addComma(columnAnnotation, needComma);
+                columnAnnotation.append("version = ").append(columnConfig.getVersion());
                 needComma = true;
             }
             if (columnConfig.getJdbcType() != null) {
-                addComma(annotations, needComma);
-                annotations.append("jdbcType = JdbcType.").append(columnConfig.getJdbcType().name());
+                addComma(columnAnnotation, needComma);
+                columnAnnotation.append("jdbcType = JdbcType.").append(columnConfig.getJdbcType().name());
                 needComma = true;
             }
             if (columnConfig.getTypeHandler() != null) {
-                addComma(annotations, needComma);
-                annotations.append("typeHandler = ").append(columnConfig.getTypeHandler().getSimpleName()).append(".class");
+                addComma(columnAnnotation, needComma);
+                columnAnnotation.append("typeHandler = ").append(columnConfig.getTypeHandler().getSimpleName()).append(".class");
                 needComma = true;
             }
             if (Boolean.TRUE.equals(columnConfig.getTenantId())) {
-                addComma(annotations, needComma);
-                annotations.append("tenantId = true");
+                addComma(columnAnnotation, needComma);
+                columnAnnotation.append("tenantId = true");
+                needComma = true;
+            }
+            if (entityConfig != null && entityConfig.isColumnCommentEnable() && StringUtil.isNotBlank(comment)) {
+                addComma(columnAnnotation, needComma);
+                columnAnnotation.append("comment = \"")
+                    .append(this.comment.replace("\n", "")
+                        .replace("\"", "\\\"")
+                        .trim())
+                    .append("\"");
+            }
+            columnAnnotation.append(")");
+
+            // @Column(value = "user_name") -> @Column("user_name")
+            int index = columnAnnotation.indexOf(",");
+            if (index == -1) {
+                int start = columnAnnotation.indexOf("value");
+                if (start != -1) {
+                    columnAnnotation.delete(start, start + 8);
+                }
+            }
+
+            annotations.append(columnAnnotation);
+        }
+
+        // @ColumnMask 注解
+        String maskType = columnConfig.getMaskType();
+        if (maskType != null) {
+            if (annotations.length() != 0) {
+                annotations.append("\n    ");
+            }
+            annotations.append("@ColumnMask(");
+            if (MaskManager.getProcessorMap().containsKey(maskType)) {
+                // @ColumnMask(Masks.MOBILE)
+                annotations.append("Masks.").append(maskType.toUpperCase());
+            } else {
+                // @ColumnMask("custom")
+                annotations.append("\"").append(maskType).append("\"");
             }
             annotations.append(")");
         }
 
-        //@ColumnMask 注解
-        if (columnConfig.getMaskType() != null) {
-            annotations.append("@ColumnMask(\"").append(columnConfig.getMaskType()).append("\")");
-        }
-
         return annotations.toString();
-    }
-
-    private void addComma(StringBuilder annotations, boolean needComma) {
-        if (needComma) {
-            annotations.append(", ");
-        }
     }
 
     public Set<String> getImportClasses() {
@@ -326,6 +404,9 @@ public class Column {
             }
             if (columnConfig.getMaskType() != null) {
                 addImportClass(importClasses, ColumnMask.class.getName());
+                if (MaskManager.getProcessorMap().containsKey(columnConfig.getMaskType())) {
+                    addImportClass(importClasses, Masks.class.getName());
+                }
             }
 
             if (columnConfig.getJdbcType() != null) {
@@ -335,6 +416,10 @@ public class Column {
             if (columnConfig.getTypeHandler() != null) {
                 addImportClass(importClasses, columnConfig.getTypeHandler().getName());
             }
+
+            boolean needGenColumnAnnotation = (entityConfig != null && entityConfig.isAlwaysGenColumnAnnotation())
+                || !name.equalsIgnoreCase(StringUtil.camelToUnderline(property))
+                || (entityConfig != null && entityConfig.isColumnCommentEnable() && StringUtil.isNotBlank(this.comment));
 
             if (columnConfig.getOnInsertValue() != null
                 || columnConfig.getOnUpdateValue() != null
@@ -351,24 +436,6 @@ public class Column {
         }
 
         return importClasses;
-    }
-
-    /**
-     * importClass为类的全限定名
-     */
-    private static void addImportClass(Set<String> importClasses, String importClass) {
-        importClass = importClass.trim();
-
-        //java.util.List<String> >>>>> java.util.List
-        if (importClass.contains("<") && importClass.endsWith(">")) {
-            importClass = importClass.substring(0, importClass.indexOf("<"));
-        }
-
-        // 不包含“.”则认为是原始类型，不需要import
-        // lang 包不需要显式导入
-        if (importClass.contains(".") && !importClass.startsWith("java.lang.")) {
-            importClasses.add(importClass);
-        }
     }
 
     public boolean isDefaultColumn() {
