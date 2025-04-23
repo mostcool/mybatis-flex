@@ -2,6 +2,125 @@
 
 查看 [全部代码贡献者](/zh/intro/what-is-mybatisflex.html#贡献者)。
 
+## v1.10.9 20250319
+- 新增: 代码生成器支持配置 entity 类 lombok 注解生成 (@NoArgsConstructor, @AllArgsConstructor)，感谢 @coder-xiaomo
+- 新增：增加全局忽略 schema 配置的支持，感谢 @cui
+- 修复：MultiEntityKeyGenerator 不支持 set 设置的问题，感谢 @zhb
+- 修复：exists 条件中的表别名和父查询保持一致的问题，感谢 @cybzzz
+- 修复：修复在 diaelct 中去调用 Db 工具时可能出现类型转换错误的问题
+
+
+
+## v1.10.8 20250217
+- 新增：代码生成器 GlobalConfig 添加 setEntityWithBaseClassEnable 设置，感谢 @coder-xiaomo
+- 新增：代码生成器生成 entity base 时支持设置是否覆盖已有文件，感谢 @coder-xiaomo
+- 新增：QueryWrapper 支持常量查询，感谢 @weichangming
+- 优化：代码生成器 setAuthor 和 setSince 方法传入空字符串时，不添加注释 @author, @since 部分，感谢 @coder-xiaomo
+- 修复：在不使用 mybatis-flex-processor 模块时，会出现 StrUtil 找不到的问题，感谢 @codetangxin
+- 修复：TenantFactory.withoutTenantCondition 在修改时无效的问题，感谢 @codetangxin
+
+
+
+## v1.10.7 20250210
+- 修复：代码生成器 Controller 代码生成格式和详情无法生成文档的问题
+
+
+
+## v1.10.6 20250206
+- 新增：动态数据源 @UseDataSource 的value值扩展支持表达式解析处理
+- 优化：代码生成器补充 solon 的 controller
+- 优化：SqlServer2005 方言 Lis t查询 SQL 语句 BUG
+- 修复：Doris 查询分离 lib 部署字段映射错误的问题 https://github.com/mybatis-flex/mybatis-flex/issues/472
+- 修复：当 NetworkInterface.getNetworkInterfaces() 方法阻塞时，导致我整个应用该程序都卡住，无法正常启动 https://github.com/mybatis-flex/mybatis-flex/issues/470
+
+
+
+## v1.10.5 20250110
+- 新增：MyBatisFlexCustomizer 支持定义多个 bean 实例进行配置，感谢 @RexSheng
+- 优化：引入 actuator 后日志出现告警的问题，感谢 @lin-mt
+- 优化：进一步优化 mybatis-flex-solon-plugin 插件，感谢 @noear_admin
+- 优化：优化 duckdb 方言配置，duckdb 方言总体类似于 PG 方言
+- 修复：在某些情况下子线程中使用可能出现 NPE 的问题
+- 修复：多数据源 + WithRelations 查询时导致后面查询的数据源选择异常的问题
+
+
+
+## v1.10.4 20241228
+- 修复：多 MybatisFlexBootstrap 实例时，`MybatisFlexBootstrap.getMapper(Class<T> mapperClass)` 方法只能获取最后的实例的 mapper 的问题，感谢 @wcc1433
+- 修复：多 MybatisFlexBootstrap 实例时，`FlexGlobalConfig.getConfig(environmentId)` 获取的 config 永远是 defaultConfig，感谢 @wcc1433
+- 优化：进一步优化 mybatis-flex-solon-plugin 插件，感谢 @noear_admin
+
+
+
+## v1.10.3 20241220
+- 新增：添加了duckdb 数据库支持，感谢 @PTmore
+- 优化：优化 mybatis-flex-solon-plugin 插件，感谢 @noear_admin
+
+
+
+## v1.10.2 20241128
+- 优化：删除 DataSource 不必要的类型转换，集成第三方框架时，dataSource 可能为 FlexDataSource 的包装类，从而导致类型转换错误
+- 优化：优化 If.java 添加更多的方法
+- 优化：升级 mybatis 到 3.5.17 最新版本
+- 修复：代码生成器主键定义在父实体类，可能出错的问题
+
+
+
+## v1.10.1 20241112
+- 修复：代码生成器 在禁用Service接口生成时，serviceImpl去除Service接口
+- 修复：在使用 QueryColumn 的 ge 方法时, 大于等于会实际仅是大于的问题
+
+
+
+## v1.10.0 20241104
+- 新增：代码生成器添加  ColumnConfigFactory 配置的支持
+- 修复：修复由于 1.9.9 修复方法名称后导致代码生成器出错的问题
+- 优化：优化 unMappedColumnHandler 在 FlexGlobalConfig 的定义
+
+
+
+## v1.9.9 20241031
+- 优化：重构 QueryWrapper 使之优先使用用户设置的条件
+- 优化：优化 BaseMapper.insertOrUpdate，使之在传入空字符串时走 save
+- 优化：Spring 的 ServiceImpl#getMapper 返回约束泛型类型， 感谢 @aliothmoon
+- 优化：修改 StringUtil 的 isBlank 为 noText, 以及 isNotBlank 为 hasText
+- 修复：修复事务超时时间问题 & 提供更完善的Spring事务定义上下文，感谢 @aliothmoon
+- 修复：子查询作为条件没有括号的问题
+- 修复：子查询用到了外部查询的列时，两个列重名没有列名指向的问题
+- 修复：分页在某些情况下，无法优化 COUNT 查询的问题
+- 文档：修正文档的部分拼写错误，感谢 @kings
+
+
+
+## v1.9.8 20241020
+- 新增：新增 trino 方言，感谢 @chenjh3
+- 新增：新增 OptimisticLockManager，用于处理跳过乐观锁的场景，感谢 @tiankafei
+- 新增：添加 solon 事务支持，感谢 @noear_admin
+- 新增: 增加未匹配列的自定义处理拓展接口，感谢 @somethingaw
+- 新增：添加查询列和查询条件相互转换的适配器，感谢 @Suomm
+- 新增：无法顺序读取数据源配置时，可以手动指定默认数据源，感谢 @Suomm
+- 新增：使用实体类构建 QueryWrapper 时，可以使用实体类中属性标记的 TypeHandler 对值进行处理，感谢 @Suomm
+- 新增：代码生成器添加表后缀处理，感谢 @Suomm
+- 优化：mybatis-spring 升级同步升级 mybatis 依赖版本为 3.5.16
+- 优化：废弃使用多个值的 SQL 连接符，感谢 @Suomm
+- 优化：优化 SelectQueryColumn 类，感谢 @Suomm
+- 优化：使 QueryColumn 子类可以自定义 SQL 生成，感谢 @Suomm
+- 优化：优化 CustomKeyGenerator 类，感谢 @Suomm
+- 优化：修正一些拼写错误，感谢 @Suomm
+- 优化：如果更新数据时租户字段有值，则不覆盖，感谢 @Suomm
+- 优化：FlexDefaultResultSetHandler 细节优化
+- 优化：为 ModifyAttrsRecordProxyFactory 添加更加明确的异常信息，感谢 @Suomm
+- 修复：使用 DbChain 的 as 出现 query table must not be empty 异常，感谢 @Suomm
+- 修复：空数组/集合会查出所有数据的问题，感谢 @Suomm
+- 修复：case when 中使用 SelectQueryColumn 字段会变成空的问题，感谢 @Suomm
+- 修复：解决 XML 审计无法打印参数以及审计参数顺序问题，感谢 @Suomm
+- 修复：使用 mapper.xml 的嵌套查询出现 NPE 的问题，感谢 @Suomm
+- 修复：兼容 Lambda 的方式构建 SQL 为表起别名没有应用的问题，感谢 @Suomm
+- 修复：代码生成器实体类有父类不添加 `@EqualsAndHashCode(callSuper = true)` 的问题，感谢 @Suomm
+- 修复：UPDATE JOIN 表没有别名的错误，感谢 @Suomm
+- 修复：修复 `@EnumValue` 应用在接口方法上失效的问题，感谢 @aliothmoon
+
+
 
 ## v1.9.7 20240828
 - 新增：增加 updateBatch 方法是否忽略 null 字段的可配置性，感谢 @wqdTryBest

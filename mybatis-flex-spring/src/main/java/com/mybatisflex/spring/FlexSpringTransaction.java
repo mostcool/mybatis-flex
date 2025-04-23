@@ -20,6 +20,7 @@ import com.mybatisflex.core.transaction.TransactionContext;
 import com.mybatisflex.core.util.StringUtil;
 import org.apache.ibatis.transaction.Transaction;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -31,12 +32,12 @@ import java.sql.SQLException;
  */
 public class FlexSpringTransaction implements Transaction {
 
-    private final FlexDataSource dataSource;
+    private final DataSource dataSource;
     private Boolean isConnectionTransactional;
     private Boolean autoCommit;
     private Connection connection;
 
-    public FlexSpringTransaction(FlexDataSource dataSource) {
+    public FlexSpringTransaction(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
@@ -44,7 +45,7 @@ public class FlexSpringTransaction implements Transaction {
     public Connection getConnection() throws SQLException {
         if (isConnectionTransactional == null) {
             connection = dataSource.getConnection();
-            isConnectionTransactional = StringUtil.isNotBlank(TransactionContext.getXID());
+            isConnectionTransactional = StringUtil.hasText(TransactionContext.getXID());
             autoCommit = connection.getAutoCommit();
             return connection;
         }
@@ -82,6 +83,6 @@ public class FlexSpringTransaction implements Transaction {
 
     @Override
     public Integer getTimeout() throws SQLException {
-        return null;
+        return TimeoutHolder.getTimeToLiveInSeconds();
     }
 }

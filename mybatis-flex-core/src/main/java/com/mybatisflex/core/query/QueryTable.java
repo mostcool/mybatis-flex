@@ -73,7 +73,7 @@ public class QueryTable implements CloneSupport<QueryTable> {
     }
 
     public String getNameWithSchema() {
-        return StringUtil.isNotBlank(schema) ? schema + "." + name : name;
+        return StringUtil.hasText(schema) ? schema + "." + name : name;
     }
 
     public String getAlias() {
@@ -93,14 +93,20 @@ public class QueryTable implements CloneSupport<QueryTable> {
         if (table == null) {
             return false;
         }
+
         if (this == table) {
             return true;
         }
-        if (StringUtil.isNotBlank(alias)
-            && StringUtil.isNotBlank(table.alias)) {
-            return Objects.equals(alias, table.alias);
-        }
-        return Objects.equals(name, table.name);
+
+//        if (StringUtil.isNotBlank(alias)
+//            && StringUtil.isNotBlank(table.alias)) {
+//            return Objects.equals(alias, table.alias);
+//        }
+//
+//        return Objects.equals(name, table.name);
+
+        return Objects.equals(name, table.name)
+            && Objects.equals(alias, table.alias);
     }
 
     Object[] getValueArray() {
@@ -109,7 +115,7 @@ public class QueryTable implements CloneSupport<QueryTable> {
 
     public String toSql(IDialect dialect, OperateType operateType) {
         String sql;
-        if (StringUtil.isNotBlank(schema)) {
+        if (StringUtil.hasText(schema)) {
             String table = dialect.getRealTable(name, operateType);
             sql = dialect.wrap(dialect.getRealSchema(schema, table, operateType)) + "." + dialect.wrap(table) + WrapperUtil.buildAlias(alias, dialect);
         } else {

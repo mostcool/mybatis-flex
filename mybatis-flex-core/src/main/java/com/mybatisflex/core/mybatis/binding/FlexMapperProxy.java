@@ -57,14 +57,19 @@ public class FlexMapperProxy<T> extends MybatisMapperProxy<T> {
         String finalDsKey = userDsKey;
 
         try {
-            if (StringUtil.isBlank(finalDsKey)) {
+            if (StringUtil.noText(finalDsKey)) {
+                // Mapper 方法上获取 UseDataSource的value值
                 finalDsKey = getMethodDsKey(method, proxy);
+                // 对数据源取值进行动态取值处理
+                if (StringUtil.hasText(finalDsKey)) {
+                    finalDsKey = DataSourceKey.processDataSourceKey(finalDsKey, proxy, method, args);
+                }
             }
 
-            //通过自定义分配策略去获取最终的数据源
+            // 通过自定义分配策略去获取最终的数据源
             finalDsKey = DataSourceKey.getShardingDsKey(finalDsKey, proxy, method, args);
 
-            if (StringUtil.isNotBlank(finalDsKey) && !finalDsKey.equals(userDsKey)) {
+            if (StringUtil.hasText(finalDsKey) && !finalDsKey.equals(userDsKey)) {
                 needClearDsKey = true;
                 DataSourceKey.use(finalDsKey);
             }
@@ -103,14 +108,14 @@ public class FlexMapperProxy<T> extends MybatisMapperProxy<T> {
 
     private static String getMethodDsKey(Method method, Object proxy) {
         UseDataSource methodAnno = method.getAnnotation(UseDataSource.class);
-        if (methodAnno != null && StringUtil.isNotBlank(methodAnno.value())) {
+        if (methodAnno != null && StringUtil.hasText(methodAnno.value())) {
             return methodAnno.value();
         }
 
         Class<?>[] interfaces = proxy.getClass().getInterfaces();
         for (Class<?> anInterface : interfaces) {
             UseDataSource classAnno = anInterface.getAnnotation(UseDataSource.class);
-            if (classAnno != null && StringUtil.isNotBlank(classAnno.value())) {
+            if (classAnno != null && StringUtil.hasText(classAnno.value())) {
                 return classAnno.value();
             }
         }
@@ -119,7 +124,7 @@ public class FlexMapperProxy<T> extends MybatisMapperProxy<T> {
             TableInfo tableInfo = TableInfoFactory.ofMapperClass(interfaces[0]);
             if (tableInfo != null) {
                 String tableDsKey = tableInfo.getDataSource();
-                if (StringUtil.isNotBlank(tableDsKey)) {
+                if (StringUtil.hasText(tableDsKey)) {
                     return tableDsKey;
                 }
             }

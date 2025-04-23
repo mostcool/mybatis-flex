@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2024, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,6 +19,10 @@ import com.mybatisflex.core.datasource.DataSourceBuilder;
 import com.mybatisflex.core.datasource.DataSourceDecipher;
 import com.mybatisflex.core.datasource.DataSourceManager;
 import com.mybatisflex.core.datasource.FlexDataSource;
+import com.mybatisflex.core.dialect.DbType;
+import com.mybatisflex.core.dialect.DbTypeUtil;
+import com.mybatisflex.core.exception.FlexExceptions;
+import com.mybatisflex.core.util.MapUtil;
 import com.mybatisflex.spring.boot.MybatisFlexProperties.SeataConfig;
 import com.mybatisflex.spring.datasource.DataSourceAdvice;
 import io.seata.rm.datasource.DataSourceProxy;
@@ -39,6 +43,7 @@ import org.springframework.context.annotation.Role;
 
 import javax.sql.DataSource;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * MyBatis-Flex 多数据源的配置支持。
@@ -55,6 +60,7 @@ import java.util.Map;
     "com.alibaba.druid.spring.boot3.autoconfigure.DruidDataSourceAutoConfigure"})
 public class MultiDataSourceAutoConfiguration {
 
+    private final String master;
 
     private final Map<String, Map<String, String>> dataSourceProperties;
 
@@ -70,6 +76,7 @@ public class MultiDataSourceAutoConfiguration {
         dataSourceProperties = properties.getDatasource();
         dataSourceDecipher = dataSourceDecipherProvider.getIfAvailable();
         seataConfig = properties.getSeataConfig();
+        master = properties.getDefaultDatasourceKey();
     }
 
     @Bean
@@ -84,27 +91,49 @@ public class MultiDataSourceAutoConfiguration {
                 DataSourceManager.setDecipher(dataSourceDecipher);
             }
 
-            for (Map.Entry<String, Map<String, String>> entry : dataSourceProperties.entrySet()) {
-
-                DataSource dataSource = new DataSourceBuilder(entry.getValue()).build();
-                DataSourceManager.decryptDataSource(dataSource);
-
-                if (seataConfig != null && seataConfig.isEnable()) {
-                    if (seataConfig.getSeataMode() == MybatisFlexProperties.SeataMode.XA) {
-                        dataSource = new DataSourceProxyXA(dataSource);
-                    } else {
-                        dataSource = new DataSourceProxy(dataSource);
-                    }
-                }
-
-                if (flexDataSource == null) {
-                    flexDataSource = new FlexDataSource(entry.getKey(), dataSource, false);
+            if (master != null) {
+                Map<String, String> map = dataSourceProperties.remove(master);
+                if (map != null) {
+                    // 这里创建master时，flexDataSource一定是null
+                    flexDataSource = addDataSource(MapUtil.entry(master, map), null);
                 } else {
-                    flexDataSource.addDataSource(entry.getKey(), dataSource, false);
+                    throw FlexExceptions.wrap("没有找到默认数据源 \"%s\" 对应的配置，请检查您的多数据源配置。", master);
                 }
+            }
+
+            for (Map.Entry<String, Map<String, String>> entry : dataSourceProperties.entrySet()) {
+                flexDataSource = addDataSource(entry, flexDataSource);
             }
         }
 
+        return flexDataSource;
+    }
+
+    private FlexDataSource addDataSource(Map.Entry<String, Map<String, String>> entry, FlexDataSource flexDataSource) {
+        DataSource dataSource = new DataSourceBuilder(entry.getValue()).build();
+        DataSourceManager.decryptDataSource(dataSource);
+
+        // 数据库类型
+        DbType dbType = null;
+        if (seataConfig != null && seataConfig.isEnable()) {
+            if (seataConfig.getSeataMode() == MybatisFlexProperties.SeataMode.XA) {
+                DataSourceProxyXA sourceProxyXa = new DataSourceProxyXA(dataSource);
+                dbType = DbType.findByName(sourceProxyXa.getDbType());
+                dataSource = sourceProxyXa;
+            } else {
+                DataSourceProxy dataSourceProxy = new DataSourceProxy(dataSource);
+                dbType = DbType.findByName(dataSourceProxy.getDbType());
+                dataSource = dataSourceProxy;
+            }
+        }
+
+        // 如果没有构建成功dbType，需要自解析
+        dbType = Optional.ofNullable(dbType).orElse(DbTypeUtil.getDbType(dataSource));
+        if (flexDataSource == null) {
+            flexDataSource = new FlexDataSource(entry.getKey(), dataSource, dbType, false);
+        } else {
+            flexDataSource.addDataSource(entry.getKey(), dataSource, dbType, false);
+        }
         return flexDataSource;
     }
 

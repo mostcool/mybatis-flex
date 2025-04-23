@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2024, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -70,18 +70,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -176,7 +165,7 @@ public class TableInfo {
     }
 
     public String getWrapSchemaAndTableName(IDialect dialect, OperateType operateType) {
-        if (StringUtil.isNotBlank(schema)) {
+        if (StringUtil.hasText(schema)) {
             String table = dialect.getRealTable(tableName, operateType);
             return dialect.wrap(dialect.getRealSchema(schema, table, operateType)) + "." + dialect.wrap(table);
         } else {
@@ -187,7 +176,7 @@ public class TableInfo {
     public void setTableName(String tableName) {
         int indexOf = tableName.indexOf(".");
         if (indexOf > 0) {
-            if (StringUtil.isBlank(schema)) {
+            if (StringUtil.noText(schema)) {
                 this.schema = tableName.substring(0, indexOf);
                 this.tableName = tableName.substring(indexOf + 1);
             } else {
@@ -380,7 +369,7 @@ public class TableInfo {
                 }
             }
         }
-        return StringUtil.isNotBlank(column) ? column : property;
+        return StringUtil.hasText(column) ? column : property;
     }
 
     public Map<String, Class<?>> getAssociationType() {
@@ -616,6 +605,7 @@ public class TableInfo {
     public Set<String> obtainUpdateColumns(Object entity, boolean ignoreNulls, boolean includePrimary) {
         MetaObject metaObject = EntityMetaObject.forObject(entity, reflectorFactory);
         Set<String> columns = new LinkedHashSet<>(); // 需使用 LinkedHashSet 保证 columns 的顺序
+        boolean isIgnoreTenantCondition = TenantManager.isIgnoreTenantCondition();
         if (entity instanceof UpdateWrapper) {
             Map<String, Object> updates = ((UpdateWrapper) entity).getUpdates();
             if (updates.isEmpty()) {
@@ -629,8 +619,13 @@ public class TableInfo {
                     continue;
                 }
 
-                // 过滤乐观锁字段 和 租户字段
-                if (ObjectUtil.equalsAny(column, versionColumn, tenantIdColumn)) {
+                // 忽略租户字段时 不要过滤租户字段
+                if(isIgnoreTenantCondition){
+                    if (Objects.equals(column, versionColumn)) {
+                        continue;
+                    }
+                    // 过滤乐观锁字段 和 租户字段
+                }else if (ObjectUtil.equalsAny(column, versionColumn, tenantIdColumn)) {
                     continue;
                 }
 
@@ -654,8 +649,13 @@ public class TableInfo {
                     continue;
                 }
 
-                // 过滤乐观锁字段 和 租户字段
-                if (ObjectUtil.equalsAny(column, versionColumn, tenantIdColumn)) {
+                // 忽略租户字段时 不要过滤租户字段
+                if(isIgnoreTenantCondition){
+                    if (Objects.equals(column, versionColumn)) {
+                        continue;
+                    }
+                    // 过滤乐观锁字段 和 租户字段
+                }else if (ObjectUtil.equalsAny(column, versionColumn, tenantIdColumn)) {
                     continue;
                 }
 
@@ -679,6 +679,7 @@ public class TableInfo {
     public Object[] buildUpdateSqlArgs(Object entity, boolean ignoreNulls, boolean includePrimary) {
 
         List<Object> values = new ArrayList<>();
+        boolean isIgnoreTenantCondition = TenantManager.isIgnoreTenantCondition();
         if (entity instanceof UpdateWrapper) {
             Map<String, Object> updates = ((UpdateWrapper) entity).getUpdates();
             if (updates.isEmpty()) {
@@ -691,8 +692,13 @@ public class TableInfo {
                 if (onUpdateColumns != null && onUpdateColumns.containsKey(column)) {
                     continue;
                 }
-                // 过滤乐观锁字段 和 租户字段
-                if (ObjectUtil.equalsAny(column, versionColumn, tenantIdColumn)) {
+                // 忽略租户字段时 不要过滤租户字段
+                if(isIgnoreTenantCondition){
+                    if (Objects.equals(column, versionColumn)) {
+                        continue;
+                    }
+                    // 过滤乐观锁字段 和 租户字段
+                }else if (ObjectUtil.equalsAny(column, versionColumn, tenantIdColumn)) {
                     continue;
                 }
 
@@ -739,8 +745,13 @@ public class TableInfo {
                     continue;
                 }
 
-                // 过滤乐观锁字段 和 租户字段
-                if (ObjectUtil.equalsAny(column, versionColumn, tenantIdColumn)) {
+                // 忽略租户字段时 不要过滤租户字段
+                if(isIgnoreTenantCondition){
+                    if (Objects.equals(column, versionColumn)) {
+                        continue;
+                    }
+                    // 过滤乐观锁字段 和 租户字段
+                }else if (ObjectUtil.equalsAny(column, versionColumn, tenantIdColumn)) {
                     continue;
                 }
 
@@ -812,7 +823,7 @@ public class TableInfo {
 
 
     public Object[] buildTenantIdArgs() {
-        if (StringUtil.isBlank(tenantIdColumn)) {
+        if (StringUtil.noText(tenantIdColumn)) {
             return null;
         }
 
@@ -845,11 +856,16 @@ public class TableInfo {
 
     public void buildTenantCondition(QueryWrapper queryWrapper) {
         Object[] tenantIdArgs = buildTenantIdArgs();
+        // 优先使用 join 表的 alias
+        String tableAlias =
+            Optional.ofNullable(CPI.getContext(queryWrapper).get("joinTableAlias"))
+                .map(String::valueOf)
+                .orElse(tableName);
         if (ArrayUtil.isNotEmpty(tenantIdArgs)) {
             if (tenantIdArgs.length == 1) {
-                queryWrapper.where(QueryCondition.create(schema, tableName, tenantIdColumn, SqlConsts.EQUALS, tenantIdArgs[0]));
+                queryWrapper.where(QueryCondition.create(schema, tableAlias, tenantIdColumn, SqlConsts.EQUALS, tenantIdArgs[0]));
             } else {
-                queryWrapper.where(QueryCondition.create(schema, tableName, tenantIdColumn, SqlConsts.IN, tenantIdArgs));
+                queryWrapper.where(QueryCondition.create(schema, tableAlias, tenantIdColumn, SqlConsts.IN, tenantIdArgs));
             }
         }
     }
@@ -889,7 +905,7 @@ public class TableInfo {
         }
 
         // 添加乐观锁条件，只有在 update 的时候进行处理
-        if (StringUtil.isNotBlank(getOptimisticLockColumnOrSkip()) && entity != null) {
+        if (StringUtil.hasText(getOptimisticLockColumnOrSkip()) && entity != null) {
             Object versionValue = buildColumnSqlArg(entity, versionColumn);
             if (versionValue == null) {
                 throw FlexExceptions.wrap(LocalizedFormats.ENTITY_VERSION_NULL, entity);
@@ -898,7 +914,7 @@ public class TableInfo {
         }
 
         // 逻辑删除
-        if (StringUtil.isNotBlank(getLogicDeleteColumnOrSkip())) {
+        if (StringUtil.hasText(getLogicDeleteColumnOrSkip())) {
             // 逻辑删除时 保证前面的条件被括号包裹
             // fix:https://gitee.com/mybatis-flex/mybatis-flex/issues/I9163G
             QueryCondition whereCondition = CPI.getWhereQueryCondition(queryWrapper);
@@ -941,7 +957,7 @@ public class TableInfo {
                 // join table
                 else {
                     String nameWithSchema = joinQueryTable.getNameWithSchema();
-                    if (StringUtil.isNotBlank(nameWithSchema)) {
+                    if (StringUtil.hasText(nameWithSchema)) {
                         TableInfo tableInfo = TableInfoFactory.ofTableName(nameWithSchema);
                         if (tableInfo != null) {
                             QueryCondition joinQueryCondition = CPI.getJoinQueryCondition(join);
@@ -977,7 +993,7 @@ public class TableInfo {
                     doAppendConditions(entity, childQuery);
                 } else {
                     String nameWithSchema = queryTable.getNameWithSchema();
-                    if (StringUtil.isNotBlank(nameWithSchema)) {
+                    if (StringUtil.hasText(nameWithSchema)) {
                         TableInfo tableInfo = TableInfoFactory.ofTableName(nameWithSchema);
                         if (tableInfo != null) {
                             tableInfo.appendConditions(entity, queryWrapper);
@@ -1012,7 +1028,7 @@ public class TableInfo {
                     .findFirst()
                     .orElse(QueryMethods.column(getTableNameWithSchema(), column));
                 if (operators != null) {
-                    SqlOperator operator = operators.get(property);
+                    SqlOperator operator = operators.get(column);
                     if (operator == null) {
                         operator = SqlOperator.EQUALS;
                     } else if (operator == SqlOperator.IGNORE) {
@@ -1025,13 +1041,29 @@ public class TableInfo {
                     } else if (operator == SqlOperator.LIKE_RIGHT || operator == SqlOperator.NOT_LIKE_RIGHT) {
                         value = "%" + value;
                     }
-                    queryWrapper.and(QueryCondition.create(queryColumn, operator, value));
+                    queryWrapper.and(QueryCondition.create(queryColumn, operator, buildSqlArg(column, value)));
                 } else {
-                    queryWrapper.and(queryColumn.eq(value));
+                    queryWrapper.and(queryColumn.eq(buildSqlArg(column, value)));
                 }
             }
         });
         return queryWrapper;
+    }
+
+    private Object buildSqlArg(String column, Object value) {
+        ColumnInfo columnInfo = columnInfoMapping.get(column);
+        // 给定的列名在实体类中没有对应的字段
+        if (columnInfo == null) {
+            return value;
+        }
+        // 如果给定的列名在实体类中有对应的字段
+        // 则使用实体类中属性标记的 @Column(typeHandler = ...) 类型处理器处理参数
+        // 调用 TypeHandler#setParameter 为 PreparedStatement 设置值
+        TypeHandler<?> typeHandler = columnInfo.buildTypeHandler(null);
+        if (typeHandler != null) {
+            return new TypeHandlerObject(typeHandler, value, columnInfo.getJdbcType());
+        }
+        return value;
     }
 
     public String getKeyProperties() {
@@ -1358,7 +1390,7 @@ public class TableInfo {
      * @param entityObject
      */
     public void initVersionValueIfNecessary(Object entityObject) {
-        if (StringUtil.isBlank(versionColumn)) {
+        if (StringUtil.noText(versionColumn)) {
             return;
         }
 
@@ -1377,11 +1409,20 @@ public class TableInfo {
      * @param entityObject
      */
     public void initTenantIdIfNecessary(Object entityObject) {
-        if (StringUtil.isBlank(tenantIdColumn)) {
+        if (StringUtil.noText(tenantIdColumn)) {
             return;
         }
 
         MetaObject metaObject = EntityMetaObject.forObject(entityObject, reflectorFactory);
+
+        // 如果租户字段有值，则不覆盖。
+        // https://gitee.com/mybatis-flex/mybatis-flex/issues/I7OWYD
+        // https://gitee.com/mybatis-flex/mybatis-flex/issues/I920DK
+        String property = columnInfoMapping.get(tenantIdColumn).property;
+        if (metaObject.getValue(property) != null) {
+            return;
+        }
+
         Object[] tenantIds = TenantManager.getTenantIds(tableName);
         if (tenantIds == null || tenantIds.length == 0) {
             return;
@@ -1390,7 +1431,6 @@ public class TableInfo {
         // 默认使用第一个作为插入的租户ID
         Object tenantId = tenantIds[0];
         if (tenantId != null) {
-            String property = columnInfoMapping.get(tenantIdColumn).property;
             Class<?> setterType = metaObject.getSetterType(property);
             metaObject.setValue(property, ConvertUtil.convert(tenantId, setterType));
         }
@@ -1402,7 +1442,7 @@ public class TableInfo {
      * @param entityObject
      */
     public void initLogicDeleteValueIfNecessary(Object entityObject) {
-        if (StringUtil.isBlank(getLogicDeleteColumnOrSkip())) {
+        if (StringUtil.noText(getLogicDeleteColumnOrSkip())) {
             return;
         }
 

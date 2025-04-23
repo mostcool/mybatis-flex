@@ -47,6 +47,7 @@ public class GlobalConfig implements Serializable {
     public GlobalConfig() {
         this(FileType.JAVA);
     }
+
     private final JavadocConfig javadocConfig;
     private final PackageConfig packageConfig;
     private final StrategyConfig strategyConfig;
@@ -84,7 +85,7 @@ public class GlobalConfig implements Serializable {
         this.strategyConfig = new StrategyConfig();
         this.templateConfig = new TemplateConfig();
         this.setTemplatePath();
-        if(fileType == FileType.KOTLIN) {
+        if (fileType == FileType.KOTLIN) {
             JdbcTypeMapping.registerMapping("java.lang.Integer", "Int");
         }
     }
@@ -565,6 +566,13 @@ public class GlobalConfig implements Serializable {
     }
 
     /**
+     * @see StrategyConfig#getTableSuffix()
+     */
+    public String getTableSuffix() {
+        return getStrategyConfig().getTableSuffix();
+    }
+
+    /**
      * @see StrategyConfig#setTablePrefix(String...)
      */
     public void setTablePrefix(String... tablePrefix) {
@@ -660,6 +668,14 @@ public class GlobalConfig implements Serializable {
      */
     public ColumnConfig getColumnConfig(String tableName, String columnName) {
         return getStrategyConfig().getColumnConfig(tableName, columnName);
+    }
+
+    public ColumnConfigFactory getColumnConfigFactory() {
+        return getStrategyConfig().getColumnConfigFactory();
+    }
+
+    public void setColumnConfigFactory(ColumnConfigFactory columnConfigFactory) {
+        getStrategyConfig().setColumnConfigFactory(columnConfigFactory);
     }
 
     /**
@@ -873,6 +889,20 @@ public class GlobalConfig implements Serializable {
     }
 
     /**
+     * @see EntityConfig#isBaseOverwriteEnable()
+     */
+    public boolean isEntityBaseOverwriteEnable() {
+        return getEntityConfig().isBaseOverwriteEnable();
+    }
+
+    /**
+     * @see EntityConfig#setBaseOverwriteEnable(boolean)
+     */
+    public void setEntityBaseOverwriteEnable(boolean entityBaseOverwriteEnable) {
+        getEntityConfig().setBaseOverwriteEnable(entityBaseOverwriteEnable);
+    }
+
+    /**
      * @see EntityConfig#getClassPrefix()
      */
     public String getEntityClassPrefix() {
@@ -957,6 +987,34 @@ public class GlobalConfig implements Serializable {
     }
 
     /**
+     * @see EntityConfig#isLombokNoArgsConstructorEnable()
+     */
+    public boolean isEntityLombokNoArgsConstructorEnable() {
+        return getEntityConfig().isLombokNoArgsConstructorEnable();
+    }
+
+    /**
+     * @see EntityConfig#setLombokNoArgsConstructorEnable(boolean)
+     */
+    public EntityConfig setEntityLombokNoArgsConstructorEnable(boolean entityLombokNoArgsConstructorEnable) {
+        return getEntityConfig().setLombokNoArgsConstructorEnable(entityLombokNoArgsConstructorEnable);
+    }
+
+    /**
+     * @see EntityConfig#isLombokAllArgsConstructorEnable()
+     */
+    public boolean isEntityLombokAllArgsConstructorEnable() {
+        return getEntityConfig().isLombokAllArgsConstructorEnable();
+    }
+
+    /**
+     * @see EntityConfig#setLombokAllArgsConstructorEnable(boolean)
+     */
+    public EntityConfig setEntityLombokAllArgsConstructorEnable(boolean entityLombokAllArgsConstructorEnable) {
+        return getEntityConfig().setLombokAllArgsConstructorEnable(entityLombokAllArgsConstructorEnable);
+    }
+
+    /**
      * @see EntityConfig#isWithSwagger()
      */
     public boolean isEntityWithSwagger() {
@@ -1017,6 +1075,20 @@ public class GlobalConfig implements Serializable {
      */
     public void setEntityJdkVersion(int jdkVersion) {
         getEntityConfig().setJdkVersion(jdkVersion);
+    }
+
+    /**
+     * @see EntityConfig#isWithBaseClassEnable()
+     */
+    public boolean isEntityWithBaseClassEnable() {
+        return getEntityConfig().isWithBaseClassEnable();
+    }
+
+    /**
+     * @see EntityConfig#setWithBaseClassEnable(boolean)
+     */
+    public void setEntityWithBaseClassEnable(boolean withBaseClassEnable) {
+        getEntityConfig().setWithBaseClassEnable(withBaseClassEnable);
     }
 
     public boolean isMapperGenerateEnable() {

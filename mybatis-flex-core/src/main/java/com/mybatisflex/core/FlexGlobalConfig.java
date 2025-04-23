@@ -111,9 +111,14 @@ public class FlexGlobalConfig {
     private String versionColumn;
 
     /**
+     * 全局忽略 @Table 中配置的 schema
+     */
+    private boolean ignoreSchema = false;
+
+    /**
      * 未匹配列处理器
      */
-    private static UnMappedColumnHandler unMappedColumnHandler;
+    private UnMappedColumnHandler unMappedColumnHandler;
 
     public boolean isPrintBanner() {
         return printBanner;
@@ -329,7 +334,15 @@ public class FlexGlobalConfig {
         this.versionColumn = versionColumn;
     }
 
-    public static UnMappedColumnHandler getUnMappedColumnHandler() {
+    public boolean isIgnoreSchema() {
+        return ignoreSchema;
+    }
+
+    public void setIgnoreSchema(boolean ignoreSchema) {
+        this.ignoreSchema = ignoreSchema;
+    }
+
+    public UnMappedColumnHandler getUnMappedColumnHandler() {
         return unMappedColumnHandler;
     }
 
@@ -423,7 +436,7 @@ public class FlexGlobalConfig {
             defaultConfig.setConfiguration(config.configuration);
         }
 
-        globalConfigs.put(id, isDefault ? defaultConfig : config);
+        globalConfigs.put(id, config);
     }
 
 }

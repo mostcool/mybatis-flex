@@ -35,6 +35,10 @@ public class LambdaUtil {
     private static final Map<Class<?>, Class<?>> implClassMap = new ConcurrentHashMap<>();
     private static final Map<Class<?>, QueryColumn> queryColumnMap = new ConcurrentHashMap<>();
 
+    public static Map<Class<?>, String> getFieldNameMap() {
+        return fieldNameMap;
+    }
+
     public static <T> String getFieldName(LambdaGetter<T> getter) {
         return MapUtil.computeIfAbsent(fieldNameMap, getter.getClass(), aClass -> {
             SerializedLambda lambda = getSerializedLambda(getter);
@@ -58,7 +62,7 @@ public class LambdaUtil {
     public static <T> Class<?> getImplClass(LambdaGetter<T> getter) {
         return MapUtil.computeIfAbsent(implClassMap, getter.getClass(), aClass -> {
             SerializedLambda lambda = getSerializedLambda(getter);
-            return getImplClass(lambda, getter.getClass().getClassLoader());
+            return getImplClass0(lambda);
         });
     }
 
@@ -66,7 +70,7 @@ public class LambdaUtil {
     public static <T> String getAliasName(LambdaGetter<T> getter, boolean withPrefix) {
         QueryColumn queryColumn = getQueryColumn(getter);
         if (queryColumn != null) {
-            String alias = StringUtil.isNotBlank(queryColumn.getAlias()) ? queryColumn.getAlias() : queryColumn.getName();
+            String alias = StringUtil.hasText(queryColumn.getAlias()) ? queryColumn.getAlias() : queryColumn.getName();
             return withPrefix ? queryColumn.getTable().getName() + "$" + alias : alias;
         }
         return getFieldName(getter);
@@ -75,9 +79,8 @@ public class LambdaUtil {
 
     public static <T> QueryColumn getQueryColumn(LambdaGetter<T> getter) {
         return MapUtil.computeIfAbsent(queryColumnMap, getter.getClass(), aClass -> {
-            ClassLoader classLoader = getter.getClass().getClassLoader();
             SerializedLambda lambda = getSerializedLambda(getter);
-            Class<?> entityClass = getImplClass(lambda, classLoader);
+            Class<?> entityClass = getImplClass0(lambda);
             TableInfo tableInfo = TableInfoFactory.ofEntityClass(entityClass);
             String propertyName = getFieldName(getter);
             return tableInfo.getQueryColumnByProperty(propertyName);
@@ -96,7 +99,8 @@ public class LambdaUtil {
     }
 
 
-    private static Class<?> getImplClass(SerializedLambda lambda, ClassLoader classLoader) {
+    private static Class<?> getImplClass0(SerializedLambda lambda) {
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         String implClass = getImplClassName(lambda);
         try {
             return Class.forName(implClass.replace("/", "."), true, classLoader);

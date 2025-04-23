@@ -54,7 +54,7 @@ public class KeywordWrap {
     public static final KeywordWrap BACK_QUOTE = new KeywordWrap("`", "`");
 
     /**
-     * 双引号反义处理, 适用于 postgresql, sqlite, derby, oracle 等
+     * 双引号反义处理, 适用于 postgresql, sqlite, derby, oracle, duckdb 等
      */
     public static final KeywordWrap DOUBLE_QUOTATION = new KeywordWrap("\"", "\"");
 
@@ -115,7 +115,7 @@ public class KeywordWrap {
     }
 
     public String wrap(String keyword) {
-        if (StringUtil.isBlank(keyword) || SqlConsts.ASTERISK.equals(keyword.trim())) {
+        if (StringUtil.noText(keyword) || SqlConsts.ASTERISK.equals(keyword.trim())) {
             return keyword;
         }
 
@@ -146,7 +146,7 @@ public class KeywordWrap {
 
     //sqlserver 转义 scheme table colums 包装 根据 . 分割后分别包装
     public String wrap4Sqlserver(String keyword) {
-        if (StringUtil.isBlank(keyword) || SqlConsts.ASTERISK.equals(keyword.trim())) {
+        if (StringUtil.noText(keyword) || SqlConsts.ASTERISK.equals(keyword.trim())) {
             return keyword;
         }
 

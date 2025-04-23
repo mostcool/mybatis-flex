@@ -30,11 +30,15 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 #else
+#if(entityConfig.isLombokAllArgsConstructorEnable())
 import lombok.AllArgsConstructor;
+#end
 import lombok.Builder;
 import lombok.Data;
+#if(entityConfig.isLombokNoArgsConstructorEnable())
 import lombok.NoArgsConstructor;
-#if(entityConfig.getSuperClass())
+#end
+#if(entityConfig.getSuperClass(table))
 import lombok.EqualsAndHashCode;
 #end
 #end
@@ -43,8 +47,12 @@ import lombok.EqualsAndHashCode;
 /**
  * #(table.getComment()) 实体类。
  *
+#if(javadocConfig.getAuthor())
  * @author #(javadocConfig.getAuthor())
+#end
+#if(javadocConfig.getSince())
  * @since #(javadocConfig.getSince())
+#end
  */
 #if(withLombok)
 #if(withActiveRecord)
@@ -54,9 +62,13 @@ import lombok.EqualsAndHashCode;
 #else
 @Data
 @Builder
+#if(entityConfig.isLombokNoArgsConstructorEnable())
 @NoArgsConstructor
+#end
+#if(entityConfig.isLombokAllArgsConstructorEnable())
 @AllArgsConstructor
-#if(entityConfig.getSuperClass())
+#end
+#if(entityConfig.getSuperClass(table))
 @EqualsAndHashCode(callSuper = true)
 #end
 #end
@@ -77,13 +89,13 @@ public class #(entityClassName)#if(withActiveRecord) extends Model<#(entityClass
 
 #for(column : table.columns)
     #set(comment = javadocConfig.formatColumnComment(column.comment))
-    #if(isNotBlank(comment))
+    #if(hasText(comment))
     /**
      * #(comment)
      */
     #end
     #set(annotations = column.buildAnnotations())
-    #if(isNotBlank(annotations))
+    #if(hasText(annotations))
     #(annotations)
     #end
     #if(withSwagger && swaggerVersion.getName() == "FOX")
@@ -92,7 +104,7 @@ public class #(entityClassName)#if(withActiveRecord) extends Model<#(entityClass
     #if(withSwagger && swaggerVersion.getName() == "DOC")
     @Schema(description = "#(column.comment)")
     #end
-    private #(column.propertySimpleType) #(column.property)#if(isNotBlank(column.propertyDefaultValue)) = #(column.propertyDefaultValue)#end;
+    private #(column.propertySimpleType) #(column.property)#if(hasText(column.propertyDefaultValue)) = #(column.propertyDefaultValue)#end;
 
 #end
 #if(!withLombok)

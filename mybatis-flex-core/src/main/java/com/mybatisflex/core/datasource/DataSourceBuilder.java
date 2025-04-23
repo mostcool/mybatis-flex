@@ -49,15 +49,15 @@ public class DataSourceBuilder {
     public DataSource build() {
         String dataSourceClassName = null;
         String type = dataSourceProperties.get("type");
-        if (StringUtil.isNotBlank(type)) {
+        if (StringUtil.hasText(type)) {
             dataSourceClassName = dataSourceAlias.getOrDefault(type, type);
         } else {
             dataSourceClassName = detectDataSourceClass();
         }
 
 
-        if (StringUtil.isBlank(dataSourceClassName)) {
-            if (StringUtil.isBlank(type)) {
+        if (StringUtil.noText(dataSourceClassName)) {
+            if (StringUtil.noText(type)) {
                 throw FlexExceptions.wrap(LocalizedFormats.DATASOURCE_TYPE_BLANK);
             } else {
                 throw FlexExceptions.wrap(LocalizedFormats.DATASOURCE_TYPE_NOT_FIND, type);
@@ -65,7 +65,8 @@ public class DataSourceBuilder {
         }
 
         try {
-            Class<?> dataSourceClass = Class.forName(dataSourceClassName);
+            ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+            Class<?> dataSourceClass = Class.forName(dataSourceClassName, false, contextClassLoader);
             Object dataSourceObject = dataSourceClass.newInstance();
             setDataSourceProperties(dataSourceObject);
             return (DataSource) dataSourceObject;
@@ -132,8 +133,9 @@ public class DataSourceBuilder {
 
 
     private String doDetectDataSourceClass(String className) {
+        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            Class.forName(className);
+            Class.forName(className, false, contextClassLoader);
             return className;
         } catch (ClassNotFoundException e) {
             return null;

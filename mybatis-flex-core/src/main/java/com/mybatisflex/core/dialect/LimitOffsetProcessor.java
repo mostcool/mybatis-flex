@@ -57,7 +57,7 @@ public interface LimitOffsetProcessor {
      * Postgresql 的处理器
      * 适合  {@link DbType#POSTGRE_SQL,DbType#SQLITE,DbType#H2,DbType#HSQL,DbType#KINGBASE_ES,DbType#PHOENIX}
      * 适合  {@link DbType#SAP_HANA,DbType#IMPALA,DbType#HIGH_GO,DbType#VERTICA,DbType#REDSHIFT}
-     * 适合  {@link DbType#OPENGAUSS,DbType#TDENGINE,DbType#UXDB}
+     * 适合  {@link DbType#OPENGAUSS,DbType#TDENGINE,DbType#UXDB,DbType#DUCKDB}
      */
     LimitOffsetProcessor POSTGRESQL = (dialect, sql, queryWrapper, limitRows, limitOffset) -> {
         if (limitRows != null && limitOffset != null) {
@@ -129,13 +129,19 @@ public interface LimitOffsetProcessor {
                 originalSQL = originalSQL.substring(0, sql.lastIndexOf(ORDER_BY));
                 orderByString = orderBySql.toString();
             }
+            //Fix https://gitee.com/mybatis-flex/mybatis-flex/issues/IBIJT3 [Bug]: SqlServer2005方言List查询SQL语句BUG
+            String columeSQL = originalSQL.substring(0, sql.indexOf(FROM));
+            String contitionSQL = originalSQL.substring(sql.indexOf(FROM));
 
             StringBuilder newSql = new StringBuilder();
             //fix SqlServer 多表关联查询，主表去重，执行SQL异常 https://gitee.com/mybatis-flex/mybatis-flex/issues/IABEJG
-            newSql.append("WITH temp_datas AS(SELECT __Tab.*, ROW_NUMBER() OVER ( ").append(orderByString)
-                .append(") as __rn ").append(" FROM ( ").append(originalSQL).append(" ) as __Tab ) ");
-            newSql.append(" SELECT * FROM temp_datas WHERE __rn BETWEEN ")
-                .append(limitOffset + 1).append(" AND ").append(limitOffset + limitRows);
+            newSql.append("WITH temp_datas AS(").append(columeSQL).append(", ROW_NUMBER() OVER (")
+                .append(orderByString)
+                .append(") as __rn ");
+            newSql.append(contitionSQL);
+            newSql.append(")");
+            newSql.append(" SELECT * FROM temp_datas WHERE __rn BETWEEN ").append(limitOffset + 1).append(" AND ")
+                .append(limitOffset + limitRows);
             newSql.append(" ORDER BY __rn");
             return newSql;
         }
@@ -193,9 +199,7 @@ public interface LimitOffsetProcessor {
             }
             StringBuilder newSql = new StringBuilder("SELECT * FROM (SELECT TEMP_DATAS.*, ROWNUM RN FROM (");
             newSql.append(sql);
-            newSql.append(") TEMP_DATAS WHERE ROWNUM <= ")
-                .append(limitOffset + limitRows)
-                .append(") WHERE RN > ")
+            newSql.append(") TEMP_DATAS WHERE ROWNUM <= ").append(limitOffset + limitRows).append(") WHERE RN > ")
                 .append(limitOffset);
             return newSql;
         }

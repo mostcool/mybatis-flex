@@ -18,25 +18,30 @@ import io.swagger.annotations.ApiModelProperty
 #if(withSwagger && swaggerVersion.getName() == "DOC")
 import io.swagger.v3.oas.annotations.media.Schema
 #end
+
 #if(!isBase)
 /**
  * #(table.getComment()) 实体类。
  *
+#if(javadocConfig.getAuthor())
  * @author #(javadocConfig.getAuthor())
+#end
+#if(javadocConfig.getSince())
  * @since #(javadocConfig.getSince())
+#end
  */
 #(table.buildTableAnnotation())
 #end
 open class #(entityClassName) #if(withActiveRecord) : Model<#(entityClassName)>()#else#(table.buildKtExtends(isBase))#end  {
 #for(column : table.columns)
     #set(comment = javadocConfig.formatColumnComment(column.comment))
-    #if(isNotBlank(comment))
+    #if(hasText(comment))
     /**
      * #(comment)
      */
     #end
     #set(annotations = column.buildAnnotations())
-    #if(isNotBlank(annotations))
+    #if(hasText(annotations))
     #(annotations)
     #end
     #if(withSwagger && swaggerVersion.getName() == "FOX")
@@ -45,7 +50,7 @@ open class #(entityClassName) #if(withActiveRecord) : Model<#(entityClassName)>(
     #if(withSwagger && swaggerVersion.getName() == "DOC")
     @Schema(description = "#(column.comment)")
     #end
-    open var #(column.property): #(column.propertySimpleType)? = #if(isNotBlank(column.propertyDefaultValue)) = #(column.propertyDefaultValue)#else null#end
+    open var #(column.property): #(column.propertySimpleType)? = #if(hasText(column.propertyDefaultValue)) = #(column.propertyDefaultValue)#else null#end
 
 #end
 }

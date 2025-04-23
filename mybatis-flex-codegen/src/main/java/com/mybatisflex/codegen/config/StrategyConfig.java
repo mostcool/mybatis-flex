@@ -34,10 +34,16 @@ import java.util.Set;
 public class StrategyConfig implements Serializable {
 
     private static final long serialVersionUID = 504853587703061034L;
+
     /**
      * 数据库表前缀，多个前缀用英文逗号（,） 隔开。
      */
     private String tablePrefix;
+
+    /**
+     * 数据库表后缀，多个后缀用英文逗号（,） 隔开。
+     */
+    private String tableSuffix;
 
     /**
      * 逻辑删除的默认字段名称。
@@ -63,6 +69,11 @@ public class StrategyConfig implements Serializable {
      * 设置某个列的全局配置。
      */
     private Map<String, ColumnConfig> columnConfigMap;
+
+    /**
+     * 自定义列配置工厂。
+     */
+    private ColumnConfigFactory columnConfigFactory;
 
     /**
      * 需要生成的表在哪个模式下
@@ -148,8 +159,12 @@ public class StrategyConfig implements Serializable {
     public ColumnConfig getColumnConfig(String tableName, String columnName) {
         ColumnConfig columnConfig = null;
 
+        if (columnConfigFactory != null) {
+            columnConfig = columnConfigFactory.getColumnConfig(tableName, columnName);
+        }
+
         TableConfig tableConfig = getTableConfig(tableName);
-        if (tableConfig != null) {
+        if (columnConfig == null && tableConfig != null) {
             columnConfig = tableConfig.getColumnConfig(columnName);
         }
 
@@ -202,6 +217,14 @@ public class StrategyConfig implements Serializable {
         return this;
     }
 
+    public ColumnConfigFactory getColumnConfigFactory() {
+        return columnConfigFactory;
+    }
+
+    public void setColumnConfigFactory(ColumnConfigFactory columnConfigFactory) {
+        this.columnConfigFactory = columnConfigFactory;
+    }
+
     /**
      * 设置生成哪些表。
      */
@@ -238,13 +261,13 @@ public class StrategyConfig implements Serializable {
 
 
     public boolean isSupportGenerate(String table) {
-        if (table == null || table.isEmpty() ){
+        if (table == null || table.isEmpty()) {
             return true;
         }
         if (unGenerateTables != null) {
             for (String unGenerateTable : unGenerateTables) {
                 // 使用正则表达式匹配表名
-                String regex = unGenerateTable.replace("*",".*");
+                String regex = unGenerateTable.replace("*", ".*");
                 if (table.matches(regex)) {
                     return false;
                 }
@@ -255,7 +278,7 @@ public class StrategyConfig implements Serializable {
             return true;
         }
         for (String generateTable : generateTables) {
-            String regex = generateTable.replace("*",".*");
+            String regex = generateTable.replace("*", ".*");
             if (table.matches(regex)) {
                 return true;
             }
@@ -276,6 +299,21 @@ public class StrategyConfig implements Serializable {
      */
     public StrategyConfig setTablePrefix(String... tablePrefix) {
         this.tablePrefix = StringUtil.join(",", tablePrefix);
+        return this;
+    }
+
+    /**
+     * 获取表后缀。
+     */
+    public String getTableSuffix() {
+        return tableSuffix;
+    }
+
+    /**
+     * 设置表后缀。
+     */
+    public StrategyConfig setTableSuffix(String... tableSuffix) {
+        this.tableSuffix = StringUtil.join(",", tableSuffix);
         return this;
     }
 

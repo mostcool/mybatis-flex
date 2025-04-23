@@ -44,38 +44,71 @@ public class FlexDataSource extends AbstractDataSource {
     private final Map<String, DataSource> dataSourceMap = new HashMap<>();
     private final Map<String, DbType> dbTypeHashMap = new HashMap<>();
 
-    private final DbType defaultDbType;
-    private final String defaultDataSourceKey;
-    private final DataSource defaultDataSource;
+    private DbType defaultDbType;
+    private String defaultDataSourceKey;
+    private DataSource defaultDataSource;
 
     public FlexDataSource(String dataSourceKey, DataSource dataSource) {
         this(dataSourceKey, dataSource, true);
     }
 
     public FlexDataSource(String dataSourceKey, DataSource dataSource, boolean needDecryptDataSource) {
+        this(dataSourceKey, dataSource, DbTypeUtil.getDbType(dataSource), needDecryptDataSource);
+    }
+
+    public FlexDataSource(String dataSourceKey, DataSource dataSource, DbType dbType, boolean needDecryptDataSource){
         if (needDecryptDataSource) {
             DataSourceManager.decryptDataSource(dataSource);
         }
 
+        // 处理dbType
+        dbType = Optional.ofNullable(dbType).orElse(DbTypeUtil.getDbType(dataSource));
+
         this.defaultDataSourceKey = dataSourceKey;
         this.defaultDataSource = dataSource;
-        this.defaultDbType = DbTypeUtil.getDbType(dataSource);
+        this.defaultDbType = dbType;
 
         dataSourceMap.put(dataSourceKey, dataSource);
-        dbTypeHashMap.put(dataSourceKey, defaultDbType);
+        dbTypeHashMap.put(dataSourceKey, dbType);
+    }
+
+    /**
+     * 设置默认数据源（提供动态可控性）
+     */
+    public void setDefaultDataSource(String dataSourceKey) {
+        DataSource ds = dataSourceMap.get(dataSourceKey);
+
+        if (Objects.isNull(ds)) {
+            throw new IllegalStateException("DataSource not found by key: \"" + dataSourceKey + "\"");
+        }
+
+        // 优先取缓存，否则根据数据源返回数据库类型
+        DbType dbType = Optional.ofNullable(dbTypeHashMap.get(dataSourceKey))
+            .orElse(DbTypeUtil.getDbType(ds));
+
+        this.defaultDataSourceKey = dataSourceKey;
+        this.defaultDataSource = ds;
+        this.defaultDbType = dbType;
     }
 
     public void addDataSource(String dataSourceKey, DataSource dataSource) {
         addDataSource(dataSourceKey, dataSource, true);
     }
 
-
     public void addDataSource(String dataSourceKey, DataSource dataSource, boolean needDecryptDataSource) {
+        addDataSource(dataSourceKey, dataSource, DbTypeUtil.getDbType(dataSource), needDecryptDataSource);
+    }
+
+    public void addDataSource(String dataSourceKey, DataSource dataSource, DbType dbType,boolean needDecryptDataSource) {
         if (needDecryptDataSource) {
             DataSourceManager.decryptDataSource(dataSource);
         }
+
+        dbType = Optional.ofNullable(dbTypeHashMap.get(dataSourceKey))
+            .orElse(DbTypeUtil.getDbType(dataSource));
+
         dataSourceMap.put(dataSourceKey, dataSource);
-        dbTypeHashMap.put(dataSourceKey, DbTypeUtil.getDbType(dataSource));
+        dbTypeHashMap.put(dataSourceKey, dbType);
     }
 
 
@@ -112,9 +145,9 @@ public class FlexDataSource extends AbstractDataSource {
     @Override
     public Connection getConnection() throws SQLException {
         String xid = TransactionContext.getXID();
-        if (StringUtil.isNotBlank(xid)) {
+        if (StringUtil.hasText(xid)) {
             String dataSourceKey = DataSourceKey.get();
-            if (StringUtil.isBlank(dataSourceKey)) {
+            if (StringUtil.noText(dataSourceKey)) {
                 dataSourceKey = defaultDataSourceKey;
             }
 
@@ -133,9 +166,9 @@ public class FlexDataSource extends AbstractDataSource {
     @Override
     public Connection getConnection(String username, String password) throws SQLException {
         String xid = TransactionContext.getXID();
-        if (StringUtil.isNotBlank(xid)) {
+        if (StringUtil.hasText(xid)) {
             String dataSourceKey = DataSourceKey.get();
-            if (StringUtil.isBlank(dataSourceKey)) {
+            if (StringUtil.noText(dataSourceKey)) {
                 dataSourceKey = defaultDataSourceKey;
             }
             Connection connection = TransactionalManager.getConnection(xid, dataSourceKey);
@@ -176,7 +209,8 @@ public class FlexDataSource extends AbstractDataSource {
     public Connection proxy(Connection connection, String xid) {
         return (Connection) Proxy.newProxyInstance(FlexDataSource.class.getClassLoader()
             , new Class[]{Connection.class}
-            , new ConnectionHandler(connection, xid));
+            , new ConnectionHandler(connection, xid)
+        );
     }
 
     /**
@@ -206,7 +240,7 @@ public class FlexDataSource extends AbstractDataSource {
         DataSource dataSource = defaultDataSource;
         if (dataSourceMap.size() > 1) {
             String dataSourceKey = DataSourceKey.get();
-            if (StringUtil.isNotBlank(dataSourceKey)) {
+            if (StringUtil.hasText(dataSourceKey)) {
                 //负载均衡 key
                 if (dataSourceKey.charAt(dataSourceKey.length() - 1) == LOAD_BALANCE_KEY_SUFFIX) {
                     String prefix = dataSourceKey.substring(0, dataSourceKey.length() - 1);
@@ -268,6 +302,4 @@ public class FlexDataSource extends AbstractDataSource {
         }
 
     }
-
-
 }

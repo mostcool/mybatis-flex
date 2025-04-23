@@ -18,7 +18,7 @@ mybatis-flex:
 
 在以上配置中，`ds1` 和 `ds2` 是由用户自定义的，我们可以理解为数据源的名称，或者数据源的 `key`，这个在动态切换数据库中非常有用。
 
-在无 Spring 框架的场景下，代码如下：
+在无 Spring 或 Solon 框架的场景下，代码如下：
 
 ```java
 DataSource dataSource1 = new HikariDataSource();
@@ -72,7 +72,7 @@ MyBatis-Flex 提供了 4 种方式来配置数据源：
 - 3、`@UseDataSource("dataSourceName")` 在 Mapper 方法上，添加注解，用于指定使用哪个数据源。
 - 4、`@Table(dataSource="dataSourceName")` 在 Entity 类上添加注解，该 Entity 的增删改查请求默认使用该数据源。
 
-> 在 SpringBoot 项目上，`@UseDataSource("dataSourceName")` 也可用于在 Controller 或者 Service 上。若是 Spring 项目（非 SpringBoot）,
+> 在 SpringBoot 或 Solon 项目上，`@UseDataSource("dataSourceName")` 也可用于在 Controller 或者 Service 类上。若是 Spring 项目（非 SpringBoot）,
 > 用户需要参考 `MultiDataSourceAutoConfiguration` 进行配置后才能使用。
 
 
@@ -105,6 +105,89 @@ interface AccountMapper extends BaseMapper{
 }
 ```
 
+`@UseDataSource(value = "#my_expression")`扩展数据源切换，表达式动态读取 key 值
+
+- 自定义表达式扩展，对接口 DataSourceProcessor 进行实现，推荐约定动态表达式以 `#` 作为起始标识(当然并不强制做要求)
+```java
+// 自定义基于Session的表达式取值示例
+public class InSessionDataSourceProcessor implements DataSourceProcessor {
+    private static final String SESSION_PREFIX = "#session";
+    @Override
+    public String process(String dataSourceKey, Object mapper, Method method, Object[] arguments) {
+        if (StrUtil.isBlank(dataSourceKey)) return null;
+        if (!dataSourceKey.startsWith(SESSION_PREFIX)) return null;
+
+        HttpServletRequest request = RequestContextHolder.get.....;
+        if (null==request) return null;
+        return request.getSession().getAttribute(dataSourceKey.substring(9)).toString();
+    }
+}
+```
+
+- 内置取值表达式取值解析处理器，作为示例参考
+    - `DelegatingDataSourceProcessor`，对`DataSourceProcessor`结构进行扩大和增强的委托类，多处理器推荐使用该委托类进行注入，注意委托类内使用`List`委托管理多个解析处理器，执行时有先后顺序。
+    - `ParamIndexDataSourceProcessor`，针对简单参数快速取值。
+    - `SpelExpressionDataSourceProcessor`，`Spring` 模式下 `SPEL` 表达式取值。
+- 注入动态数据源取值处理器
+
+```java
+// 注入顺序既为执行时的先后顺序(前面的处理器一旦正确处理，将不会再往下传递处理)
+DelegatingDataSourceProcessor dataSourceProcessor = DelegatingDataSourceProcessor.with(
+        // 参数索引快速取值的
+        new ParamIndexDataSourceProcessor(),
+        // Spel 表达式的
+        new SpelExpressionDataSourceProcessor(),
+        new .....等多个自行扩展表达式()
+);
+// 实例 setter 赋值
+DataSourceManager.setDataSourceProcessor(dataSourceProcessor);
+```
+
+- 应用示例：
+```java
+@Mapper
+public interface MyMapper extends BaseMapper<MyEntity >{
+    // 取值第一个参数的值（arg0的值）
+    @UseDataSource(value = "#first")
+    MyEntity testFirst(String arg0, String arg1, String arg2);
+
+    // 取值索引1(第二个参数 arg1 )的值
+    @UseDataSource(value = "#index1")
+    MyEntity testIndex(String arg0, String arg1, String arg2);
+
+    // 取值最后一个参数的值(arg3的值)
+    @UseDataSource(value = "#last")
+    MyEntity testLast(String arg0, String arg1, String arg2, String arg3);
+
+    // Spel 表达式取值数据源
+    @UseDataSource(value = "#condition.getDsId()")
+    MyEntity testSpel(MyDatasourceCondition condition);
+}
+```
+ - 调用
+```java
+public void test(){
+    // mapper中的注解 @UseDataSource(value = "#first")
+    myMapper.testFirst("my-dskey1", "arg1", "arg2");
+
+    // 取值索引1(第二个参数)的值；mapper中的注解 @UseDataSource(value = "#index1")
+    myMapper.testIndex("arg0", "my-dskey2", "arg2");
+
+    // mapper中的注解 @UseDataSource(value = "#last")
+    myMapper.testLast("arg0", "arg1", "arg2","my-dskey4");
+
+    MyDatasourceCondition condition = new MyDatasourceCondition();
+    condition.setDsId("my-dskey5");
+    // mapper中的注解 @UseDataSource(value = "#condition.getDsId()")
+    myMapper.testSpel(condition);
+}
+```
+
+- **注意：**
+    - 1：使用区分`Spring模式`和`非Spring`模式，`Spring`模式下，处理逻辑`DataSourceInterceptor`优先级高于 `FlexMapperProxy`，
+        所以`Spring模式下仅 DataSourceInterceptor 生效`(切面生效的前提下)。`非Spring` 模式下,`仅支持注解使用到 Mapper(Dao层)`,
+        使用到其他层(如Service层)不支持注解解析。
+    - 2：`Spring模式`下,不区分使用到程序的层(Controller、Service、Dao层都支持)，下层控制粒度细上层控制粒粗，使用时根据需要进行灵活应用。
 
 
 `@Table(dataSource="dataSourceName")` 示例：
@@ -123,7 +206,7 @@ public class Account {
 `DataSourceKey.use()` > `@UseDataSource()在方法上` > `@UseDataSource()在类上` >`@Table(dataSource="...")`
 :::
 
-## 更多的 Spring Yaml 配置支持
+## 更多的 Spring 或 Solon Yaml 配置支持
 ```yaml
 mybatis-flex:
   datasource:

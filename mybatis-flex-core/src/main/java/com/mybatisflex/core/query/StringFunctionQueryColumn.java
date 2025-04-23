@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2025, Mybatis-Flex (fuhai999@gmail.com).
+ *  Copyright (c) 2022-2024, Mybatis-Flex (fuhai999@gmail.com).
  *  <p>
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -59,19 +59,19 @@ public class StringFunctionQueryColumn extends QueryColumn {
     @Override
     public String toSelectSql(List<QueryTable> queryTables, IDialect dialect) {
         String sql = StringUtil.join(SqlConsts.DELIMITER, params);
-        if (StringUtil.isBlank(sql)) {
+        if (StringUtil.noText(sql)) {
             return SqlConsts.EMPTY;
         }
-        if (StringUtil.isBlank(alias)) {
+        if (StringUtil.noText(alias)) {
             return fnName + WrapperUtil.withBracket(sql);
         }
         return fnName + WrapperUtil.withAlias(sql, alias, dialect);
     }
 
     @Override
-    String toConditionSql(List<QueryTable> queryTables, IDialect dialect) {
+    protected String toConditionSql(List<QueryTable> queryTables, IDialect dialect) {
         String sql = StringUtil.join(SqlConsts.DELIMITER, params);
-        if (StringUtil.isBlank(sql)) {
+        if (StringUtil.noText(sql)) {
             return SqlConsts.EMPTY;
         }
         return fnName + WrapperUtil.withBracket(sql);
