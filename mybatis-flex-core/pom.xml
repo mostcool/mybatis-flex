@@ -5,10 +5,12 @@
     <parent>
         <artifactId>parent</artifactId>
         <groupId>com.mybatis-flex</groupId>
-        <version>1.10.9</version>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
+    <name>mybatis-flex-core</name>
     <artifactId>mybatis-flex-core</artifactId>
     <packaging>jar</packaging>
 
@@ -23,13 +25,13 @@
         <dependency>
             <groupId>com.mybatis-flex</groupId>
             <artifactId>mybatis-flex-annotation</artifactId>
-            <version>${mybatis-flex.version}</version>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.mybatis-flex</groupId>
             <artifactId>mybatis-flex-processor</artifactId>
-            <version>${mybatis-flex.version}</version>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
@@ -96,13 +98,6 @@
             <artifactId>sql-formatter</artifactId>
             <version>2.0.4</version>
             <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.mybatis-flex</groupId>
-            <artifactId>mybatis-flex-annotation</artifactId>
-            <version>1.10.9</version>
-            <scope>compile</scope>
         </dependency>
 
     </dependencies>

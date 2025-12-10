@@ -96,7 +96,12 @@ import java.util.stream.Stream;
  * @author 王帅
  */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnClass({SqlSessionFactory.class, SqlSessionFactoryBean.class})
+@ConditionalOnClass(
+    value = {SqlSessionFactory.class, SqlSessionFactoryBean.class},
+    name = {
+        "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration",
+    }
+)
 @ConditionalOnSingleCandidate(DataSource.class)
 @EnableConfigurationProperties(MybatisFlexProperties.class)
 @AutoConfigureAfter({DataSourceAutoConfiguration.class, MybatisLanguageDriverAutoConfiguration.class})

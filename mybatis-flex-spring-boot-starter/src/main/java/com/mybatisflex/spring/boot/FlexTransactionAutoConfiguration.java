@@ -39,7 +39,13 @@ import org.springframework.transaction.annotation.TransactionManagementConfigure
  *
  * @author michael
  */
-@ConditionalOnClass(Db.class)
+@ConditionalOnClass(
+    value = Db.class,
+    name = {
+        "org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration",
+        "org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration",
+    }
+)
 @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 @ConditionalOnMissingBean(TransactionManager.class)
 @Configuration(proxyBeanMethods = false)

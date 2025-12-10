@@ -2,6 +2,60 @@
 
 查看 [全部代码贡献者](/zh/intro/what-is-mybatisflex.html#贡献者)。
 
+## v1.11.4 20251113
+- 修复：修复 EXISTS、NOT EXISTS 的子 select 语句无法自动附加逻辑删除的问题，感谢 @Arowa_Z
+- 修复：@EnumValue 应用在接口方法且返回类型为泛型时失效的问题，感谢 @CShisan
+- 修复：人大金仓方言类型判断不准确的问题，感谢 @younger
+- 修复：RowKeyGenerator 的 autoKeyGeneratorNames 在某些情况下累积导致缓存污染的问题
+- 文档：修正示例代码中的语法错误，感谢 @涛声依旧
+
+
+
+## v1.11.3 20250926
+- 修复：QueryColumn.between_(values) 不能为 null 的问题 #ID03CH
+
+
+
+## v1.11.2 20250926
+- 新增：添加 Assert 方便在执行 update 的时候进行断言
+- 新增：添加新函数并增强数据库类型判断能力，感谢 @fangzhengjin
+- 新增：添加 stringAgg 和 listAgg 函数的重载方法，感谢 @fangzhengjin
+- 新增：添加新函数并增强数据库类型判断能力，感谢 @fangzhengjin
+- 新增：AuditMessage 添加 stmtId ，感谢 @pbnoyz
+- 优化：bom 框架版本统一管理，感谢 @ruansheng8
+- 优化：bom 同步最新版本依赖，感谢 @ruansheng8
+- 优化：优化关联查询使用逗号分割时排除空值，感谢 @ruansheng8
+- 修复：修复自动关联查询功能：表信息查找根据Schema+表名，感谢 @ruansheng8
+- 文档：更新相关文档 docs/zh/core/id.md，感谢 @java-coding
+
+
+
+## v1.11.1 20250725
+- 新增：添加数据源缺失处理器，方便项目启动后，再通过代码添加数据源
+- 新增：between 条件遇到 一个参数为 null 时自动转换成 LE 或 GE 逻辑 #ICKPDB
+- 新增：添加对 Spring Batch 的支持
+- 修复：动态添加数据源第二次切换数据源无效的问题 #ICLQQ3
+- 修复：Datasource lambda 的 orElse 是方法的话，会在执行 lambda 之前堆栈就调用了，那么 Optional 的逻辑就失去作用了
+- 测试：添加对 Spring Batch 的单元测试
+
+
+
+## v1.11.0 20250713
+- 新增：代码生成器 Column 支持带有范型的类型，感谢 @benshi
+- 新增：对于用户常用类，启用代码折叠支持，感谢 @hewei
+- 新增：Column 添加 setProperty 方法的支持，感谢 @benshi
+- 新增：增加 GBASE_8C、GBASE_8S_PG、GOLDENDB、SUNDB、VASTBASE、YASDB、PRESTO 驱动识别，感谢 @fangzhengjin
+- 新增：添加 loveqq-framework 启动器，感谢 @kfyty725
+- 优化：优化 `>=` 逻辑和 `<=` 逻辑保持一致，感谢 @fyh
+- 优化：调整 sqlserver 2008 版本的 DbType 为 SQLSERVER_2005，修复分页语句不支持 offset 问题，感谢 @all-around-badass
+- 修复：高斯数据库调整为无反义处理，避免严格大小写处理，感谢 @all-around-badass
+- 修复：在 join 多次相同的表时, 构建租户条件没能取到正确的别名，感谢 @gzkemays
+- 修复：在使用 UpdateChain 更新实体类字段时偶发 ClassCastException 异常问题，感谢 @iminifly
+- 修复：多环境导入相同 Mapper 冲突问题，感谢 @wcc1433
+- 文档：更新代码生成器的相关文档
+
+
+
 ## v1.10.9 20250319
 - 新增: 代码生成器支持配置 entity 类 lombok 注解生成 (@NoArgsConstructor, @AllArgsConstructor)，感谢 @coder-xiaomo
 - 新增：增加全局忽略 schema 配置的支持，感谢 @cui
