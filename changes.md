@@ -2,6 +2,34 @@
 
 查看 [全部代码贡献者](/zh/intro/what-is-mybatisflex.html#贡献者)。
 
+## v1.11.6 20260203
+* 新增: 为core模块引入JSpecify，并为主要接口增加空值注解，感谢 @zhongying
+* 新增: QueryMethods 增加 COALESCE 函数方法，感谢 @Yang
+* 优化: 更新带有可空注释的方法返回类型
+* 优化: 添加默认的类加载器实用程序方法和重构的LambdaUtil，以使用ClassUtil.getDefaultClassLoader而不是直接上下文类加载器
+* 优化: 将mybatis-spring依赖项更新到4.0.0版本
+* 优化: 完善@EnumValue强制实现类包含同名字段问题，修改为仅判断泛型方法时需要同名字段，感谢 @Crazy
+* 优化: 更新SpringBoot4依赖及文档说明，感谢 @陶志鹏
+
+
+## v1.11.5 20251224
+* 新增：新增 `mybatis-flex-spring-boot4-starter` 模块，支持 Spring Boot 4
+* 新增：引入 JSpecify 空值注解，用于 API 空值标注（不包含空值检查工具）
+* 新增：Query 模块新增 `OrderType` 获取方法，感谢 @ruansheng8
+* 新增：Core 模块新增 `getQueryColumn` 方法，感谢 @ruansheng8
+* 优化：统一 Core 模块的代码风格（`-m core`），感谢 @ruansheng8
+* 优化：删除语句中单主键条件的 SQL 拼接逻辑优化，感谢 @AXBest
+* 修复：带子查询场景下，分页优化误删 JOIN 的问题，感谢 @cybzzz
+* 修复：Base Entity 包路径替换逻辑不正确的问题，感谢 @LucasC
+* 修复：`mybatis-flex-test/mybatis-flex-seata-test` 模块中 `${project.version}` 缺少右大括号导致的 Maven 依赖错误
+* 调整：`mybatis-flex-solon-plugin` 中，当配置了 `mapperLocations` 但未注册 Mapper 时，日志级别由异常调整为 warn，感谢 @noear
+* 构建：新增 `mybatis-spring` 依赖，并添加 `mvn17.sh` 构建脚本
+* 构建：升级 Spring Boot 4 至 `v4.0.0`
+* 构建：移除未使用的 `spring-boot4` 版本属性
+* 构建：回滚 `maven-gpg-plugin` 的相关配置
+* 构建：在 `mybatis-flex-dependencies` 模块中引入 `mybatis-flex-spring-boot4-starter`
+
+
 ## v1.11.4 20251113
 - 修复：修复 EXISTS、NOT EXISTS 的子 select 语句无法自动附加逻辑删除的问题，感谢 @Arowa_Z
 - 修复：@EnumValue 应用在接口方法且返回类型为泛型时失效的问题，感谢 @CShisan
